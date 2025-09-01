@@ -3,13 +3,16 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import { useWizardStore } from "@/lib/wizard/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import StartFlowCTA from "@/components/wizard/StartFlowCTA";
 
 export default function StartContent() {
   const { toast } = useToast();
   const router = useRouter();
+  const { setJobId, setListingId } = useWizardStore(); // 👈 Wizard store hook'u
   const [open, setOpen] = React.useState(false);
   const [url, setUrl] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -59,6 +62,13 @@ export default function StartContent() {
         title: "İçerik üretimi başladı", 
         description: `İşlem kuyruğa alındı. Job ID: ${data.jobId?.slice(0, 8)}...` 
       });
+      
+      // 👇 JobId'yi wizard store'a TTL ile kaydet
+      setJobId(data.jobId, Date.now()); // ← başlangıç zamanı yalnızca burada set edilir
+      // ListingId'yi de kaydet (URL'den hash oluştur)
+      const listingId = data.listingId || 'listing_' + Date.now();
+      setListingId(listingId);
+      
       setOpen(false);
       setUrl("");
 
@@ -73,7 +83,7 @@ export default function StartContent() {
 
   return (
     <>
-      <Button onClick={onStart} size="lg">+ Yeni içerik üretimine başla</Button>
+      <StartFlowCTA onClick={onStart} size="lg">+ Yeni içerik üretimine başla</StartFlowCTA>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

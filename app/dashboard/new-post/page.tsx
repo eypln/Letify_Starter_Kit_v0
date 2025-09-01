@@ -14,6 +14,10 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, CheckCircle } from 'lucide-react'
 import StartContent from './_components/StartContent'
 import ContentDraftPanel from './_components/ContentDraftPanel'
+import Step2Upload from '@/components/wizard/step2-upload'
+import Step3Post from '@/components/wizard/step3-post'
+import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
+import CreateHeader from '@/components/wizard/CreateHeader'
 
 export default function NewPostPage() {
   const searchParams = useSearchParams();
@@ -60,16 +64,8 @@ export default function NewPostPage() {
   
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center space-x-3">
-          <Plus className="h-8 w-8" />
-          <span>Yeni Post Oluştur</span>
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          İlan linkinden otomatik içerik üret ve Facebook'ta paylaş
-        </p>
-      </div>
-
+      <ExpiredBannerFromQuery />
+      <CreateHeader />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card>
@@ -122,14 +118,10 @@ export default function NewPostPage() {
               {!jobId && <StartContent />}
               
               {/* Step 2: Upload Pictures */}
-              {step === 2 && (
-                <div className="p-6 border rounded-lg bg-yellow-50">
-                  <h3 className="text-lg font-semibold mb-2">2. Adım: Resim Yükleme</h3>
-                  <p className="text-sm text-gray-600">
-                    Bu adım henüz geliştirilmedi. İçerik kaydedildikten sonra resim yükleme alanı burada görünecek.
-                  </p>
-                </div>
-              )}
+              {step === 2 && <Step2Upload />}
+              
+              {/* Step 3: Share a Post */}
+              {step === 3 && <Step3Post />}
               
               {/* Steps 3-5: Placeholder for future development */}
               {step > 2 && (

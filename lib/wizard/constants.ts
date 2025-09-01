@@ -1,0 +1,1 @@
+export const JOB_TTL_MS = 15 * 60 * 1000; // 15 dakika

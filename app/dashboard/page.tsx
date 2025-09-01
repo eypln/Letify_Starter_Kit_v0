@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Plus, BarChart3, FileText, Users, Settings } from 'lucide-react'
+import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
 
 export default async function DashboardPage() {
   const user = await getUser()
@@ -24,7 +25,9 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <>
+      <ExpiredBannerFromQuery />
+      <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">
           Hoş geldin, {user.email?.split('@')[0]}!
@@ -185,5 +188,6 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
+    </>
   )
 }
