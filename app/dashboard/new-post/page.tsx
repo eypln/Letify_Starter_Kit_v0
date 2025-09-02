@@ -16,13 +16,20 @@ import StartContent from './_components/StartContent'
 import ContentDraftPanel from './_components/ContentDraftPanel'
 import Step2Upload from '@/components/wizard/step2-upload'
 import Step3Post from '@/components/wizard/step3-post'
+import Step4PrepareReels from '@/components/wizard/step4-prepare-reels'
+import Step5ShareReels from '@/components/wizard/step5-share-reels'
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
 import CreateHeader from '@/components/wizard/CreateHeader'
+import { useWizardStore } from '@/lib/wizard/store'
 
 export default function NewPostPage() {
   const searchParams = useSearchParams();
-  const step = Number(searchParams.get('step') || 1);
+  const urlStep = Number(searchParams.get('step') || 1);
   const jobId = searchParams.get('job');
+  const wizardStep = useWizardStore((s) => s.step);
+  
+  // Wizard store'dan gelen step'i kullan, URL'deki step sadece fallback
+  const step = wizardStep || urlStep;
 
   // Debug: Component render bilgisi
   React.useEffect(() => {
@@ -50,8 +57,8 @@ export default function NewPostPage() {
     },
     {
       step: 4,
-      title: 'Choose Best 5 + Prepare Reels',
-      description: 'WF#3, 5-6dk video üretim; video_url önizleme',
+      title: 'Prepare Reels',
+      description: '5 görsel seç, video template belirle, n8n ile render et',
       status: step >= 4 ? 'active' : 'pending',
     },
     {
@@ -111,8 +118,8 @@ export default function NewPostPage() {
                 ))}
               </div>
 
-              {/* Her zaman ContentDraftPanel'i göster - kendi içinde jobId kontrolü yapacak */}
-              <ContentDraftPanel />
+              {/* Step 1: İçerik ve ContentDraftPanel */}
+              {step === 1 && <ContentDraftPanel />}
               
               {/* Eğer jobId yoksa StartContent'i de göster */}
               {!jobId && <StartContent />}
@@ -123,15 +130,11 @@ export default function NewPostPage() {
               {/* Step 3: Share a Post */}
               {step === 3 && <Step3Post />}
               
-              {/* Steps 3-5: Placeholder for future development */}
-              {step > 2 && (
-                <div className="p-6 border rounded-lg bg-gray-50">
-                  <h3 className="text-lg font-semibold mb-2">{step}. Adım</h3>
-                  <p className="text-sm text-gray-600">
-                    Bu adım henüz geliştirilmedi.
-                  </p>
-                </div>
-              )}
+              {/* Step 4: Prepare Reels */}
+              {step === 4 && <Step4PrepareReels />}
+              
+              {/* Step 5: Share Reels */}
+              {step === 5 && <Step5ShareReels />}
             </CardContent>
           </Card>
         </div>

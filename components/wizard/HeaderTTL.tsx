@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useWizardStore } from '@/lib/wizard/store';
 import { useRouter } from 'next/navigation';
 
-const JOB_TTL_MS = 15 * 60 * 1000; // 15 dk
+// Geliştirme için 3 saat; prod'da 15 dk: 15 * 60 * 1000
+const JOB_TTL_MS = 3 * 60 * 60 * 1000;
 
 export default function HeaderTTL() {
   const router = useRouter();
@@ -13,40 +14,50 @@ export default function HeaderTTL() {
   const intervalRef = useRef<number | null>(null);
   const timeoutRef  = useRef<number | null>(null);
 
-  // 🔧 Hook'lar HER ZAMAN çağrılır; iş yapmayı içeride şartla kesiyoruz
-  useEffect(() => {
-    // Eski timerları temizle (StrictMode'da iki kez mount/cleanup olabilir)
+  const endFlow = () => {
+    if (firedRef.current) return;
+    firedRef.current = true;
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+    clear();
+    router.replace('/dashboard?expired=1');
+  };
 
-    if (!jobStartedAt) return; // akış başlamadıysa timer kurma
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+    if (!jobStartedAt) return;
 
     intervalRef.current = window.setInterval(() => setNow(Date.now()), 1000);
 
     const msLeft = Math.max(0, JOB_TTL_MS - (Date.now() - jobStartedAt));
-    timeoutRef.current = window.setTimeout(() => {
-      if (firedRef.current) return;
-      firedRef.current = true;
-      clear();                           // state temizle
-      router.replace('/dashboard?expired=1'); // yönlendir
-    }, msLeft);
+    timeoutRef.current = window.setTimeout(endFlow, msLeft);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current)  clearTimeout(timeoutRef.current);
     };
-  }, [jobStartedAt, clear, router]);
+  }, [jobStartedAt]); // clear/router stable
 
-  // Görsel gösterim yoksa burada kesebiliriz (hook'lar yukarıda zaten çağrıldı)
   if (!jobStartedAt) return null;
 
   const remaining = Math.max(0, JOB_TTL_MS - (now - jobStartedAt));
   const mm = String(Math.floor(remaining / 60000)).padStart(2, '0');
   const ss = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+  const isLow = remaining < 120000;
 
   return (
-    <span className={`text-sm ${remaining < 120000 ? 'text-red-600' : 'text-gray-600'}`}>
-      ⏱ {mm}:{ss}
-    </span>
+    <div className="flex items-center gap-2">
+      <span className={`text-sm ${isLow ? 'text-red-600' : 'text-gray-600'}`}>⏱ {mm}:{ss}</span>
+      {/* Sadece Stop */}
+      <button
+        type="button"
+        onClick={endFlow}
+        className="inline-flex items-center rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
+        title="Akışı durdur ve çık"
+      >
+        Stop
+      </button>
+    </div>
   );
 }

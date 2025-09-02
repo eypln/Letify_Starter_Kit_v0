@@ -1,6 +1,7 @@
 'use client';
 import { useJobGuard } from '@/lib/wizard/useJobGuard';
 import { useWizardStore } from '@/lib/wizard/store';
+import PostProgressInline from './PostProgressInline';
 
 function Spinner() {
   return (
@@ -32,16 +33,7 @@ export default function Step3Post() {
       )}
 
       {postStatus === 'done' && (
-        <div className="rounded-xl border p-6">
-          <div className="text-sm">Paylaşım tamamlandı.</div>
-          {postUrl ? (
-            <a href={postUrl} target="_blank" className="mt-2 inline-block rounded-lg bg-green-600 px-3 py-2 text-sm text-white">
-              Paylaşımı Gör
-            </a>
-          ) : (
-            <div className="mt-2 text-sm text-amber-700">Post URL bulunamadı; n8n yanıtını kontrol edin.</div>
-          )}
-        </div>
+        <PostProgressInline />
       )}
 
       {postStatus === 'error' && (

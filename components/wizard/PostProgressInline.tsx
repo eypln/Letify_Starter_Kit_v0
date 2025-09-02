@@ -1,62 +1,58 @@
 'use client';
 import { useWizardStore } from '@/lib/wizard/store';
-import { useUploadStore } from '@/lib/uploads/store';
 
 export default function PostProgressInline() {
-  const { postStatus, postUrl, postError, jobId } = useWizardStore();
-  const { images } = useUploadStore();
-  const count = images.filter(i => i.jobId === jobId).length;
+  const postStatus = useWizardStore((s) => s.postStatus);
+  const postUrl    = useWizardStore((s) => s.postUrl);
+  const setStep    = useWizardStore((s) => s.setStep);
 
-  if (postStatus === 'idle') return null;
+  const goStep4 = () => {
+    setStep(4); // Step 4'e geç
+    // Step-4 paneline nazikçe kaydır
+    requestAnimationFrame(() => {
+      document.getElementById('step-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
-  if (postStatus === 'running') {
-    return (
-      <div className="mt-4 rounded-xl border p-4">
-        <div className="flex items-center gap-2 text-sm text-gray-700">
-          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.2" />
-            <path d="M4 12a8 8 0 0 1 8-8" fill="none" stroke="currentColor" strokeWidth="4" />
-          </svg>
-          Paylaşım hazırlanıyor… ({count} görsel) ~1–2 dk sürebilir.
-        </div>
-        {/* indeterminate progress bar */}
-        <div className="mt-3 h-2 w-full overflow-hidden rounded bg-gray-200">
-          <div className="h-full w-1/3 animate-[progress_1.2s_linear_infinite] bg-gray-500" />
-        </div>
-        <style jsx>{`
-          @keyframes progress {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(50%); }
-            100% { transform: translateX(200%); }
-          }
-        `}</style>
-      </div>
-    );
+  // Sadece done durumunda göster
+  if (postStatus !== 'done') {
+    return null;
   }
 
-  if (postStatus === 'done') {
-    return (
-      <div className="mt-4 rounded-xl border p-4">
-        <div className="text-sm text-green-700">Paylaşım tamamlandı.</div>
+  return (
+    <div className="rounded-xl border p-6">
+      <div className="text-sm">Paylaşım tamamlandı.</div>
+
+      <div className="mt-4 flex items-center gap-3">
+        {/* Paylaşımı Gör */}
         {postUrl ? (
           <a
             href={postUrl}
             target="_blank"
-            className="mt-2 inline-block rounded-lg bg-green-600 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
           >
             Paylaşımı Gör
           </a>
         ) : (
-          <div className="mt-2 text-sm text-amber-700">Post URL bulunamadı; n8n yanıtını kontrol edin.</div>
+          <button
+            type="button"
+            disabled
+            className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
+            title="Post URL bulunamadı"
+          >
+            Paylaşımı Gör
+          </button>
         )}
-      </div>
-    );
-  }
 
-  // error
-  return (
-    <div className="mt-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-      Bir hata oluştu: {postError}
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={goStep4}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useWizardStore } from "@/lib/wizard/store";
 
 type JobRow = {
   id: string;
@@ -19,6 +20,7 @@ export default function ContentDraftPanel() {
   const sp = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { setStep } = useWizardStore();
 
   const jobId = sp.get("job") ?? "";
 
@@ -34,7 +36,11 @@ export default function ContentDraftPanel() {
 
   // Debug: Component render edildiğinde konsola yazdır
   React.useEffect(() => {
-    console.log('🚀 ContentDraftPanel rendered!', { jobId, searchParams: sp.toString() });
+    console.log('🚀 ContentDraftPanel rendered!', { 
+      jobId, 
+      currentStep: new URLSearchParams(window.location.search).get('step') || '1',
+      searchParams: sp.toString() 
+    });
   }, [jobId, sp]);
 
   // Polling effect - job status kontrolü
@@ -128,6 +134,13 @@ export default function ContentDraftPanel() {
       return;
     }
 
+    // İstersen kullanıcıyı bekletmeden hemen 2. adıma geçir:
+    setStep(2);
+    // Step-2 paneline nazikçe kaydır:
+    requestAnimationFrame(() => {
+      document.getElementById('step-2')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
     setLoading(true);
     try {
       const res = await fetch("/api/webhooks/save", {
@@ -138,11 +151,7 @@ export default function ContentDraftPanel() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.message || "Kaydedilemedi");
 
-      toast({ title: "Kaydedildi", description: "İçerik kaydedildi, 2. adıma geçiyoruz." });
-
-      const p = new URLSearchParams(sp.toString());
-      p.set("step", "2");
-      router.push(`/dashboard/new-post?${p.toString()}`);
+      toast({ title: "Kaydedildi", description: "İçerik kaydedildi, 2. adıma geçildi." });
     } catch (e: any) {
       toast({ title: "Hata", description: e?.message ?? "Bilinmeyen hata", variant: "destructive" });
     } finally {
@@ -182,7 +191,7 @@ export default function ContentDraftPanel() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={onSave} disabled={loading || !draft.trim()}>
+            <Button type="button" onClick={onSave} disabled={loading || !draft.trim()}>
               {loading ? "Kaydediliyor..." : "Kaydet ve 2. Adıma Geç"}
             </Button>
           </div>

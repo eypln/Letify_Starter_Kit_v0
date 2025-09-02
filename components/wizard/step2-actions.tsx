@@ -41,8 +41,12 @@ export default function Step2Actions() {
       if (!res.ok) throw new Error(data?.error || 'Workflow failed');
 
       const postUrl = data?.result?.post_url || data?.post_url || '';
+      console.log('🔍 n8n response:', { data, postUrl, hasPostUrl: !!postUrl });
+      
       finishPost(postUrl);
+      console.log('🎉 finishPost çağrıldı, postStatus done olmalı');
     } catch (e: any) {
+      console.log('❌ Post hatası:', e);
       failPost(e.message || 'unknown error');
     } finally {
       setBusy(false);

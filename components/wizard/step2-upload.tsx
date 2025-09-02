@@ -8,7 +8,7 @@ import PostProgressInline from './PostProgressInline';
 export default function Step2Upload() {
   useStepMarker(2);
   return (
-    <section className="space-y-4">
+    <section id="step-2" className="space-y-4">
       <Uploader />
       <UploadGrid />
       <Step2Actions />
