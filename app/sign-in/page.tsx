@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label'
 
 export default function SignInPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,13 +21,42 @@ export default function SignInPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      window.location.href = '/dashboard'
+      console.log('Attempting login...') // Debug log
+      
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      })
+      
+      if (error) {
+        console.error('Supabase auth error:', error) // Debug log
+        throw error
+      }
+      
+      console.log('Login successful, user:', data.user) // Debug log
+      
+      // Check if user exists and is authenticated
+      if (data.user) {
+        toast({ 
+          title: 'Başarılı!', 
+          description: 'Giriş yapıldı, dashboard\'a yönlendiriliyorsunuz...' 
+        })
+        
+        // Small delay to let the authentication state propagate
+        setTimeout(() => {
+          router.push('/dashboard/profile') // Start with profile page first
+          router.refresh() // Refresh to update server-side authentication state
+        }, 500)
+      }
     } catch (err: any) {
       console.error('signIn error:', err)
-      toast({ title: 'Giriş hatası', description: String(err.message || err), variant: 'destructive' })
+      toast({ 
+        title: 'Giriş hatası', 
+        description: String(err.message || 'Bir hata oluştu'), 
+        variant: 'destructive' 
+      })
     } finally {
       setLoading(false)
     }

@@ -1,7 +1,12 @@
 import { getUser, getProfile } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
+import { LogOut } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -24,17 +29,64 @@ export default async function DashboardPage() {
     redirect('/sign-in')
   }
 
+  return <DashboardClient user={user} profile={profile} />
+}
+
+export function DashboardClient({ user, profile }: { user: any; profile: any }) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const supabase = createClient()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Çıkış yapılırken bir hata oluştu')
+      }
+
+      // Redirect to sign-in page
+      router.push('/sign-in')
+      router.refresh()
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast({
+        title: 'Hata',
+        description: 'Çıkış yapılırken bir hata oluştu',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
-    <>
-      <ExpiredBannerFromQuery />
-      <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
-          Hoş geldin, {user.email?.split('@')[0]}!
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Letify platformunda içerik üretmeye hazır mısın?
-        </p>
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            Hoş geldin, {user.email?.split('@')[0]}!
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Letify platformunda içerik üretmeye hazır mısın?
+          </p>
+        </div>
+        <Button 
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          variant="outline"
+          className="mt-4 sm:mt-0 flex items-center gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -188,6 +240,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-    </>
   )
 }
