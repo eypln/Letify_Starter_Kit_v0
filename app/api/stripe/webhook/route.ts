@@ -1,147 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
-import { addCredits } from '@/lib/billing';
-import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import { NextResponse } from "next/server";
+import type Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
+import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE!
-);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const signature = request.headers.get('stripe-signature');
-
-  if (!signature) {
-    return NextResponse.json({ error: 'No signature' }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
-
+export async function POST(req: Request) {
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+    const sig = req.headers.get("stripe-signature") || "";
+    const raw = await req.text();
+
+    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: "Missing signature/secret" }, { status: 400 });
+    }
+    if (!raw) return NextResponse.json({ error: "Empty body" }, { status: 400 });
+
+    const event: Stripe.Event = stripe.webhooks.constructEvent(
+      raw,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
     );
-  } catch (error) {
-    console.error('Webhook signature verification failed:', error);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
 
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.user_id;
+    const supa = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE! // service role şart
+    );
 
-        if (!userId) {
-          console.error('No user_id in session metadata');
-          break;
+    // Yalnızca checkout sonrası çalışıyoruz (abonelik + kredi)
+    if (event.type === "checkout.session.completed") {
+      const s = event.data.object as Stripe.Checkout.Session;
+
+      // ---- user_id’yi bul (3 yol)
+      const customerId = (s.customer as string) || null;
+      let userId =
+        (s.metadata?.user_id as string) ||
+        (s.client_reference_id as string) ||
+        null;
+
+      if (!userId && customerId) {
+        const { data: mapRow, error: mapErr } = await supa
+          .from("billing_customers")
+          .select("user_id")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+        if (mapErr) console.error("lookup by customer error:", mapErr);
+        userId = mapRow?.user_id || null;
+      }
+
+      // ---- user↔customer mapping'i garanti et
+      if (userId && customerId) {
+        const { error: upMapErr } = await supa
+          .from("billing_customers")
+          .upsert({ user_id: userId, stripe_customer_id: customerId }, { onConflict: "user_id" });
+        if (upMapErr) console.error("upsert map error:", upMapErr);
+      }
+
+      // ---- KREDİ işlemi: mode=payment
+      if (s.mode === "payment" && userId) {
+        // 1) Önce metadata.amount (varsa)
+        let creditsToAdd = Number(s.metadata?.amount ?? 0);
+
+        // 2) Yoksa STRIPE toplamını kullan (amount_total: cents)
+        if (!Number.isFinite(creditsToAdd) || creditsToAdd <= 0) {
+          if (typeof s.amount_total === "number") {
+            creditsToAdd = Math.round(s.amount_total / 100); // 1 birim para = 1 kredi (EUR/USD fark etmeksizin)
+          } else {
+            creditsToAdd = 0;
+          }
         }
 
-        if (session.mode === 'subscription') {
-          // Handle subscription checkout
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          
-          await supabase.from('billing_subscriptions').upsert({
+        if (creditsToAdd > 0) {
+          // Ledger kaydı
+          const { error: ledErr } = await supa.from("billing_credit_ledger").insert({
             user_id: userId,
-            stripe_subscription_id: subscription.id,
-            stripe_customer_id: subscription.customer as string,
-            status: subscription.status,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-            cancel_at_period_end: (subscription as any).cancel_at_period_end,
-            plan_type: session.metadata?.plan_type as 'mini' | 'full',
-            billing_cycle: session.metadata?.billing_cycle as 'monthly' | 'yearly' || 'monthly',
-          }, { onConflict: 'stripe_subscription_id' });
-
-        } else if (session.mode === 'payment' && session.metadata?.type === 'credits') {
-          // Handle credit purchase
-          const creditAmount = parseInt(session.metadata.credit_amount || '0');
-          const paymentIntent = session.payment_intent as string;
-
-          await supabase.from('billing_payments').upsert({
-            user_id: userId,
-            stripe_payment_intent_id: paymentIntent,
-            amount_cents: session.amount_total || 0,
-            currency: session.currency || 'eur',
-            status: 'succeeded',
-            credit_amount: creditAmount,
-          }, { onConflict: 'stripe_payment_intent_id' });
-
-          // Add credits to user's account
-          await addCredits(userId, creditAmount, {
-            reason: `Credit purchase: ${creditAmount} credits`,
-            payment_intent_id: paymentIntent,
+            delta: creditsToAdd,
+            reason: "purchase",
+            stripe_payment_intent_id: String(s.payment_intent ?? ""),
+            stripe_invoice_id: (s.invoice as string) || null,
           });
+          if (ledErr) console.error("insert ledger error:", ledErr);
+
+          // Bakiye artır
+          const { data: bc, error: selErr } = await supa
+            .from("billing_customers")
+            .select("credits")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (selErr) console.error("select credits error:", selErr);
+
+          const nextCredits = (bc?.credits ?? 0) + creditsToAdd;
+          const { error: upCredErr } = await supa
+            .from("billing_customers")
+            .upsert({ user_id: userId, credits: nextCredits }, { onConflict: "user_id" });
+          if (upCredErr) console.error("upsert credits error:", upCredErr);
+        } else {
+          console.log("[WEBHOOK] payment completed but creditsToAdd=0 (no metadata.amount & no amount_total)");
         }
-        break;
       }
 
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.user_id;
-
-        if (!userId) {
-          console.error('No user_id in subscription metadata');
-          break;
-        }
-
-        await supabase.from('billing_subscriptions').update({
-          status: subscription.status,
-          current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-          current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-          cancel_at_period_end: (subscription as any).cancel_at_period_end,
-        }).eq('stripe_subscription_id', subscription.id);
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.user_id;
-
-        if (!userId) {
-          console.error('No user_id in subscription metadata');
-          break;
-        }
-
-        await supabase.from('billing_subscriptions').update({
-          status: 'canceled',
-        }).eq('stripe_subscription_id', subscription.id);
-        break;
-      }
-
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        
-        // Update payment status if it exists
-        await supabase.from('billing_payments').update({
-          status: 'succeeded',
-        }).eq('stripe_payment_intent_id', paymentIntent.id);
-        break;
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        
-        await supabase.from('billing_payments').update({
-          status: 'failed',
-        }).eq('stripe_payment_intent_id', paymentIntent.id);
-        break;
-      }
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
+      // Abonelik (mode=subscription) için şu an yalnızca mapping yapıyoruz.
+      // İstersen ileride billing_subscriptions / billing_payments tablolarını da burada doldururuz.
     }
 
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    // Her durumda 200
+    return NextResponse.json({ received: true }, { status: 200 });
+  } catch (err) {
+    console.error("webhook fatal:", err);
+    return NextResponse.json({ received: true }, { status: 200 });
   }
 }

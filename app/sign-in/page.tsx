@@ -46,7 +46,7 @@ export default function SignInPage() {
         
         // Small delay to let the authentication state propagate
         setTimeout(() => {
-          router.push('/dashboard/profile') // Start with profile page first
+          router.push('/dashboard') // Redirect to dashboard after login
           router.refresh() // Refresh to update server-side authentication state
         }, 500)
       }

@@ -26,7 +26,6 @@ export async function upsertIntegration(data: IntegrationFormData) {
           user_id: user.id,
           fb_page_id: validatedData.fb_page_id,
           fb_access_token: validatedData.fb_access_token,
-          fb_app_secret: validatedData.fb_app_secret,
         },
         {
           onConflict: 'user_id',

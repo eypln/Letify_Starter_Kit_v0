@@ -19,7 +19,16 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-4xl mx-auto p-6 space-y-8 relative">
+      {/* Dashboard'a dönüş butonu sağ üstte */}
+      <div className="absolute top-6 right-8 z-10">
+        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-gray-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
+        </a>
+      </div>
       <div>
         <h1 className="text-3xl font-bold">Profil</h1>
         <p className="text-muted-foreground">

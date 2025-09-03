@@ -192,7 +192,11 @@ export default function SubscriptionPage() {
 
       const data = await response.json();
       if (data.url) {
+        // Kredi satın alma sonrası, kullanıcı subscription sayfasına dönerse bakiyeyi güncelle
         window.location.href = data.url;
+        setTimeout(() => {
+          loadBillingData();
+        }, 2000); // Stripe webhook gecikmesi için kısa bir bekleme
       } else {
         throw new Error('No checkout URL received');
       }
@@ -208,32 +212,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleBillingPortal = async () => {
-    setCheckoutLoading('billing-portal');
-    try {
-      const response = await fetch('/api/stripe/billing-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
 
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No billing portal URL received');
-      }
-    } catch (error) {
-      console.error('Error opening billing portal:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to open billing portal. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
 
   const handleEnterpriseContact = () => {
     window.open('mailto:sales@letify.cloud?subject=Enterprise Plan Inquiry', '_blank');
@@ -253,7 +232,16 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+  <div className="max-w-6xl mx-auto p-6 space-y-8 relative">
+      {/* Dashboard'a dönüş butonu sağ üstte */}
+      <div className="absolute top-6 right-8 z-10">
+        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-gray-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
+        </a>
+      </div>
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Subscription & Billing
@@ -331,30 +319,10 @@ export default function SubscriptionPage() {
         <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
           {subscription && (
             <>
-              <Button 
-                onClick={handleBillingPortal} 
-                disabled={checkoutLoading === 'billing-portal'}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {checkoutLoading === 'billing-portal' ? 'Loading...' : 'Upgrade Plan'}
-              </Button>
-              <Button 
-                onClick={handleBillingPortal} 
-                variant="outline"
-                disabled={checkoutLoading === 'billing-portal'}
-                className="border-red-200 text-red-600 hover:bg-red-50"
-              >
-                Cancel Plan
-              </Button>
+
             </>
           )}
-          <Button 
-            onClick={handleBillingPortal} 
-            variant="outline"
-            disabled={checkoutLoading === 'billing-portal'}
-          >
-            {checkoutLoading === 'billing-portal' ? 'Loading...' : 'Billing Portal'}
-          </Button>
+
           {subscription && (
             <div className="flex items-center gap-2 ml-auto">
               <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>

@@ -37,9 +37,8 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
   } = useForm<IntegrationFormData>({
     resolver: zodResolver(IntegrationFormSchema),
     defaultValues: {
-      fb_page_id: integrations?.fb_page_id || '',
-      fb_access_token: integrations?.fb_access_token || '',
-      fb_app_secret: integrations?.fb_app_secret || '',
+  fb_page_id: integrations?.fb_page_id || '',
+  fb_access_token: integrations?.fb_access_token || '',
     },
   })
 
@@ -126,22 +125,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="fb_app_secret">Facebook App Secret *</Label>
-            <Input
-              id="fb_app_secret"
-              type="password"
-              placeholder="abc123..."
-              {...register('fb_app_secret')}
-              disabled={isLoading}
-            />
-            {errors.fb_app_secret && (
-              <p className="text-sm text-red-600">{errors.fb_app_secret.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Facebook uygulamanızın gizli anahtarı
-            </p>
-          </div>
+          {/* Facebook App Secret alanı kaldırıldı */}
 
           <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
