@@ -1,82 +1,97 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { stripe, PRICES } from '@/lib/stripe';
-import { getOrCreateStripeCustomer } from '@/lib/billing';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
-const CheckoutSchema = z.object({
-  plan: z.enum(['mini', 'full']),
-  billing: z.enum(['monthly', 'yearly']).default('monthly'),
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-});
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+type Body = { plan: "mini" | "full"; cycle?: "monthly" | "yearly" };
+
+function pickPrice(plan: "mini" | "full", cycle: "monthly" | "yearly") {
+  const env = process.env;
+  if (plan === "mini") {
+    const yearly = env.STRIPE_PRICE_MINI_YEARLY;
+    const monthly = env.STRIPE_PRICE_MINI_MONTHLY;
+    return cycle === "yearly" ? (yearly || monthly) : (monthly || yearly);
+  } else {
+    const yearly = env.STRIPE_PRICE_FULL_YEARLY;
+    const monthly = env.STRIPE_PRICE_FULL_MONTHLY;
+    return cycle === "yearly" ? (yearly || monthly) : (monthly || yearly);
+  }
+}
+
+export async function POST(req: Request) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1) Auth: kullanıcıyı cookie üzerinden al (client token'a gerek yok)
+    const cookieStore = cookies();
+    const supaUser = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (key) => cookieStore.get(key)?.value,
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
+    const { data: { user } } = await supaUser.auth.getUser();
+    if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const body = (await req.json()) as Body;
+    const plan = body.plan;
+    const cycle = body.cycle ?? "monthly";
 
-    const body = await request.json();
-    const validation = CheckoutSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: validation.error.errors },
-        { status: 400 }
-      );
-    }
-
-    const { plan, billing, successUrl, cancelUrl } = validation.data;
-
-    // Get or create Stripe customer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', user.id)
-      .single();
-
-    const customerId = await getOrCreateStripeCustomer(
-      user.id,
-      profile?.email || user.email
+    // 2) Stripe customer'ı bul/oluştur + Supabase'te map'le
+    const svc = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE! // service-role şart
     );
 
-    // Create checkout session
+    let stripeCustomerId: string | null = null;
+    const { data: bc } = await svc
+      .from("billing_customers")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    stripeCustomerId = bc?.stripe_customer_id ?? null;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({ email: user.email ?? undefined, metadata: { user_id: user.id } });
+      stripeCustomerId = customer.id;
+      const { error: mapErr } = await svc
+        .from("billing_customers")
+        .upsert({ user_id: user.id, stripe_customer_id: stripeCustomerId, credits: 0 }, { onConflict: "user_id" });
+      if (mapErr) console.error("upsert billing_customers map error:", mapErr);
+    }
+
+    // 3) Price ID seç (yearly yoksa monthly'e düş)
+    const PRICE = pickPrice(plan, cycle);
+    if (!PRICE) {
+      return NextResponse.json({ error: "Missing Stripe Price ID(s). Check .env.local" }, { status: 400 });
+    }
+
+    // 4) Checkout Session (metadata'lar kritik)
+    const meta = { type: "subscription", user_id: user.id, plan, billing_cycle: cycle };
+
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: PRICES.subscription[plan][billing],
-          quantity: 1,
-        },
-      ],
-      success_url: successUrl || `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?success=true`,
-      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?canceled=true`,
-      metadata: {
-        user_id: user.id,
-        plan_type: plan,
-        billing_cycle: billing,
-      },
-      subscription_data: {
-        metadata: {
-          user_id: user.id,
-          plan_type: plan,
-          billing_cycle: billing,
-        },
-      },
+      mode: "subscription",
+      customer: stripeCustomerId!,
+      line_items: [{ price: PRICE, quantity: 1 }],
+      allow_promotion_codes: true,
+      client_reference_id: user.id,
+      metadata: meta,
+      subscription_data: { metadata: meta },
+      success_url: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?success=1`,
+      cancel_url: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?canceled=1`,
     });
 
-    return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error('Stripe checkout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ url: session.url }, { status: 200 });
+  } catch (e: any) {
+    console.error("checkout/subscription error:", e?.message || e);
+    // Hata mesajını UI'a net döndür (debug kolay olsun)
+    return NextResponse.json({ error: String(e?.message || "server error") }, { status: 500 });
   }
 }

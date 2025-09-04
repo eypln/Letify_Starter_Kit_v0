@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useBillingController } from './useBillingController';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,133 +105,18 @@ const SUBSCRIPTION_PLANS = [
       'For agencies and teams',
       'Contact us for pricing!'
     ],
-    icon: Users,
-    popular: false,
+  icon: Users,
+  popular: false,
     buttonText: 'Contact Sales',
     disabled: false,
   },
 ] as const;
 
 export default function SubscriptionPage() {
-  const [billing, setBilling] = useState<BillingCustomer | null>(null);
-  const [subscription, setSubscription] = useState<BillingSubscription | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const { toast } = useToast();
-  const supabase = createClient();
-
-  useEffect(() => {
-    loadBillingData();
-  }, []);
-
-  const loadBillingData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Load billing customer data
-      const { data: billingData } = await supabase
-        .from('billing_customers')
-        .select('credits')
-        .eq('user_id', user.id)
-        .single();
-
-      setBilling(billingData);
-
-      // Load subscription data
-      const { data: subscriptionData } = await supabase
-        .from('billing_subscriptions')
-        .select('status, plan_type, billing_cycle, current_period_start, current_period_end, cancel_at_period_end')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-
-      setSubscription(subscriptionData);
-    } catch (error) {
-      console.error('Error loading billing data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubscriptionCheckout = async (plan: 'mini' | 'full') => {
-    setCheckoutLoading(`subscription-${plan}-${billingCycle}`);
-    try {
-      const response = await fetch('/api/stripe/checkout/subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, billing: billingCycle }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to start checkout process. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-  const handleCreditCheckout = async (credits: number) => {
-    setCheckoutLoading(`credits-${credits}`);
-    try {
-      const response = await fetch('/api/stripe/checkout/credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credits: credits.toString() }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        // Kredi satın alma sonrası, kullanıcı subscription sayfasına dönerse bakiyeyi güncelle
-        window.location.href = data.url;
-        setTimeout(() => {
-          loadBillingData();
-        }, 2000); // Stripe webhook gecikmesi için kısa bir bekleme
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to start checkout process. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-
-
-  const handleEnterpriseContact = () => {
-    window.open('mailto:sales@letify.cloud?subject=Enterprise Plan Inquiry', '_blank');
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading billing information...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  const { buySubscription, buyCredit, openPortal, refresh,
+    loadingKey, errorMsg, infoMsg, testMode,
+    userId, credits, sub } = useBillingController();
   return (
   <div className="max-w-6xl mx-auto p-6 space-y-8 relative">
       {/* Dashboard'a dönüş butonu sağ üstte */}
@@ -256,11 +142,7 @@ export default function SubscriptionPage() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Plan Type</p>
             <p className="text-lg font-semibold">
-              {subscription ? (
-                `${subscription.plan_type === 'mini' ? 'Mini' : 'Full'} Plan`
-              ) : (
-                'Free Plan'
-              )}
+              {sub ? `${sub.plan_type === 'mini' ? 'Mini' : 'Full'} Plan` : 'Free Plan'}
             </p>
           </div>
 
@@ -268,11 +150,7 @@ export default function SubscriptionPage() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Start Date</p>
             <p className="text-lg font-semibold">
-              {subscription ? (
-                new Date(subscription.current_period_start || new Date()).toLocaleDateString()
-              ) : (
-                'N/A'
-              )}
+              {sub?.current_period_start ? new Date(sub.current_period_start).toLocaleDateString() : 'N/A'}
             </p>
           </div>
 
@@ -280,11 +158,7 @@ export default function SubscriptionPage() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Next Billing</p>
             <p className="text-lg font-semibold">
-              {subscription ? (
-                new Date(subscription.current_period_end).toLocaleDateString()
-              ) : (
-                'N/A'
-              )}
+              {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : 'N/A'}
             </p>
           </div>
 
@@ -298,11 +172,7 @@ export default function SubscriptionPage() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Usage This Month</p>
             <p className="text-lg font-semibold">
-              {subscription ? (
-                subscription.plan_type === 'mini' ? '8/15 Posts' : '12/30 Reels'
-              ) : (
-                '3/15 Posts'
-              )}
+              {sub ? (sub.plan_type === 'mini' ? '8/15 Posts' : '12/30 Reels') : '3/15 Posts'}
             </p>
           </div>
 
@@ -310,25 +180,20 @@ export default function SubscriptionPage() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Credit Balance</p>
             <p className="text-lg font-semibold text-blue-600">
-              {billing?.credits || 0} credits
+              {credits ?? 0} credits
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
-          {subscription && (
-            <>
-
-            </>
-          )}
-
-          {subscription && (
+          {sub && (
             <div className="flex items-center gap-2 ml-auto">
-              <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                {subscription.status}
+              <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                {sub.status}
               </Badge>
-              {subscription.cancel_at_period_end && (
+              {/* If cancel_at_period_end exists in sub, show badge */}
+              {'cancel_at_period_end' in sub && (sub as any).cancel_at_period_end && (
                 <Badge variant="destructive">Canceling</Badge>
               )}
             </div>
@@ -353,12 +218,12 @@ export default function SubscriptionPage() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  onClick={() => handleCreditCheckout(pkg.amount)}
-                  disabled={checkoutLoading === `credits-${pkg.amount}`}
+                  onClick={() => buyCredit(pkg.amount)}
+                  disabled={loadingKey === `credit-${pkg.amount}`}
                   className="w-full"
                   variant={pkg.amount === 100 ? 'default' : 'outline'}
                 >
-                  {checkoutLoading === `credits-${pkg.amount}` ? 'Loading...' : 'Buy Now'}
+                  {loadingKey === `credit-${pkg.amount}` ? 'Loading...' : 'Buy Now'}
                 </Button>
               </CardFooter>
             </Card>
@@ -404,10 +269,9 @@ export default function SubscriptionPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {SUBSCRIPTION_PLANS.map((plan) => {
             const Icon = plan.icon;
-            const isCurrentPlan = subscription?.plan_type === plan.type || (plan.type === 'free' && !subscription);
+            const isCurrentPlan = sub?.plan_type === plan.type || (plan.type === 'free' && !sub);
             const currentPrice = billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
             const isEnterprise = plan.type === 'enterprise';
-            
             return (
               <Card 
                 key={plan.type} 
@@ -468,15 +332,15 @@ export default function SubscriptionPage() {
                   <Button 
                     onClick={() => {
                       if (isEnterprise) {
-                        handleEnterpriseContact();
+                        window.open('mailto:sales@letify.cloud?subject=Enterprise Plan Inquiry', '_blank');
                       } else if (plan.type !== 'free') {
-                        handleSubscriptionCheckout(plan.type as 'mini' | 'full');
+                        buySubscription(plan.type as 'mini' | 'full', billingCycle);
                       }
                     }}
                     disabled={
                       plan.disabled || 
                       isCurrentPlan || 
-                      checkoutLoading === `subscription-${plan.type}-${billingCycle}`
+                      loadingKey === `sub-${plan.type}-${billingCycle}`
                     }
                     className={cn(
                       'w-full',
@@ -485,7 +349,7 @@ export default function SubscriptionPage() {
                     )}
                     variant={plan.popular ? 'default' : 'outline'}
                   >
-                    {checkoutLoading === `subscription-${plan.type}-${billingCycle}` 
+                    {loadingKey === `sub-${plan.type}-${billingCycle}` 
                       ? 'Loading...' 
                       : isCurrentPlan 
                       ? 'Current Plan' 
