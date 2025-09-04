@@ -127,13 +127,13 @@ export type ProfileStatusType = typeof ProfileStatus[keyof typeof ProfileStatus]
 export const getStatusLabel = (status: ProfileStatusType) => {
   switch (status) {
     case ProfileStatus.PENDING_ADMIN:
-      return 'Admin Onayı Bekliyor'
+      return 'Pending Admin Approval'
     case ProfileStatus.APPROVED:
-      return 'Onaylandı'
+      return 'Approved'
     case ProfileStatus.DENIED:
-      return 'Reddedildi'
+      return 'Denied'
     default:
-      return 'Bilinmiyor'
+      return 'Unknown'
   }
 }
 

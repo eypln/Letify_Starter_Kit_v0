@@ -21,7 +21,7 @@ export default function StartContent() {
 
   const onSubmit = async () => {
     if (!url.trim()) {
-      toast({ title: "URL gerekli", description: "İlan linkini girin.", variant: "destructive" });
+  toast({ title: "URL required", description: "Please enter the listing link.", variant: "destructive" });
       return;
     }
 
@@ -44,11 +44,11 @@ export default function StartContent() {
       if (!res.ok || !data?.ok) {
         // Specific error messages for better UX
         const errorMessages: Record<string, string> = {
-          auth_required: "Giriş yapmanız gerekiyor",
-          email_not_verified: "E-posta adresinizi doğrulamanız gerekiyor",
-          full_name_required: "Profil sayfasından ad soyad bilginizi tamamlayın",
-          phone_required: "Profil sayfasından telefon bilginizi tamamlayın",
-          waiting_approval: "Admin onayınız bekleniyor",
+          auth_required: "You need to sign in",
+          email_not_verified: "You need to verify your email address",
+          full_name_required: "Please complete your name information on the profile page",
+          phone_required: "Please complete your phone information on the profile page",
+          waiting_approval: "Waiting for admin approval",
         };
         
         const errorMessage = data?.message && errorMessages[data.message] 
@@ -59,8 +59,8 @@ export default function StartContent() {
       }
 
       toast({ 
-        title: "İçerik üretimi başladı", 
-        description: `İşlem kuyruğa alındı. Job ID: ${data.jobId?.slice(0, 8)}...` 
+  title: "Content generation started", 
+  description: `Process queued. Job ID: ${data.jobId?.slice(0, 8)}...` 
       });
       
       // 👇 JobId'yi wizard store'a TTL ile kaydet
@@ -75,7 +75,7 @@ export default function StartContent() {
       // Redirect to the same page with job parameter
       router.push(`/dashboard/new-post?job=${data.jobId}&step=1`);
     } catch (e: any) {
-      toast({ title: "Hata", description: e.message ?? "Bilinmeyen hata", variant: "destructive" });
+  toast({ title: "Error", description: e.message ?? "Unknown error", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -83,21 +83,21 @@ export default function StartContent() {
 
   return (
     <>
-      <StartFlowCTA onClick={onStart} size="lg">+ Yeni içerik üretimine başla</StartFlowCTA>
+  <StartFlowCTA onClick={onStart} size="lg" className="bg-purple-500 hover:bg-purple-600 text-white">+ Start new content generation</StartFlowCTA>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>İlan linkini gir</DialogTitle>
+            <DialogTitle>Enter listing link</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Input
-              placeholder="https://...... (emlak ilan linki)"
+              placeholder="https://...... (real estate listing link)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
             <p className="text-sm text-muted-foreground">
-              Bu linkten ilan bilgileri çekilecek, başlık/açıklama oluşturulacak.
+              Listing information will be fetched from this link, and title/description will be generated.
             </p>
           </div>
           <DialogFooter>

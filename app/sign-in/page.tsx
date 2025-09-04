@@ -40,8 +40,8 @@ export default function SignInPage() {
       // Check if user exists and is authenticated
       if (data.user) {
         toast({ 
-          title: 'Başarılı!', 
-          description: 'Giriş yapıldı, dashboard\'a yönlendiriliyorsunuz...' 
+          title: 'Success!', 
+          description: 'Signed in successfully, redirecting to dashboard...' 
         })
         
         // Small delay to let the authentication state propagate
@@ -53,8 +53,8 @@ export default function SignInPage() {
     } catch (err: any) {
       console.error('signIn error:', err)
       toast({ 
-        title: 'Giriş hatası', 
-        description: String(err.message || 'Bir hata oluştu'), 
+        title: 'Sign-in error', 
+        description: String(err.message || 'An error occurred'), 
         variant: 'destructive' 
       })
     } finally {
@@ -66,12 +66,12 @@ export default function SignInPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader>
-          <CardTitle className="text-center">Giriş Yap</CardTitle>
+          <CardTitle className="text-center">Sign In</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -81,7 +81,7 @@ export default function SignInPage() {
               />
             </div>
             <div>
-              <Label htmlFor="password">Şifre</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -91,14 +91,14 @@ export default function SignInPage() {
                 required
               />
             </div>
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Kontrol ediliyor...' : 'Giriş Yap'}
+            <Button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+              {loading ? 'Checking...' : 'Sign In'}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm">
-            Hesabın yok mu?{' '}
-            <Link className="text-blue-600 underline" href="/sign-up">
-              Kayıt Ol
+            Don't have an account?{' '}
+            <Link className="text-purple-700 underline" href="/sign-up">
+              Sign Up
             </Link>
           </p>
         </CardContent>

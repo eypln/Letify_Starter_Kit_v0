@@ -40,31 +40,31 @@ export default function NewPostPage() {
     {
       step: 1,
       title: 'Paste Listing URL → Start Content',
-      description: 'İlan linkini yapıştır, n8n WF#1 linkten scrape + caption hazırlar',
+      description: 'Paste the listing link, n8n WF#1 scrapes + prepares caption',
       status: step >= 1 ? 'active' : 'pending',
     },
     {
       step: 2,
       title: 'Upload Pictures',
-      description: '≤15 dosya, her biri ≤1MB; thumbnail grid ile organize et',
+      description: 'Up to 15 images, each ≤1MB; organize with thumbnail grid',
       status: step >= 2 ? 'active' : 'pending',
     },
     {
       step: 3,
       title: 'Share a Post',
-      description: 'n8n WF#2 ile Facebook Post paylaş, post_url al',
+      description: 'Share Facebook Post with n8n WF#2, get post_url',
       status: step >= 3 ? 'active' : 'pending',
     },
     {
       step: 4,
       title: 'Prepare Reels',
-      description: '5 görsel seç, video template belirle, n8n ile render et',
+      description: 'Select 5 images, choose video template, render with n8n',
       status: step >= 4 ? 'active' : 'pending',
     },
     {
       step: 5,
       title: 'Share a Reels',
-      description: 'WF#4 ile Reels paylaş, sonuç reel_url al',
+      description: 'Share Reels with WF#4, get final reel_url',
       status: step >= 5 ? 'active' : 'pending',
     },
   ];
@@ -72,20 +72,28 @@ export default function NewPostPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <ExpiredBannerFromQuery />
-      <CreateHeader />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Create New Post</h1>
+        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
+        </a>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>5 Adımlı İçerik Üretim Süreci</span>
+                <span>Create New Post</span>
                 <Badge className="bg-green-100 text-green-800">
                   <CheckCircle className="w-4 h-4 mr-1" />
-                  Erişim Onaylandı
+                  Access Approved
                 </Badge>
               </CardTitle>
               <CardDescription>
-                İlan URL'si ile başlayın, yapay zeka destekli içerik üretin
+                Start with a listing URL, generate AI-powered content
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -94,14 +102,14 @@ export default function NewPostPage() {
                   <div
                     key={item.step}
                     className={`border rounded-lg p-4 ${
-                      item.status === 'active' ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                      item.status === 'active' ? 'border-purple-200 bg-purple-50' : 'border-gray-200'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                           item.status === 'active'
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-purple-600 text-white'
                             : 'bg-gray-200 text-gray-600'
                         }`}
                       >
@@ -142,47 +150,47 @@ export default function NewPostPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Hesap Durumu</CardTitle>
+              <CardTitle className="text-lg">Account Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Profil Durumu</span>
+                <span className="text-sm">Profile Status</span>
                 <Badge className="bg-green-100 text-green-800">
-                  Onaylandı
+                  Approved
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Facebook Entegrasyonu</span>
-                <Badge variant="secondary">Kontrol Et</Badge>
+                <span className="text-sm">Facebook Integration</span>
+                <Badge className="bg-green-100 text-green-800">Ready</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">API Limiti</span>
-                <span className="text-sm text-green-600">∞ Sınırsız</span>
+                <span className="text-sm">API Limit</span>
+                <span className="text-sm text-green-600">∞ Unlimited</span>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Son Paylaşımlar</CardTitle>
+              <CardTitle className="text-lg">Recent Shares</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Henüz paylaşım yapılmamış. İlk içeriğinizi oluşturmaya başlayın!
+                No shares yet. Start by creating your first content!
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Hızlı İpuçları</CardTitle>
+              <CardTitle className="text-lg">Quick Tips</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm space-y-2">
-                <p>• Yüksek çözünürlüklü görseller seçin</p>
-                <p>• İlan başlığını anlaşılır tutun</p>
-                <p>• Facebook sayfanızın aktif olduğundan emin olun</p>
-                <p>• Video render süresi 5-6 dakika sürer</p>
+                <p>• Choose high-resolution images</p>
+                <p>• Make sure your listing title is clear</p>
+                <p>• Ensure your Facebook page is active</p>
+                <p>• Video render time is 5-6 minutes</p>
               </div>
             </CardContent>
           </Card>

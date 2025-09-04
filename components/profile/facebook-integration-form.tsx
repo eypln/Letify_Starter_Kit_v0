@@ -75,19 +75,19 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Facebook className="h-5 w-5 text-blue-600" />
-          <span>Facebook Entegrasyonu</span>
+          <Facebook className="h-5 w-5 text-purple-600" />
+          <span>Facebook Integration</span>
         </CardTitle>
         <CardDescription>
-          Facebook sayfanızda otomatik paylaşım yapmak için gerekli bilgileri girin
+          Enter the required information to enable automatic sharing on your Facebook page
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Bu bilgiler şifrelenmiş olarak saklanır ve yalnızca Facebook API istekleri için kullanılır.
-            Admin onayını hızlandırmak için tüm alanları doldurun.
+            This information is stored encrypted and only used for Facebook API requests.
+            Fill in all fields to speed up admin approval.
           </AlertDescription>
         </Alert>
 
@@ -104,7 +104,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
               <p className="text-sm text-red-600">{errors.fb_page_id.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Facebook sayfanızın benzersiz kimlik numarası
+              The unique ID number of your Facebook page
             </p>
           </div>
 
@@ -121,25 +121,25 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
               <p className="text-sm text-red-600">{errors.fb_access_token.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Sayfanıza paylaşım yapmak için kullanılan erişim anahtarı
+              The access token used to share on your page
             </p>
           </div>
 
           {/* Facebook App Secret alanı kaldırıldı */}
 
-          <Button type="submit" disabled={isLoading} className="w-full">
+          <Button type="submit" disabled={isLoading} className="w-full bg-purple-500 hover:bg-purple-600 text-white">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {integrations ? 'Entegrasyonu Güncelle' : 'Entegrasyonu Kaydet'}
+            {integrations ? 'Update Integration' : 'Save Integration'}
           </Button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Bu Bilgileri Nasıl Alırım?</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Facebook Developer Console'dan uygulama oluşturun</li>
-            <li>• Sayfanız için Page Access Token alın</li>
-            <li>• App Secret'ı uygulama ayarlarından kopyalayın</li>
-            <li>• Page ID'yi sayfanızın "Hakkında" bölümünden alın</li>
+        <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+          <h4 className="font-medium text-purple-900 mb-2">How to get this information?</h4>
+          <ul className="text-sm text-purple-800 space-y-1">
+            <li>• Create an app in Facebook Developer Console</li>
+            <li>• Get a Page Access Token for your page</li>
+            <li>• Copy the App Secret from your app settings</li>
+            <li>• Get the Page ID from your page's "About" section</li>
           </ul>
         </div>
       </CardContent>

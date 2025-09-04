@@ -42,21 +42,21 @@ export default function ProfileInfoForm({ user, profile }: ProfileInfoFormProps)
 
       if (result.success) {
         toast({
-          title: 'Başarılı',
-          description: 'Profil bilgileriniz güncellendi.',
+          title: 'Success',
+          description: 'Your profile information has been updated.',
         })
       } else {
         toast({
-          title: 'Hata',
-          description: result.error || 'Bir hata oluştu.',
+          title: 'Error',
+          description: result.error || 'An error occurred.',
           variant: 'destructive',
         })
       }
     } catch (error) {
       console.error('Profile update error:', error)
       toast({
-        title: 'Hata',
-        description: 'Beklenmeyen bir hata oluştu.',
+        title: 'Error',
+        description: 'An unexpected error occurred.',
         variant: 'destructive',
       })
     } finally {
@@ -69,42 +69,42 @@ export default function ProfileInfoForm({ user, profile }: ProfileInfoFormProps)
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <UserIcon className="h-5 w-5" />
-          <span>Profil Bilgileri</span>
+          <span>Profile Information</span>
         </CardTitle>
         <CardDescription>
-          Ad soyad ve telefon bilgilerinizi güncelleyebilirsiniz
+          You can update your full name and phone number
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="fullName">Ad Soyad</Label>
+              <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Adınız ve soyadınız"
+                placeholder="Your full name"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="phone">Telefon</Label>
+              <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+90 5xx xxx xx xx"
+                placeholder="+1 555 555 5555"
                 required
               />
             </div>
           </div>
           <div className="flex justify-end">
-            <Button type="submit" disabled={loading} className="flex items-center space-x-2">
+            <Button type="submit" disabled={loading} className="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white">
               <Save className="h-4 w-4" />
-              <span>{loading ? 'Güncelleniyor...' : 'Güncelle'}</span>
+              <span>{loading ? 'Updating...' : 'Update'}</span>
             </Button>
           </div>
         </form>

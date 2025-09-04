@@ -19,9 +19,9 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   if (!user || !profile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-xl font-bold mb-2">Yükleniyor veya yetkisiz erişim</h2>
-        <p className="text-muted-foreground">Lütfen tekrar giriş yapın.</p>
-        <a href="/sign-in" className="mt-4 px-4 py-2 bg-primary text-white rounded">Giriş Yap</a>
+        <h2 className="text-xl font-bold mb-2">Loading or unauthorized access</h2>
+        <p className="text-muted-foreground">Please sign in again.</p>
+        <a href="/sign-in" className="mt-4 px-4 py-2 bg-purple-600 text-white rounded">Sign In</a>
       </div>
     );
   }
@@ -45,8 +45,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
     } catch (error) {
       console.error('Logout error:', error);
       toast({
-        title: 'Çıkış başarısız',
-        description: 'Çıkış yapılırken bir hata oluştu',
+  title: 'Logout failed',
+  description: 'An error occurred during logout',
         variant: 'destructive',
       });
     } finally {
@@ -59,18 +59,18 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
       <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Çıkış butonu sağ üstte, container padding içinde */}
         <div className="flex justify-end mb-4">
-          <Button onClick={handleLogout} disabled={isLoggingOut} variant="default" className="flex items-center gap-2">
+          <Button onClick={handleLogout} disabled={isLoggingOut} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
             <LogOut className="h-4 w-4" />
-            {isLoggingOut ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
           </Button>
         </div>
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">
-              Hoş geldin, {user.email?.split('@')[0]}!
+              Welcome, {user.email?.split('@')[0]}!
             </h1>
             <p className="text-muted-foreground mt-2">
-              Letify platformunda içerik üretmeye hazır mısın?
+              Ready to create content on Letify?
             </p>
           </div>
         </div>
@@ -79,15 +79,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Plus className="h-6 w-6 text-primary" />
-                  <span>Yeni Post Oluştur</span>
+                  <Plus className="h-6 w-6 text-purple-600" />
+                  <span>Create New Post</span>
                 </CardTitle>
                 <CardDescription>
-                  İlan linkinden otomatik içerik üret ve Facebook'ta paylaş
+                  Generate content automatically from a listing link and share on Facebook
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full">Başlat</Button>
+          <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white">Start</Button>
               </CardContent>
             </Card>
           </Link>
@@ -95,15 +95,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <FileText className="h-6 w-6 text-green-600" />
-                  <span>İlanlar</span>
+                  <FileText className="h-6 w-6 text-purple-600" />
+                  <span>Listings</span>
                 </CardTitle>
                 <CardDescription>
-                  Oluşturduğun içerikleri ve paylaşımları görüntüle
+                  View your created content and shares
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="secondary" className="w-full">Görüntüle</Button>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">View</Button>
               </CardContent>
             </Card>
           </Link>
@@ -111,15 +111,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
                   <span>Analytics</span>
                 </CardTitle>
                 <CardDescription>
-                  Paylaşım performansını ve istatistiklerini incele
+                  Analyze your sharing performance and statistics
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="secondary" className="w-full">İncele</Button>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">Analyze</Button>
               </CardContent>
             </Card>
           </Link>
@@ -128,14 +128,14 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-6 w-6 text-purple-600" />
-                  <span>Müşteriler</span>
+                  <span>Clients</span>
                 </CardTitle>
                 <CardDescription>
-                  Müşteri yönetimi ve raporlama (yakında)
+                  Client management and reporting (coming soon)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="secondary" className="w-full" disabled>Yakında</Button>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700" disabled>Coming Soon</Button>
               </CardContent>
             </Card>
           </Link>
@@ -143,15 +143,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-6 w-6 text-orange-600" />
-                  <span>Abonelik</span>
+                  <BarChart3 className="h-6 w-6 text-purple-400" />
+                  <span>Subscription</span>
                 </CardTitle>
                 <CardDescription>
-                  Plan yönetimi ve fatura bilgileri
+                  Manage your plan and billing information
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="secondary" className="w-full">Yönet</Button>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">Manage</Button>
               </CardContent>
             </Card>
           </Link>
@@ -159,15 +159,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Settings className="h-6 w-6 text-gray-600" />
-                  <span>Profil</span>
+                  <Settings className="h-6 w-6 text-purple-600" />
+                  <span>Profile</span>
                 </CardTitle>
                 <CardDescription>
-                  Hesap ayarları ve Facebook entegrasyonu
+                  Account settings and Facebook integration
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">Ayarlar</Button>
+          <Button variant="outline" className="w-full bg-purple-100 text-purple-700">Settings</Button>
               </CardContent>
             </Card>
           </Link>
@@ -175,20 +175,20 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Hızlı İstatistikler</CardTitle>
+              <CardTitle>Quick Stats</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bu Ay Paylaşım:</span>
+                  <span className="text-muted-foreground">Shares This Month:</span>
                   <span className="font-medium">0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Toplam İlan:</span>
+                  <span className="text-muted-foreground">Total Listings:</span>
                   <span className="font-medium">0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Aktif Entegrasyon:</span>
+                  <span className="text-muted-foreground">Active Integration:</span>
                   <span className="font-medium">Facebook</span>
                 </div>
               </div>
@@ -196,11 +196,11 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Son Aktiviteler</CardTitle>
+              <CardTitle>Recent Activities</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">
-                Henüz aktivite yok. İlk içeriğinizi oluşturmaya başlayın!
+                No activity yet. Start by creating your first content!
               </p>
             </CardContent>
           </Card>

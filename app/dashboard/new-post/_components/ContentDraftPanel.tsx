@@ -220,14 +220,14 @@ export default function ContentDraftPanel() {
 
   // Loading durumu (default)
   return (
-    <div className="mt-4 rounded-lg border p-6 bg-blue-50">
+    <div className="mt-4 rounded-lg border p-6 bg-purple-50">
       <div className="flex items-center space-x-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
         <div>
-          <h3 className="font-medium text-blue-900">AI İçerik Üretiliyor...</h3>
-          <p className="text-sm text-blue-700 mt-1">İlan analiz ediliyor ve açıklama hazırlanıyor. Job ID: {jobId?.slice(0, 8)}...</p>
-          <p className="text-xs text-blue-600 mt-1">
-            Status: {jobData?.status || 'yükleniyor'} | HasContent: {hasContent ? 'Evet' : 'Hayır'}
+          <h3 className="font-medium text-purple-900">AI Content is being generated...</h3>
+          <p className="text-sm text-purple-700 mt-1">Listing is being analyzed and description is being prepared. Job ID: {jobId?.slice(0, 8)}...</p>
+          <p className="text-xs text-purple-600 mt-1">
+            Status: {jobData?.status || 'loading'} | HasContent: {hasContent ? 'Yes' : 'No'}
           </p>
         </div>
       </div>

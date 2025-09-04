@@ -119,9 +119,9 @@ export default function SubscriptionPage() {
     userId, credits, sub } = useBillingController();
   return (
   <div className="max-w-6xl mx-auto p-6 space-y-8 relative">
-      {/* Dashboard'a dönüş butonu sağ üstte */}
+      {/* Top right dashboard button */}
       <div className="absolute top-6 right-8 z-10">
-        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-gray-50">
+        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -129,18 +129,18 @@ export default function SubscriptionPage() {
         </a>
       </div>
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
           Subscription & Billing
         </h1>
         <p className="text-gray-600">Manage your subscription and billing details</p>
       </div>
 
       {/* User Subscription Details - Top Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-6">
         <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6">
           {/* Plan Type */}
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-600">Plan Type</p>
+            <p className="text-sm font-medium text-gray-600">Plan</p>
             <p className="text-lg font-semibold">
               {sub ? `${sub.plan_type === 'mini' ? 'Mini' : 'Full'} Plan` : 'Free Plan'}
             </p>
@@ -156,7 +156,7 @@ export default function SubscriptionPage() {
 
           {/* Next Billing Date */}
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-600">Next Billing</p>
+            <p className="text-sm font-medium text-gray-600">Next Billing Date</p>
             <p className="text-lg font-semibold">
               {sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : 'N/A'}
             </p>
@@ -165,7 +165,7 @@ export default function SubscriptionPage() {
           {/* Outstanding Balance */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Outstanding Balance</p>
-            <p className="text-lg font-semibold text-green-600">€0.00</p>
+            <p className="text-lg font-semibold text-purple-600">€0.00</p>
           </div>
 
           {/* Usage This Month */}
@@ -179,14 +179,14 @@ export default function SubscriptionPage() {
           {/* Credit Balance */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-600">Credit Balance</p>
-            <p className="text-lg font-semibold text-blue-600">
+            <p className="text-lg font-semibold text-purple-600">
               {credits ?? 0} credits
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
+  <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-purple-200">
           {sub && (
             <div className="flex items-center gap-2 ml-auto">
               <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
@@ -207,20 +207,20 @@ export default function SubscriptionPage() {
         <p className="text-center text-gray-600 mb-6">Purchase credits to generate more content and reels</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {CREDIT_PACKAGES.map((pkg) => (
-            <Card key={pkg.amount} className="hover:shadow-lg transition-shadow">
+            <Card key={pkg.amount} className="hover:shadow-lg transition-shadow border-purple-200">
               <CardHeader className="text-center">
                 <CardTitle className="text-lg">{pkg.amount} Credits</CardTitle>
                 <CardDescription>{pkg.description}</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{pkg.price}</div>
+                <div className="text-2xl font-bold text-purple-600">{pkg.price}</div>
                 <p className="text-sm text-gray-500 mt-1">€{(parseInt(pkg.price.replace('€', '')) / pkg.amount).toFixed(2)} per credit</p>
               </CardContent>
               <CardFooter>
                 <Button 
                   onClick={() => buyCredit(pkg.amount)}
                   disabled={loadingKey === `credit-${pkg.amount}`}
-                  className="w-full"
+                  className="w-full bg-purple-500 hover:bg-purple-600 text-white border-none"
                   variant={pkg.amount === 100 ? 'default' : 'outline'}
                 >
                   {loadingKey === `credit-${pkg.amount}` ? 'Loading...' : 'Buy Now'}
@@ -238,14 +238,14 @@ export default function SubscriptionPage() {
           <p className="text-gray-600">Choose the perfect plan for your business needs</p>
           
           {/* Monthly/Yearly Toggle */}
-          <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full p-1">
+          <div className="inline-flex items-center gap-2 bg-purple-100 rounded-full p-1">
             <button
               onClick={() => setBillingCycle('monthly')}
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-medium transition-all',
                 billingCycle === 'monthly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-purple-500 text-white shadow-sm'
+                  : 'text-purple-600 hover:text-purple-900'
               )}
             >
               Monthly
@@ -255,15 +255,15 @@ export default function SubscriptionPage() {
               className={cn(
                 'px-4 py-2 rounded-full text-sm font-medium transition-all',
                 billingCycle === 'yearly'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-purple-500 text-white shadow-sm'
+                  : 'text-purple-600 hover:text-purple-900'
               )}
             >
               Yearly
             </button>
           </div>
           {billingCycle === 'yearly' && (
-            <p className="text-green-600 font-medium">%15 discount for yearly subscription</p>
+            <p className="text-purple-600 font-medium">15% discount for yearly subscription</p>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -277,13 +277,13 @@ export default function SubscriptionPage() {
                 key={plan.type} 
                 className={cn(
                   'relative transition-all duration-200 hover:shadow-lg',
-                  plan.popular && 'ring-2 ring-blue-500 scale-105',
-                  isCurrentPlan && 'ring-2 ring-green-500'
+                  plan.popular && 'ring-2 ring-purple-500 scale-105',
+                  isCurrentPlan && 'ring-2 ring-purple-600'
                 )}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-blue-500 text-white px-3 py-1">
+                    <Badge className="bg-purple-500 text-white px-3 py-1">
                       Most Popular
                     </Badge>
                   </div>
@@ -293,23 +293,23 @@ export default function SubscriptionPage() {
                     <Icon className={cn(
                       'h-8 w-8',
                       plan.type === 'free' && 'text-gray-500',
-                      plan.type === 'mini' && 'text-blue-500',
-                      plan.type === 'full' && 'text-purple-500',
-                      plan.type === 'enterprise' && 'text-orange-500'
+                      plan.type === 'mini' && 'text-purple-500',
+                      plan.type === 'full' && 'text-purple-600',
+                      plan.type === 'enterprise' && 'text-purple-400'
                     )} />
                   </div>
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="space-y-1">
-                    <div className="text-3xl font-bold">
+                    <div className="text-3xl font-bold text-purple-600">
                       {currentPrice}
                       {!isEnterprise && currentPrice !== '€0' && (
-                        <span className="text-sm font-normal text-gray-500">
+                        <span className="text-sm font-normal text-purple-400">
                           /{billingCycle === 'yearly' ? 'year' : 'month'}
                         </span>
                       )}
                     </div>
                     {billingCycle === 'yearly' && !isEnterprise && plan.monthlyPrice !== '€0' && (
-                      <div className="text-sm text-gray-500 line-through">
+                      <div className="text-sm text-purple-400 line-through">
                         {plan.monthlyPrice}/month
                       </div>
                     )}
@@ -328,7 +328,7 @@ export default function SubscriptionPage() {
                     ))}
                   </ul>
                 </CardContent>
-                <CardFooter>
+                  <CardFooter>
                   <Button 
                     onClick={() => {
                       if (isEnterprise) {
@@ -343,9 +343,9 @@ export default function SubscriptionPage() {
                       loadingKey === `sub-${plan.type}-${billingCycle}`
                     }
                     className={cn(
-                      'w-full',
-                      plan.popular && 'bg-blue-500 hover:bg-blue-600',
-                      isCurrentPlan && 'bg-green-500 hover:bg-green-600'
+                      'w-full bg-purple-500 hover:bg-purple-600 text-white border-none',
+                      plan.popular && 'bg-purple-500 hover:bg-purple-600',
+                      isCurrentPlan && 'bg-purple-600 hover:bg-purple-700'
                     )}
                     variant={plan.popular ? 'default' : 'outline'}
                   >
