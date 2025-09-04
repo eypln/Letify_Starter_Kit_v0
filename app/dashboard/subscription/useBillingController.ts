@@ -13,6 +13,7 @@ type SubRow = {
   status: string;
   current_period_start: string | null;
   current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
   created_at: string;
 };
 
@@ -65,7 +66,7 @@ export function useBillingController() {
     // Latest subscription
     const { data: subRow } = await supabase
       .from('billing_subscriptions')
-      .select('id, plan_type, billing_cycle, status, current_period_start, current_period_end, created_at')
+      .select('id, plan_type, billing_cycle, status, current_period_start, current_period_end, cancel_at_period_end, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
