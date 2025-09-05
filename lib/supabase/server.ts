@@ -32,6 +32,10 @@ export function createClient() {
           }
         },
       },
+      global: {
+        fetch: (input: string | URL | Request | RequestInfo, init?: RequestInit) =>
+          fetch(input, { ...init, cache: 'no-store', next: { revalidate: 0 } }),
+      },
     }
   )
 }
