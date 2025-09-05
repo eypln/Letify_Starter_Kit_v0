@@ -30,31 +30,43 @@ export async function getListings({ page }: { page: number }) {
   const to = from + PAGE_SIZE - 1;
 
   const { data, error, count } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact' })
-    .order('id', { ascending: false })
+    .from('listings')
+    .select(`
+      id,
+      created_at,
+      property_url,
+      city, location,
+      price,
+      bedrooms, bathrooms,
+      property_type,
+      description,
+      fb_post_url,
+      fb_reels_url
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
     .range(from, to);
 
   if (error) throw error;
 
   const rows = (data ?? []).map((d: any) => ({
     id: d.id,
-    addingDate: pick(d, CANDIDATES.addingDate) ?? new Date().toISOString(),
-    referenceUrl: pick(d, CANDIDATES.referenceUrl),
-    city: pick(d, CANDIDATES.city),
-    price: pick(d, CANDIDATES.price),
-    bedroom: pick(d, CANDIDATES.bedroom),
-    bathroom: pick(d, CANDIDATES.bathroom),
-    propertyType: pick(d, CANDIDATES.propertyType),
-    description: pick(d, CANDIDATES.description),
-    fbPostUrl: pick(d, CANDIDATES.fbPostUrl),
-    fbReelsUrl: pick(d, CANDIDATES.fbReelsUrl),
+    addingDate: d.created_at,
+    sourceUrl: d.property_url,
+    city: d.city ?? d.location ?? null,
+    price: d.price,
+    bedroom: d.bedrooms,
+    bathroom: d.bathrooms,
+    propertyType: d.property_type,
+    description: d.description,
+    fbPostUrl: d.fb_post_url,
+    fbReelsUrl: d.fb_reels_url
   }));
 
   return {
     rows,
     total: count ?? 0,
     pageCount: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
+    pageSize: PAGE_SIZE
   };
 }
 

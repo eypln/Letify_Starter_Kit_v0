@@ -6,8 +6,8 @@ import AddDialog from './add-dialog';
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 export default async function ListingsPage({ searchParams }: { searchParams: { page?: string } }) {
   const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
-  const { rows, pageCount, total } = await getListings({ page });
-  console.log('DEBUG: ListingsPage render, rows.length:', rows.length, 'total:', total, 'lastId:', rows[0]?.id);
+  const { rows, pageCount, pageSize } = await getListings({ page });
+  const startIndex = (page - 1) * pageSize;
 
   function hrefFor(p: number) {
     const params = new URLSearchParams(searchParams as any);
@@ -34,8 +34,9 @@ export default async function ListingsPage({ searchParams }: { searchParams: { p
         <table className="min-w-[900px] w-full text-sm">
           <thead className="bg-gray-50">
             <tr className="[&>th]:px-3 [&>th]:py-2 text-left">
+              <th className="w-12">#</th>
               <th>Adding date</th>
-              <th>Reference link</th>
+              <th>Source URL</th>
               <th>City</th>
               <th>Price</th>
               <th>Bedroom</th>
@@ -47,11 +48,12 @@ export default async function ListingsPage({ searchParams }: { searchParams: { p
             </tr>
           </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            {rows.map((r) => (
+            {rows.map((r, i) => (
               <tr key={r.id} className="border-t">
+                <td className="text-right text-gray-500">{startIndex + i + 1}</td>
                 <td className="whitespace-nowrap">{new Date(r.addingDate).toLocaleString()}</td>
                 <td className="max-w-[220px] truncate">
-                  {r.referenceUrl ? <a href={r.referenceUrl} target="_blank" rel="noopener noreferrer" className="underline">Link</a> : <span className="text-gray-400">pending</span>}
+                  {r.sourceUrl ? <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">Link</a> : <span className="text-gray-400">—</span>}
                 </td>
                 <td className="max-w-[120px] truncate">{r.city ?? '—'}</td>
                 <td className="whitespace-nowrap">{typeof r.price === 'number' ? r.price.toLocaleString() : '—'}</td>
@@ -60,7 +62,7 @@ export default async function ListingsPage({ searchParams }: { searchParams: { p
                 <td className="max-w-[140px] truncate">{r.propertyType ?? '—'}</td>
                 <td>
                   <div className="max-w-[320px] h-[3.25rem] overflow-hidden text-ellipsis"
-                       style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                       style={{ display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
                     {r.description ?? '—'}
                   </div>
                 </td>
