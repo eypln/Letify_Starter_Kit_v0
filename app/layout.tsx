@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+
 import ToastRoot from "@/components/system/ToastRoot";
+import ErrorShield from "./(app)/error-shield";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,7 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <body className={inter.className}>
-        <ToastRoot>{children}</ToastRoot>
+        <ToastRoot>
+          <ErrorShield>{children}</ErrorShield>
+        </ToastRoot>
       </body>
     </html>
   );

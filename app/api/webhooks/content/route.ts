@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 // app/api/webhooks/content/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';

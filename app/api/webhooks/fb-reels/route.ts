@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 // app/api/webhooks/fb-reels/route.ts
 import { NextResponse } from 'next/server';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
