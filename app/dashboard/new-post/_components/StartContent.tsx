@@ -101,9 +101,9 @@ export default function StartContent() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Vazgeç</Button>
             <Button onClick={onSubmit} disabled={loading}>
-              {loading ? "Baslatiliyor..." : "Start"}
+              {loading ? "Başlatılıyor..." : "Başlat"}
             </Button>
           </DialogFooter>
         </DialogContent>
