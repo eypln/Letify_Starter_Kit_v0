@@ -37,36 +37,41 @@ export default function AddDialog() {
     setImage(null);
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    const fd = new FormData();
-    fd.append("city", city);
-    if (price) fd.append("price", price);
-    if (bedroom) fd.append("bedroom", bedroom);
-    if (bathroom) fd.append("bathroom", bathroom);
-    if (propertyType) fd.append("propertyType", propertyType);
-    fd.append("description", description);
-    if (image) fd.append("image", image, image.name);
-
-    startTransition(async () => {
-      const res = await fetch("/api/listings/manual", { method: "POST", body: fd });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert(j.error || "Failed to add listing");
-        return;
-      }
+    setLoading(true);
+    try {
+      // You may want to create the listing first, then get its ID
+      // For now, let's assume listingId is generated here (could be from DB after insert)
+      const listingId = 'listing_' + Date.now();
+      const res = await fetch('/api/jobs/start', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'manual',
+          listingId,
+          sourceUrl: '', // If you have a sourceUrl field, pass it here
+        }),
+      });
+      const { ok, jobId, message } = await res.json();
+      if (!ok) throw new Error(message || 'Start failed');
       setOpen(false);
-      router.refresh();
+      router.push(`/dashboard/new-post?jobId=${jobId}`);
       setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); setImage(null); setSelectedFile(null);
-    });
-  };
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
       <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-purple-600 text-white">+ Add</button>
       {open && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <form onSubmit={onSubmit} className="w-[640px] bg-white rounded-2xl p-5 space-y-3 shadow-lg">
+          <form onSubmit={handleCreate} className="w-[640px] bg-white rounded-2xl p-5 space-y-3 shadow-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Add listing</h3>
               <button type="button" onClick={() => setOpen(false)} className="p-1">✕</button>
@@ -140,8 +145,8 @@ export default function AddDialog() {
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 rounded-md border">Cancel</button>
-              <button disabled={pending} className="px-3 py-2 rounded-md bg-purple-600 text-white">
-                {pending ? "Adding…" : "Add listing"}
+              <button type="submit" disabled={loading} className="px-3 py-2 rounded-md bg-purple-600 text-white">
+                {loading ? "Creating..." : "+ Add"}
               </button>
             </div>
           </form>

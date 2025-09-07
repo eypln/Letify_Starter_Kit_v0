@@ -19,67 +19,29 @@ export default function StartContent() {
 
   const onStart = async () => setOpen(true);
 
-  const onSubmit = async () => {
+  async function onSubmit() {
     if (!url.trim()) {
-  toast({ title: "URL required", description: "Please enter the listing link.", variant: "destructive" });
+      toast({ title: "URL required", description: "Please enter the listing link.", variant: "destructive" });
       return;
     }
-
     setLoading(true);
     try {
-      const res = await fetch("/api/webhooks/content", {
-        method: "POST",
-        credentials: 'same-origin',   // opsiyonel, açıklık için
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listing: { sourceUrl: url } }),
+      const res = await fetch('/api/jobs/start', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mode: 'url', sourceUrl: url }),
       });
-
-      let data: any = null;
-      try { 
-        data = await res.json(); 
-      } catch { 
-        data = { ok: res.ok, message: "Parse error" }; 
-      }
-
-      if (!res.ok || !data?.ok) {
-        // Specific error messages for better UX
-        const errorMessages: Record<string, string> = {
-          auth_required: "You need to sign in",
-          email_not_verified: "You need to verify your email address",
-          full_name_required: "Please complete your name information on the profile page",
-          phone_required: "Please complete your phone information on the profile page",
-          waiting_approval: "Waiting for admin approval",
-        };
-        
-        const errorMessage = data?.message && errorMessages[data.message] 
-          ? errorMessages[data.message]
-          : data?.message || "İş başlatılamadı";
-          
-        throw new Error(errorMessage);
-      }
-
-      toast({ 
-  title: "Content generation started", 
-  description: `Process queued. Job ID: ${data.jobId?.slice(0, 8)}...` 
-      });
-      
-      // 👇 JobId'yi wizard store'a TTL ile kaydet
-      setJobId(data.jobId, Date.now()); // ← başlangıç zamanı yalnızca burada set edilir
-      // ListingId'yi de kaydet (URL'den hash oluştur)
-      const listingId = data.listingId || 'listing_' + Date.now();
-      setListingId(listingId);
-      
+      const { ok, jobId, message } = await res.json();
+      if (!ok) throw new Error(message || 'Start failed');
       setOpen(false);
       setUrl("");
-
-      // Redirect to the same page with job parameter
-      router.push(`/dashboard/new-post?job=${data.jobId}&step=1`);
-    } catch (e: any) {
-  toast({ title: "Error", description: e.message ?? "Unknown error", variant: "destructive" });
+      router.push(`/dashboard/new-post?jobId=${jobId}`);
+    } catch (e) {
+      toast({ title: "Error", description: (e as Error).message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <>
@@ -101,9 +63,11 @@ export default function StartContent() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Vazgeç</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancel
+            </Button>
             <Button onClick={onSubmit} disabled={loading}>
-              {loading ? "Başlatılıyor..." : "Başlat"}
+              {loading ? 'Starting...' : 'Start'}
             </Button>
           </DialogFooter>
         </DialogContent>

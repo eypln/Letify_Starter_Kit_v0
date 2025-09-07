@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ImageDropzone from './image-dropzone';
 import { compressImageTo1MB } from '@/lib/image/compress';
 import { uploadToSupabase } from '@/lib/uploads/supabase-upload';
@@ -7,6 +7,7 @@ import { useUploadStore } from '@/lib/uploads/store';
 import { useWizardStore } from '@/lib/wizard/store';
 import { JOB_TTL_MS } from '@/lib/wizard/constants';
 import { createClient } from '@/lib/supabase/client';
+import { getEffectiveJobId } from '@/lib/client/job-session'; // 👈 URL/localStorage fallback
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Upload, RefreshCw } from 'lucide-react';
@@ -17,9 +18,19 @@ const MAX = 15;
 export default function Uploader() {
   const supabase = createClient();
   const router = useRouter();
-  const jobId = useWizardStore((s) => s.jobId);
+  const jobIdInStore = useWizardStore((s) => s.jobId);
   const jobStartedAt = useWizardStore((s) => s.jobStartedAt);
   const clear = useWizardStore((s) => s.clear);
+  // URL/localStorage → store senkronu (ilk render)
+  useEffect(() => {
+    if (!jobIdInStore) {
+      const j = getEffectiveJobId();
+      if (j) useWizardStore.setState({ jobId: j });
+    }
+  }, [jobIdInStore]);
+
+  // Her yerde bunu kullan
+  const jobId = jobIdInStore || getEffectiveJobId();
   const [busy, setBusy] = useState(false);
   const [retryFiles, setRetryFiles] = useState<File[]>([]);
   const { images, add } = useUploadStore();
@@ -165,7 +176,7 @@ export default function Uploader() {
       
       <div className="flex items-center justify-between text-sm text-gray-600">
         <span>Yüklü: {currentJobImages.length}/{MAX}</span>
-        <span>Job: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{jobId?.slice(0, 8)}...</span></span>
+  <span>Job: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{jobId?.slice(0, 8)}...</span></span>
         {busy && (
           <div className="flex items-center space-x-2">
             <RefreshCw className="h-4 w-4 animate-spin" />

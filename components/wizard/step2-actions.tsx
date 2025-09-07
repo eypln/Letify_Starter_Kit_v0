@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/lib/wizard/store';
+import { getEffectiveJobId } from '@/lib/client/job-session';
 import { JOB_TTL_MS } from '@/lib/wizard/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useUploadStore } from '@/lib/uploads/store';
@@ -11,9 +12,10 @@ export default function Step2Actions() {
   const supabase = createClient();
   const { images, clear: clearUploads } = useUploadStore();
   const {
-    jobId, jobStartedAt, listingId,
+    jobStartedAt, listingId,
     startPost, finishPost, failPost, setStep, clear,
   } = useWizardStore();
+  const jobId = getEffectiveJobId();
   const [busy, setBusy] = useState(false);
 
   function expired() {
@@ -73,7 +75,11 @@ export default function Step2Actions() {
       <button
         type="button"
         className="rounded-xl border px-4 py-2 text-sm"
-        onClick={clearUploads}
+        onClick={() => {
+          clearUploads();
+          setStep(1);
+          router.replace('/dashboard/new-post');
+        }}
       >
         Tümünü Temizle
       </button>

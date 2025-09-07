@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useWizardStore } from "@/lib/wizard/store";
+import { useWizardJobSync } from "@/lib/wizard/sync";
 
 type JobRow = {
   id: string;
@@ -16,13 +17,15 @@ type JobRow = {
   updated_at?: string;  // optional timestamp
 };
 
-export default function ContentDraftPanel() {
+interface ContentDraftPanelProps {
+  jobId: string;
+}
+
+export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
   const sp = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
   const { setStep } = useWizardStore();
-
-  const jobId = sp.get("job") ?? "";
 
   // ✅ Hook'lar component'in en üstünde
   const [loading, setLoading] = React.useState(false);
@@ -61,6 +64,8 @@ export default function ContentDraftPanel() {
         if (!res.ok) {
           console.error('❌ Failed to fetch job:', res.status, res.statusText);
           return;
+          // jobId'yi store'a yazmak için hook'u en üstte çağır
+          useWizardJobSync(jobId);
         }
 
         const response = await res.json();
@@ -143,7 +148,7 @@ export default function ContentDraftPanel() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/webhooks/save", {
+  const res = await fetch("/api/jobs/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId, description: draft }),

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -24,11 +24,35 @@ import { useWizardStore } from '@/lib/wizard/store'
 
 export default function NewPostPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlStep = Number(searchParams.get('step') || 1);
-  const jobId = searchParams.get('job');
+  const [resetting, setResetting] = React.useState(false);
+
+  // jobId ve listingId'yi URL ve localStorage'dan normalize et
+  const jobIdFromUrl = searchParams.get('jobId') ?? searchParams.get('job_id') ?? searchParams.get('job') ?? searchParams.get('id') ?? '';
+  const listingIdFromLs = typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '';
+
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const jobId = jobIdFromUrl || (typeof window !== 'undefined' ? localStorage.getItem('letify_jobId') || '' : '');
+      const listingId = listingIdFromLs || (typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '');
+      await fetch('/api/jobs/cancel', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jobId, listingId, hardDeleteListing: false }),
+      });
+    } catch {}
+    try {
+      localStorage.removeItem('letify_jobId');
+      localStorage.removeItem('letify_listingId');
+    } catch {}
+    router.replace('/dashboard/new-post');
+    setResetting(false);
+  }
+
+  const jobId = jobIdFromUrl;
   const wizardStep = useWizardStore((s) => s.step);
-  
-  // Wizard store'dan gelen step'i kullan, URL'deki step sadece fallback
   const step = wizardStep || urlStep;
 
   // Debug: Component render bilgisi
@@ -126,21 +150,20 @@ export default function NewPostPage() {
                 ))}
               </div>
 
-              {/* Step 1: İçerik ve ContentDraftPanel */}
-              {step === 1 && <ContentDraftPanel />}
-              
-              {/* Eğer jobId yoksa StartContent'i de göster */}
-              {!jobId && <StartContent />}
-              
+              {/* Step 1: jobId varsa ContentDraftPanel'i göster */}
+              {step === 1 && jobId && <ContentDraftPanel jobId={jobId} />}
+              {/* Step 1: jobId yoksa StartContent'i göster */}
+              {step === 1 && !jobId && <StartContent />}
+
               {/* Step 2: Upload Pictures */}
               {step === 2 && <Step2Upload />}
-              
+
               {/* Step 3: Share a Post */}
               {step === 3 && <Step3Post />}
-              
+
               {/* Step 4: Prepare Reels */}
               {step === 4 && <Step4PrepareReels />}
-              
+
               {/* Step 5: Share Reels */}
               {step === 5 && <Step5ShareReels />}
             </CardContent>

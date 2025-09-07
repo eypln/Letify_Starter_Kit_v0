@@ -12,12 +12,12 @@ export async function POST(req: Request) {
   if (body?.trigger === 'n8n') {
     const sourceUrl: string | undefined = body?.listing?.sourceUrl;
     if (!sourceUrl) {
-      return NextResponse.json({ ok: false, message: 'sourceUrl gerekli' }, { status: 400 });
+      return NextResponse.json({ ok: false, message: 'sourceUrl is required' }, { status: 400 });
     }
     const supabase = createClient();
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
     if (userErr || !user) {
-      return NextResponse.json({ ok: false, message: 'auth_required' }, { status: 401 });
+      return NextResponse.json({ ok: false, message: 'Unauthorized' }, { status: 401 });
     }
     // Profile validation (opsiyonel)
     const { data: profile } = await supabase
@@ -26,9 +26,9 @@ export async function POST(req: Request) {
       .eq('user_id', user.id)
       .maybeSingle();
     if (profile) {
-      if (!profile.full_name) return NextResponse.json({ ok: false, message: 'full_name_required' }, { status: 403 });
-      if (!profile.phone) return NextResponse.json({ ok: false, message: 'phone_required' }, { status: 403 });
-      if (profile.status !== 'approved') return NextResponse.json({ ok: false, message: 'waiting_approval' }, { status: 403 });
+  if (!profile.full_name) return NextResponse.json({ ok: false, message: 'Full name required' }, { status: 403 });
+  if (!profile.phone) return NextResponse.json({ ok: false, message: 'Phone required' }, { status: 403 });
+  if (profile.status !== 'approved') return NextResponse.json({ ok: false, message: 'Waiting for admin approval' }, { status: 403 });
     }
     // FB integration (opsiyonel)
     const { data: fb } = await supabase
@@ -54,17 +54,12 @@ export async function POST(req: Request) {
       .select('id')
       .single();
     if (insErr || !inserted) {
-      return NextResponse.json({ ok: false, message: insErr?.message ?? 'insert_failed' }, { status: 500 });
+      return NextResponse.json({ ok: false, message: insErr?.message ?? 'Insert failed' }, { status: 500 });
     }
     // Send to n8n
     const finalPayload = { ...payload, job: { ...payload.job, id: inserted.id } };
     try {
-      const r = await sendToN8n('generate', finalPayload);
-      if (!r.ok) {
-        await supabase.from('jobs').update({ status: 'error', error_msg: 'n8n webhook failed' }).eq('id', inserted.id);
-        const detail = await r.text().catch(() => '');
-        return NextResponse.json({ ok: false, message: 'n8n error', detail }, { status: 502 });
-      }
+      await sendToN8n('generate', finalPayload);
     } catch (error) {
       await supabase.from('jobs').update({ status: 'error', error_msg: 'network error' }).eq('id', inserted.id);
       return NextResponse.json({ ok: false, message: 'network error' }, { status: 502 });
@@ -93,7 +88,7 @@ export async function POST(req: Request) {
   const listing = body.listing ?? body.payload?.listing ?? {};
   const listingId = body.listingId ?? body.listing_id ?? body.id;
   const sourceUrl = listing.sourceUrl ?? body.sourceUrl ?? body.url;
-  if (!listingId) return NextResponse.json({ ok:false, error:'missing listingId' }, { status:400 });
+  if (!listingId) return NextResponse.json({ ok:false, error:'Missing listingId' }, { status:400 });
   const sb = createServiceSupabase();
   let user_id: string | null = null;
   const { data: j } = await sb.from('jobs').select('user_id').eq('listing_id', listingId).maybeSingle();
