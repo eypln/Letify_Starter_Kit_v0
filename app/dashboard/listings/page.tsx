@@ -1,6 +1,9 @@
 export const dynamic = 'force-dynamic';
 import { getListings } from './actions';
+import Link from 'next/link';
 import AddDialog from './add-dialog';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard } from 'lucide-react';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 export default async function ListingsPage({ searchParams }: { searchParams: { page?: string } }) {
@@ -25,9 +28,22 @@ export default async function ListingsPage({ searchParams }: { searchParams: { p
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Listings</h1>
-        <AddDialog />
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        {/* Sol: Listings + Add */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold">Listings</h1>
+          <AddDialog />
+        </div>
+
+        {/* Sağ: diğer sayfalardaki gibi Dashboard etiketi */}
+        {/* Eğer shadcn Button kullanıyorsanız: */}
+        <Button variant="secondary" asChild>
+          <Link href="/dashboard" className="inline-flex items-center">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
       </div>
       <div className="overflow-x-auto rounded-xl border">
         <table className="min-w-[900px] w-full text-sm">

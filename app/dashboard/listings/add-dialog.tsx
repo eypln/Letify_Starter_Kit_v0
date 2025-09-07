@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, ChangeEvent } from 'react';
 import { useRouter } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export default function AddDialog() {
   const router = useRouter();
@@ -15,6 +17,25 @@ export default function AddDialog() {
   const [propertyType, setPropertyType] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<File | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  function onFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setSelectedFile(f || null);
+    setImage(f || null);
+  }
+
+  function triggerFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function clearFile() {
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setSelectedFile(null);
+    setImage(null);
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +57,7 @@ export default function AddDialog() {
       }
       setOpen(false);
       router.refresh();
-      setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); setImage(null);
+      setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); setImage(null); setSelectedFile(null);
     });
   };
 
@@ -78,9 +99,42 @@ export default function AddDialog() {
                   value={description} onChange={e=>setDescription(e.target.value)} />
               </div>
               <div className="col-span-2">
-                <label className="text-xs text-gray-600">Image (optional)</label>
-                <input type="file" accept="image/*" onChange={e=>setImage(e.target.files?.[0] ?? null)} />
-                {image && <p className="text-xs text-gray-500 mt-1">{image.name}</p>}
+                <div className="flex items-center gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Image (optional)</label>
+                    {/* Native input'ı gizli tutuyoruz ama formda kalıyor */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      name="image"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={onFileChange}
+                    />
+
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="secondary" onClick={triggerFilePicker}>
+                        {selectedFile ? 'Choose another file' : 'Choose file'}
+                      </Button>
+
+                      <span className="text-sm text-muted-foreground">
+                        {selectedFile ? selectedFile.name : 'No file selected'}
+                      </span>
+
+                      {selectedFile && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={clearFile}
+                          aria-label="Clear selected file"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
