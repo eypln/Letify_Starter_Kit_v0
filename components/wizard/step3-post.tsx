@@ -1,7 +1,7 @@
 'use client';
 import { useJobGuard } from '@/lib/wizard/useJobGuard';
 import { useWizardStore } from '@/lib/wizard/store';
-import PostProgressInline from './PostProgressInline';
+import { useRouter } from 'next/navigation';
 
 function Spinner() {
   return (
@@ -17,7 +17,8 @@ function Spinner() {
 
 export default function Step3Post() {
   useJobGuard(3);
-  const { postStatus, postUrl, postError } = useWizardStore();
+  const { postStatus, postUrl, postError, setStep } = useWizardStore();
+  const router = useRouter();
 
   return (
     <section className="space-y-4">
@@ -32,8 +33,68 @@ export default function Step3Post() {
         </div>
       )}
 
-      {postStatus === 'done' && (
-        <PostProgressInline />
+      {(postStatus === 'done' || postStatus === 'idle' || postStatus === 'error') && (
+        <div className="rounded-xl border p-6">
+          <div className="text-sm">
+            {postStatus === 'done' ? 'Paylaşım tamamlandı.' : 'Paylaşım henüz tamamlanmadı.'}
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            {/* Paylaşımı Gör */}
+            {postUrl ? (
+              <a
+                href={postUrl}
+                target="_blank"
+                className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
+              >
+                Paylaşımı Gör
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
+                title="Post URL bulunamadı"
+              >
+                Paylaşımı Gör
+              </button>
+            )}
+
+            {/* Tümünü Temizle Button */}
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('letify_jobId');
+                  localStorage.removeItem('letify_listingId');
+                } catch {}
+                useWizardStore.setState({ jobId: '', listingId: '' });
+                setStep(1);
+                router.replace('/dashboard/new-post');
+              }}
+              className="rounded-lg border px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Tümünü Temizle
+            </button>
+
+            {/* Next Button */}
+            <button
+              type="button"
+              disabled={postStatus !== 'done'}
+              className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${postStatus === 'done' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'}`}
+              onClick={() => {
+                if (postStatus === 'done') {
+                  setStep(4);
+                  requestAnimationFrame(() => {
+                    document.getElementById('step-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                }
+              }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
 
       {postStatus === 'error' && (

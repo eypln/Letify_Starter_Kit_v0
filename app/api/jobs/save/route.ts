@@ -44,11 +44,26 @@ export async function POST(req: Request) {
   }
 
   // n8n ikinci kolu
+  // Get sourceUrl and FB integration
+  const sourceUrl = job?.result?.sourceUrl ?? null;
+  let fb = { pageId: null, accessToken: null };
+  try {
+    const { data: integ } = await supabase
+      .from('users_integrations')
+      .select('fb_page_id, fb_access_token')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (integ?.fb_page_id && integ?.fb_access_token) {
+      fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+    }
+  } catch {}
+
   await sendToN8n('save', {
     action: 'save',
-    user: user.id,
+    user: { id: user.id, email: user.email ?? '' },
     job: { id: jobId },
-    listingId: job.listing_id,
+    listing: { sourceUrl },
+    fb,
     content: { description },
   });
 

@@ -1,5 +1,6 @@
 'use client';
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/lib/wizard/store';
 import { useUploadStore } from '@/lib/uploads/store';
 import { useStepMarker } from '@/lib/wizard/useStepMarker';
@@ -20,6 +21,7 @@ function Thumb({ src, selectedOrder, onClick }:{
 }
 
 export default function Step4PrepareReels() {
+  const router = useRouter();
   useStepMarker(4);
   const {
     jobId, listingId,
@@ -186,7 +188,23 @@ export default function Step4PrepareReels() {
       </div>
 
       {reelsStatus === 'idle' && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              // Tümünü Temizle: localStorage ve store’u sıfırla, 1. adıma dön
+              try {
+                localStorage.removeItem('letify_jobId');
+                localStorage.removeItem('letify_listingId');
+              } catch {}
+              useWizardStore.setState({ jobId: '', listingId: '' });
+              setStep(1);
+              router.replace('/dashboard/new-post');
+            }}
+            className="rounded-xl border px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Tümünü Temizle
+          </button>
           <button
             type="button"
             disabled={!canStart}
@@ -226,6 +244,22 @@ export default function Step4PrepareReels() {
           {reelsUrl ? (
             <div className="mt-2 flex items-center gap-3">
               <a href={reelsUrl} target="_blank" className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white">Videoyu Gör</a>
+              <button
+                type="button"
+                onClick={() => {
+                  // Tümünü Temizle: localStorage ve store’u sıfırla, 1. adıma dön
+                  try {
+                    localStorage.removeItem('letify_jobId');
+                    localStorage.removeItem('letify_listingId');
+                  } catch {}
+                  useWizardStore.setState({ jobId: '', listingId: '' });
+                  setStep(1);
+                  router.replace('/dashboard/new-post');
+                }}
+                className="rounded-lg border px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Tümünü Temizle
+              </button>
               <button 
                 type="button" 
                 onClick={onNext}

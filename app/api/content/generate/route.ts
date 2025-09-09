@@ -25,8 +25,14 @@ export async function POST(req: Request) {
   );
 
   const body = await req.json().catch(() => ({}));
-  const sourceUrl = body?.listing?.sourceUrl;
-  
+  // sourceUrl'yi normalize et: body, body.listing, body.sourceUrl, body.url, body.listingUrl
+  const sourceUrl =
+    body?.listing?.sourceUrl ??
+    body?.sourceUrl ??
+    body?.url ??
+    body?.listingUrl ??
+    null;
+
   if (!sourceUrl) {
     return NextResponse.json({ ok: false, message: 'sourceUrl gerekli' }, { status: 400 });
   }
@@ -35,6 +41,21 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ ok: false, message: 'auth required' }, { status: 401 });
 
   const jobId = crypto.randomUUID();
+
+  // Get FB integration
+  let fb = { pageId: null, accessToken: null };
+  try {
+    const { data: integ } = await supabase
+      .from('users_integrations')
+      .select('fb_page_id, fb_access_token')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (integ?.fb_page_id && integ?.fb_access_token) {
+      fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+    }
+  } catch {}
+
+  const description = body?.description ?? body?.listing?.description ?? null;
 
   const payload = {
     action: 'generate',
@@ -45,12 +66,20 @@ export async function POST(req: Request) {
       language: process.env.N8N_DEFAULT_LANGUAGE || 'tr',
       executionMode: 'prod',
     },
-    fb: { pageId: null, accessToken: null }, // profil ekli ise doldur
+    fb,
+    content: description ? { description } : undefined,
   };
 
   const r = await sendToN8n('generate', payload);
   if (!r.ok) {
-    const detail = await r.text().catch(() => '');
+    let detail = '';
+    if (typeof r.data === 'string') {
+      detail = r.data;
+    } else if (r.data) {
+      detail = JSON.stringify(r.data);
+    } else {
+      detail = 'Unknown n8n error';
+    }
     return NextResponse.json({ ok: false, message: 'n8n error', detail }, { status: 502 });
   }
   return NextResponse.json({ ok: true, jobId });

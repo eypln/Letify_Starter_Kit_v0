@@ -17,6 +17,8 @@ export default function Step2Actions() {
   } = useWizardStore();
   const jobId = getEffectiveJobId();
   const [busy, setBusy] = useState(false);
+  // Toast hook'u ekle
+  const { toast } = require('@/components/ui/use-toast');
 
   function expired() {
     return !jobStartedAt || Date.now() - jobStartedAt > JOB_TTL_MS;
@@ -25,31 +27,87 @@ export default function Step2Actions() {
   async function triggerPostInBackground() {
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Fallback: rehydrate jobId/listingId from localStorage/URL if Zustand state is lost
+    let effectiveJobId = jobId;
+    let effectiveListingId = listingId;
+    if (!effectiveJobId) {
+      try {
+        effectiveJobId = localStorage.getItem('letify_jobId') || '';
+      } catch {}
+    }
+    if (!effectiveListingId) {
+      try {
+        effectiveListingId = localStorage.getItem('letify_listingId') || '';
+      } catch {}
+    }
+    // Also check URL params
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (!effectiveJobId) effectiveJobId = params.get('jobId') ?? params.get('job_id') ?? params.get('id') ?? '';
+      if (!effectiveListingId) effectiveListingId = params.get('listingId') ?? params.get('listing_id') ?? '';
+    }
+
     try {
+      // Facebook entegrasyonunu Supabase'den çek
+      let fb = null;
+      try {
+        const { data: integ } = await supabase
+          .from('users_integrations')
+          .select('fb_page_id, fb_access_token')
+          .eq('user_id', user?.id)
+          .maybeSingle();
+        if (integ?.fb_page_id && integ?.fb_access_token) {
+          fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+        }
+      } catch {}
+
+      const payload = {
+        action: 'post',                         // <-- ÖNEMLİ
+        user: user ? { id: user.id, email: user.email } : null,
+        job: { id: effectiveJobId, kind: 'content' },
+        listing: { id: effectiveListingId },
+        images: images.filter(i => i.jobId === effectiveJobId)
+                      .map(i => ({ url: i.url, storagePath: i.storagePath })),
+        fb,
+      };
+      // Debug: log outgoing payload
+      console.log('🟢 [FE] Step2Actions - Sending payload to /api/workflows/post:', JSON.stringify(payload, null, 2));
+
       const res = await fetch('/api/workflows/post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'post',                         // <-- ÖNEMLİ
-          user: user ? { id: user.id, email: user.email } : null,
-          job: { id: jobId, kind: 'content' },
-          listing: { id: listingId },
-          images: images.filter(i => i.jobId === jobId)
-                        .map(i => ({ url: i.url, storagePath: i.storagePath })),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => ({}));
+      // Debug: log response
+      console.log('🟢 [FE] Step2Actions - Response from /api/workflows/post:', JSON.stringify(data, null, 2));
+
       if (!res.ok) throw new Error(data?.error || 'Workflow failed');
 
       const postUrl = data?.result?.post_url || data?.post_url || '';
-      console.log('🔍 n8n response:', { data, postUrl, hasPostUrl: !!postUrl });
-      
       finishPost(postUrl);
-      console.log('🎉 finishPost çağrıldı, postStatus done olmalı');
+      console.log('🎉 finishPost çağrıldı, postStatus done olmalı, postUrl:', postUrl);
+      // Sadece postUrl varsa stepper'ı 4. adıma geçir
+      if (postUrl) {
+        setStep(4);
+        console.log('➡️ Stepper 4. adıma geçti.');
+      } else {
+        setStep(3);
+        console.log('⚠️ n8n workflow başarısız, stepper 3. adımda kaldı.');
+      }
     } catch (e: any) {
       console.log('❌ Post hatası:', e);
       failPost(e.message || 'unknown error');
+      // Daha açıklayıcı toast
+      const errorMsg = typeof e === 'string' ? e : (e?.message || 'Bilinmeyen hata');
+      toast({
+        title: 'Paylaşım Başarısız',
+        description: `Facebook paylaşımı sırasında hata oluştu: ${errorMsg}. Lütfen tekrar deneyin veya sayfayı yenileyin.`,
+        variant: 'destructive',
+      });
+      // Stepper'ı mevcut adımda tut
+      setStep(3);
     } finally {
       setBusy(false);
     }

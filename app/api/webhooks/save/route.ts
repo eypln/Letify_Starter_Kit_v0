@@ -45,15 +45,27 @@ export async function POST(req: Request) {
     job?.payload?.listing?.sourceUrl ?? null;
 
   try {
+    // Get FB integration
+    let fb = { pageId: null, accessToken: null };
+    try {
+      const { data: integ } = await supabase
+        .from('users_integrations')
+        .select('fb_page_id, fb_access_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (integ?.fb_page_id && integ?.fb_access_token) {
+        fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+      }
+    } catch {}
+
     // Call second workflow (switch: action === 'save')
     const payload = {
       action: 'save',
-      user: { id: user.id, email: user.email ?? '' },
+      user: { id: user.id, email: user.email ?? '' }, // always send both
       job: { id: jobId, kind: 'content' },
       listing: { sourceUrl },
-      content: { 
-        description 
-      },
+      fb,
+      content: { description },
       options: { language: 'tr' },
       webhookUrl: process.env.NEXT_PUBLIC_WEBAPP_URL + '/api/n8n/status-callback',
       executionMode: 'production',
@@ -61,7 +73,14 @@ export async function POST(req: Request) {
 
     const r = await sendToN8n('save', payload);
     if (!r.ok) {
-      const detail = await r.text().catch(() => '');
+      let detail = '';
+      if (r.data) {
+        detail = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+      } else if (typeof r.status === 'number') {
+        detail = `n8n status: ${r.status}`;
+      } else {
+        detail = 'Unknown n8n error';
+      }
       return NextResponse.json(
         { ok: false, message: 'n8n error', detail },
         { status: 502 }

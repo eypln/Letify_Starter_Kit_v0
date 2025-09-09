@@ -55,6 +55,9 @@ export async function POST(req: NextRequest) {
   }
 
   console.log('📥 Status callback received:', body);
+  if (body?.user) {
+    console.log('👤 User info:', { id: body.user.id, email: body.user.email });
+  }
 
   const jobId = body?.jobId;
   if (!jobId || typeof jobId !== "string") {

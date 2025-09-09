@@ -37,25 +37,49 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, message: 'auth required' }, { status: 401 });
 
-  const jobId = crypto.randomUUID();
+    const jobId = crypto.randomUUID();
 
-  const payload = {
-    action: 'prepareReels',
-    user: { id: user.id, email: user.email },
-    job: { id: jobId, kind: 'video', status: 'queued' },
-    listing: { sourceUrl: listing.sourceUrl },
-    options: {
-      language: process.env.N8N_DEFAULT_LANGUAGE || 'tr',
-      executionMode: 'prod',
-      images: images,
-    },
-    fb: { pageId: null, accessToken: null }, // video creation için FB gerekli değil
-  };
+    // Fetch FB integration for user
+    let fb = { pageId: null, accessToken: null };
+    try {
+      const { data: integ } = await supabase
+        .from('users_integrations')
+        .select('fb_page_id, fb_access_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (integ?.fb_page_id && integ?.fb_access_token) {
+        fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+      }
+    } catch {}
 
-  const r = await sendToN8n('prepareReels', payload);
-  if (!r.ok) {
-    const detail = await r.text().catch(() => '');
-    return NextResponse.json({ ok: false, message: 'n8n error', detail }, { status: 502 });
-  }
-  return NextResponse.json({ ok: true, jobId });
+    // Get description from listing or body
+    const description = listing?.description ?? body?.description ?? null;
+
+    const payload = {
+      action: 'prepareReels',
+      user: { id: user.id, email: user.email },
+      job: { id: jobId, kind: 'video', status: 'queued' },
+      listing: { sourceUrl: listing.sourceUrl },
+      options: {
+        language: process.env.N8N_DEFAULT_LANGUAGE || 'tr',
+        executionMode: 'prod',
+        images: images,
+      },
+      fb,
+      content: description ? { description } : undefined,
+    };
+
+    const r = await sendToN8n('prepareReels', payload);
+    if (!r.ok) {
+      let detail = '';
+      if (r.data) {
+        detail = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+      } else if (typeof r.status === 'number') {
+        detail = `n8n status: ${r.status}`;
+      } else {
+        detail = 'Unknown n8n error';
+      }
+      return NextResponse.json({ ok: false, message: 'n8n error', detail }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, jobId });
 }

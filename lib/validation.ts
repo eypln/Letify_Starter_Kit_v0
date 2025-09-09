@@ -5,7 +5,7 @@ export const IntegrationFormSchema = z.object({
   fb_page_id: z
     .string()
     .min(1, 'Facebook Page ID gereklidir')
-    .regex(/^+$/, 'Facebook Page ID sadece sayı içermelidir'),
+    .regex(/^\d+$/, 'Facebook Page ID sadece sayı içermelidir'),
   fb_access_token: z
     .string()
     .min(1, 'Facebook Access Token gereklidir')

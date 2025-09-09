@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     // Prepare payload for n8n
     const payload = {
       action: 'generate',
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email ?? '' },
       job: { kind: 'content', status: 'queued' },
       listing: { sourceUrl },
       options: { language: process.env.N8N_DEFAULT_LANGUAGE || 'tr', executionMode: 'prod' },
@@ -59,7 +59,10 @@ export async function POST(req: Request) {
     // Send to n8n
     const finalPayload = { ...payload, job: { ...payload.job, id: inserted.id } };
     try {
-      await sendToN8n('generate', finalPayload);
+      await sendToN8n('generate', {
+        ...finalPayload,
+        user: { id: user.id, email: user.email ?? '' }, // always send both
+      });
     } catch (error) {
       await supabase.from('jobs').update({ status: 'error', error_msg: 'network error' }).eq('id', inserted.id);
       return NextResponse.json({ ok: false, message: 'network error' }, { status: 502 });
