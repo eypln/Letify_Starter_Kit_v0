@@ -1,5 +1,5 @@
-'use client';
-import { useMemo } from 'react';
+"use client";
+import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/lib/wizard/store';
 import { useUploadStore } from '@/lib/uploads/store';
@@ -31,6 +31,53 @@ export default function Step4PrepareReels() {
     startReelsShare
   } = useWizardStore();
 
+  // user ve fb state'ini localde tutmak için
+  const [user, setUser] = React.useState<any>(null);
+  const [fb, setFb] = React.useState<any>(null);
+
+  async function ensureCriticalData() {
+    let _jobId = jobId;
+    let _listingId = listingId;
+    let _user = user;
+    let _fb = fb;
+    // localStorage'dan çek
+    if (!_jobId) _jobId = localStorage.getItem('letify_jobId') || '';
+    if (!_listingId) _listingId = localStorage.getItem('letify_listingId') || '';
+    // Supabase'den çek
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      // user.id ve user.email zorunlu
+      if (!_user || !_user.id || !_user.email) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id && u?.user?.email) {
+          _user = { id: u.user.id, email: u.user.email };
+        } else {
+          _user = null;
+        }
+      }
+      if (!_fb || !_fb.pageId || !_fb.accessToken) {
+        const { data: integ } = await supabase
+          .from('users_integrations')
+          .select('fb_page_id, fb_access_token')
+          .eq('user_id', _user?.id)
+          .maybeSingle();
+        if (integ?.fb_page_id && integ?.fb_access_token) {
+          _fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+        }
+      }
+    } catch {}
+    // State'e yaz
+    setUser(_user);
+    setFb(_fb);
+    useWizardStore.setState({ jobId: _jobId, listingId: _listingId, user: _user, fb: _fb });
+  }
+
+  React.useEffect(() => {
+    ensureCriticalData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const images = useUploadStore((s) => s.images);
   const list = useMemo(() => images.filter(i => i.jobId === jobId), [images, jobId]);
 
@@ -53,6 +100,23 @@ export default function Step4PrepareReels() {
     if (reelsStatus === 'idle') {
       startReels();
       try {
+        // Supabase'den user ve fb entegrasyonunu çek
+        let user = null, fb = null;
+        try {
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user) user = { id: u.user.id, email: u.user.email };
+          const { data: integ } = await supabase
+            .from('users_integrations')
+            .select('fb_page_id, fb_access_token')
+            .eq('user_id', u?.user?.id)
+            .maybeSingle();
+          if (integ?.fb_page_id && integ?.fb_access_token) {
+            fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+          }
+        } catch {}
+
         const payload = {
           action: 'prepareReels',
           job: { id: jobId },
@@ -61,6 +125,8 @@ export default function Step4PrepareReels() {
             .sort((a,b)=>a.order-b.order)
             .map(x => ({ order: x.order, storagePath: x.storagePath, name: x.name })),
           template_id: reelsTemplateId, // şimdilik null
+          user,
+          fb,
         };
 
         const url = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL!;
@@ -105,11 +171,30 @@ export default function Step4PrepareReels() {
       });
       
       try {
+        // Supabase'den user ve fb entegrasyonunu çek
+        let user = null, fb = null;
+        try {
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user) user = { id: u.user.id, email: u.user.email };
+          const { data: integ } = await supabase
+            .from('users_integrations')
+            .select('fb_page_id, fb_access_token')
+            .eq('user_id', u?.user?.id)
+            .maybeSingle();
+          if (integ?.fb_page_id && integ?.fb_access_token) {
+            fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+          }
+        } catch {}
+
         const payload = {
           action: 'postReelsFb',
           job: { id: jobId },
           listing: { id: listingId },
           reelVideoUrl: reelsUrl, // hazırlanan video URL'si
+          user,
+          fb,
         };
 
         const url = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL!;

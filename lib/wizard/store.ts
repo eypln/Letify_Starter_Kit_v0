@@ -30,6 +30,10 @@ type WizardState = {
   reelsShareUrl: string | null;
   reelsShareError: string | null;
 
+  // Eklenenler: user ve fb
+  user: { id: string; email: string } | null;
+  fb: any | null;
+
   startFlow: () => void;
   setListingId: (v: string | null) => void;
   setJobId: (v: string | null, startedAt?: number) => void;
@@ -55,26 +59,39 @@ type WizardState = {
 export const useWizardStore = create<WizardState>()(
   persist(
     (set) => ({
-      listingId: null,
-      jobId: null,
-      jobStartedAt: null,
-      step: 1,
+  listingId: null,
+  jobId: null,
+  jobStartedAt: null,
+  step: 1,
 
-      postStatus: 'idle',
-      postUrl: null,
-      postError: null,
+  postStatus: 'idle',
+  postUrl: null,
+  postError: null,
 
-      reelsStatus: 'idle',
-      reelsUrl: null,
-      reelsError: null,
-      reelsSelection: [],
-      reelsTemplateId: null,
+  reelsStatus: 'idle',
+  reelsUrl: null,
+  reelsError: null,
+  reelsSelection: [],
+  reelsTemplateId: null,
 
-      reelsShareStatus: 'idle',
-      reelsShareUrl: null,
-      reelsShareError: null,
+  reelsShareStatus: 'idle',
+  reelsShareUrl: null,
+  reelsShareError: null,
 
-      startFlow: () =>
+  // Eklenenler: user ve fb
+  user: null,
+  fb: null,
+
+      startFlow: async () => {
+        let user: { id: string; email: string } | null = null;
+        try {
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user?.id && u?.user?.email) {
+            user = { id: u.user.id, email: u.user.email };
+          }
+        } catch {}
         set({
           listingId: null,
           jobId: null,
@@ -91,7 +108,10 @@ export const useWizardStore = create<WizardState>()(
           reelsShareStatus: 'idle',
           reelsShareUrl: null,
           reelsShareError: null,
-        }),
+          user,
+          fb: null,
+        });
+      },
 
       setListingId: (v) => set({ listingId: v }),
       setJobId: (v, startedAt) =>
@@ -132,6 +152,8 @@ export const useWizardStore = create<WizardState>()(
           reelsShareStatus: 'idle',
           reelsShareUrl: null,
           reelsShareError: null,
+          user: null,
+          fb: null,
         }),
     }),
     { name: 'letify-wizard', storage: createJSONStorage(() => sessionStorage) }

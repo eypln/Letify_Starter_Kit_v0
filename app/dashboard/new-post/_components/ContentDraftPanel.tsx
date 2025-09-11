@@ -199,6 +199,21 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
             <Button type="button" onClick={onSave} disabled={loading || !draft.trim()}>
               {loading ? "Kaydediliyor..." : "Kaydet ve 2. Adıma Geç"}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('letify_jobId');
+                  localStorage.removeItem('letify_listingId');
+                } catch {}
+                useWizardStore.setState({ jobId: '', listingId: '' });
+                setStep(1);
+                router.replace('/dashboard/new-post');
+              }}
+            >
+              Tümünü Temizle
+            </Button>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import React from 'react';
 import { useJobGuard } from '@/lib/wizard/useJobGuard';
 import { useWizardStore } from '@/lib/wizard/store';
 import { useRouter } from 'next/navigation';
@@ -19,6 +20,53 @@ export default function Step3Post() {
   useJobGuard(3);
   const { postStatus, postUrl, postError, setStep } = useWizardStore();
   const router = useRouter();
+
+  // Eksik kritik verileri store'a yaz (userId, userEmail, fbPageId, fbAccessToken, jobId, listingId)
+  async function ensureCriticalData() {
+    const store = useWizardStore.getState();
+    let jobId = store.jobId;
+    let listingId = store.listingId;
+    let user = store.user;
+    let fb = store.fb;
+    // localStorage'dan çek
+    if (!jobId) jobId = localStorage.getItem('letify_jobId') || '';
+    if (!listingId) listingId = localStorage.getItem('letify_listingId') || '';
+    // Supabase'den çek
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      // user.id ve user.email zorunlu
+      if (!user || !user.id || !user.email) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id && u?.user?.email) {
+          user = { id: u.user.id, email: u.user.email };
+        } else {
+          user = null;
+        }
+      }
+      if (!fb || !fb.pageId || !fb.accessToken) {
+        const { data: integ } = await supabase
+          .from('users_integrations')
+          .select('fb_page_id, fb_access_token')
+          .eq('user_id', user?.id)
+          .maybeSingle();
+        if (integ?.fb_page_id && integ?.fb_access_token) {
+          fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+        }
+      }
+    } catch {}
+    // Store'a yazma işlemini await ile garanti altına al
+    await new Promise((resolve) => {
+      useWizardStore.setState({ jobId, listingId, user, fb });
+      // Zustand setState sync çalışır ama async tetikleyicilerde garanti için microtask bekletiyoruz
+      setTimeout(resolve, 0);
+    });
+  }
+
+  // İlk renderda eksik verileri tamamla
+  React.useEffect(() => {
+    ensureCriticalData();
+  }, []);
 
   return (
     <section className="space-y-4">

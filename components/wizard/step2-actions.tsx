@@ -25,49 +25,51 @@ export default function Step2Actions() {
   }
 
   async function triggerPostInBackground() {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Fallback: rehydrate jobId/listingId from localStorage/URL if Zustand state is lost
+    let user = null, fb = null;
     let effectiveJobId = jobId;
     let effectiveListingId = listingId;
-    if (!effectiveJobId) {
-      try {
-        effectiveJobId = localStorage.getItem('letify_jobId') || '';
-      } catch {}
-    }
-    if (!effectiveListingId) {
-      try {
-        effectiveListingId = localStorage.getItem('letify_listingId') || '';
-      } catch {}
-    }
-    // Also check URL params
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (!effectiveJobId) effectiveJobId = params.get('jobId') ?? params.get('job_id') ?? params.get('id') ?? '';
-      if (!effectiveListingId) effectiveListingId = params.get('listingId') ?? params.get('listing_id') ?? '';
-    }
-
     try {
-      // Facebook entegrasyonunu Supabase'den çek
-      let fb = null;
-      try {
-        const { data: integ } = await supabase
-          .from('users_integrations')
-          .select('fb_page_id, fb_access_token')
-          .eq('user_id', user?.id)
-          .maybeSingle();
-        if (integ?.fb_page_id && integ?.fb_access_token) {
-          fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+      const { data: u } = await supabase.auth.getUser();
+      if (u?.user) {
+        user = { id: u.user.id, email: u.user.email };
+        if (!jobId) useWizardStore.getState().setJobId(u.user.id);
+      }
+      if (!effectiveJobId) {
+        effectiveJobId = localStorage.getItem('letify_jobId') || '';
+        if (effectiveJobId) useWizardStore.getState().setJobId(effectiveJobId);
+      }
+      if (!effectiveListingId) {
+        effectiveListingId = localStorage.getItem('letify_listingId') || '';
+        if (effectiveListingId) useWizardStore.getState().setListingId(effectiveListingId);
+      }
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (!effectiveJobId) {
+          effectiveJobId = params.get('jobId') ?? params.get('job_id') ?? params.get('id') ?? '';
+          if (effectiveJobId) useWizardStore.getState().setJobId(effectiveJobId);
         }
-      } catch {}
+        if (!effectiveListingId) {
+          effectiveListingId = params.get('listingId') ?? params.get('listing_id') ?? '';
+          if (effectiveListingId) useWizardStore.getState().setListingId(effectiveListingId);
+        }
+      }
+      // Facebook entegrasyonunu Supabase'den çek
+      const { data: integ } = await supabase
+        .from('users_integrations')
+        .select('fb_page_id, fb_access_token')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      if (integ?.fb_page_id && integ?.fb_access_token) {
+        fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+      }
 
       const payload = {
-        action: 'post',                         // <-- ÖNEMLİ
-        user: user ? { id: user.id, email: user.email } : null,
+        action: 'post',
+        user,
         job: { id: effectiveJobId, kind: 'content' },
         listing: { id: effectiveListingId },
         images: images.filter(i => i.jobId === effectiveJobId)
-                      .map(i => ({ url: i.url, storagePath: i.storagePath })),
+          .map(i => ({ url: i.url, storagePath: i.storagePath })),
         fb,
       };
       // Debug: log outgoing payload
@@ -88,12 +90,9 @@ export default function Step2Actions() {
       const postUrl = data?.result?.post_url || data?.post_url || '';
       finishPost(postUrl);
       console.log('🎉 finishPost çağrıldı, postStatus done olmalı, postUrl:', postUrl);
-      // Sadece postUrl varsa stepper'ı 4. adıma geçir
-      if (postUrl) {
-        setStep(4);
-        console.log('➡️ Stepper 4. adıma geçti.');
-      } else {
-        setStep(3);
+      // Stepper'ı otomatik olarak 4. adıma geçirme! Kullanıcı Next'e basınca geçecek.
+      setStep(3);
+      if (!postUrl) {
         console.log('⚠️ n8n workflow başarısız, stepper 3. adımda kaldı.');
       }
     } catch (e: any) {

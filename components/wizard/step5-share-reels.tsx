@@ -1,5 +1,6 @@
 'use client';
 import { useWizardStore } from '@/lib/wizard/store';
+import React from 'react';
 import { useStepMarker } from '@/lib/wizard/useStepMarker';
 import { useRouter } from 'next/navigation';
 
@@ -23,8 +24,58 @@ export default function Step5ShareReels() {
     reelsShareUrl, 
     reelsShareError,
     setStep,
-    clear
+    clear,
+    jobId,
+    listingId
   } = useWizardStore();
+
+  // user ve fb state'ini localde tutmak için
+  const [user, setUser] = React.useState<any>(null);
+  const [fb, setFb] = React.useState<any>(null);
+
+  // Eksik kritik verileri store'a yaz (userId, userEmail, fbPageId, fbAccessToken, jobId, listingId)
+  async function ensureCriticalData() {
+    let _jobId = jobId;
+    let _listingId = listingId;
+    let _user = user;
+    let _fb = fb;
+    // localStorage'dan çek
+    if (!_jobId) _jobId = localStorage.getItem('letify_jobId') || '';
+    if (!_listingId) _listingId = localStorage.getItem('letify_listingId') || '';
+    // Supabase'den çek
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      // user.id ve user.email zorunlu
+      if (!_user || !_user.id || !_user.email) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id && u?.user?.email) {
+          _user = { id: u.user.id, email: u.user.email };
+        } else {
+          _user = null;
+        }
+      }
+      if (!_fb || !_fb.pageId || !_fb.accessToken) {
+        const { data: integ } = await supabase
+          .from('users_integrations')
+          .select('fb_page_id, fb_access_token')
+          .eq('user_id', _user?.id)
+          .maybeSingle();
+        if (integ?.fb_page_id && integ?.fb_access_token) {
+          _fb = { pageId: integ.fb_page_id, accessToken: integ.fb_access_token };
+        }
+      }
+    } catch {}
+    // State'e yaz
+    setUser(_user);
+    setFb(_fb);
+    useWizardStore.setState({ jobId: _jobId, listingId: _listingId, user: _user, fb: _fb });
+  }
+
+  React.useEffect(() => {
+    ensureCriticalData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goToDashboard = () => {
     clear(); // Wizard state'ini temizle
