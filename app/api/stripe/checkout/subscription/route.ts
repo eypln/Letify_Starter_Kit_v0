@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
+import { logActivity } from '@/lib/activity';
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -87,6 +88,9 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?success=1`,
       cancel_url: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?canceled=1`,
     });
+
+      // Activity log: subscription
+      await logActivity({ user_id: user.id, type: 'subscription' });
 
     return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (e: any) {

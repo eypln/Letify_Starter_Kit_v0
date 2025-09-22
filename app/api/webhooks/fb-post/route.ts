@@ -5,15 +5,17 @@ import { createServiceSupabase } from '@/lib/supabaseServerService';
 
 export async function POST(req: Request) {
   const body = await req.json();
+  console.log('FB POST PAYLOAD:', body);
   const listingId = body.listingId ?? body.listing_id;
-  const fbPostUrl = body.result?.fbPostUrl ?? body.fbPostUrl;
+  const fbPostUrl = body.result?.fbPostUrl ?? body.fbPostUrl ?? body.fb_post_url ?? body.result?.fb_post_url;
   const description = body.description ?? body.result?.description ?? null;
 
   if (!listingId || !fbPostUrl)
     return NextResponse.json({ ok:false, error:'missing listingId/fbPostUrl' }, { status:400 });
 
   const sb = createServiceSupabase();
-  const { error } = await sb.from('listings').update({ fb_post_url: fbPostUrl }).eq('listing_id', listingId);
+  const { error } = await sb.from('listings').update({ fb_post_url: fbPostUrl }).eq('id', listingId);
+  console.log('FB POST UPDATE RESULT:', { error });
   if (error) return NextResponse.json({ ok:false, error: error.message }, { status:500 });
 
   // Send n8n postReelsFb payload

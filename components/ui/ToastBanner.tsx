@@ -40,7 +40,12 @@ export function ExpiredBannerFromQuery() {
         // URL'den expired parametresini temizle
         const q = new URLSearchParams(Array.from(params.entries()));
         q.delete('expired');
-        const newUrl = q.toString() ? `${window.location.pathname}?${q.toString()}` : window.location.pathname;
+        let newUrl = '';
+        if (typeof window !== 'undefined') {
+          newUrl = q.toString() ? `${window.location.pathname}?${q.toString()}` : window.location.pathname;
+        } else {
+          newUrl = q.toString() ? `?${q.toString()}` : '/';
+        }
         router.replace(newUrl);
       }}
     />

@@ -1,24 +1,82 @@
-'use client';
+"use client";
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/lib/wizard/store';
+import { getListingInfoByJobId } from '@/lib/wizard/getListingInfo';
 import { getEffectiveJobId } from '@/lib/client/job-session';
 import { JOB_TTL_MS } from '@/lib/wizard/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useUploadStore } from '@/lib/uploads/store';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Step2Actions() {
   const router = useRouter();
+
   const supabase = createClient();
   const { images, clear: clearUploads } = useUploadStore();
   const {
-    jobStartedAt, listingId,
-    startPost, finishPost, failPost, setStep, clear,
+    jobStartedAt, listingId, sourceUrl,
+    startPost, finishPost, failPost, setStep, clear, setSourceUrl, setListingId
   } = useWizardStore();
-  const jobId = getEffectiveJobId();
+  // jobId'yi SSR/CSR uyumlu şekilde al
+  const [effectiveJobId, setEffectiveJobId] = useState<string | null>(null);
+  useEffect(() => {
+    let jid = getEffectiveJobId();
+    if (!jid && typeof window !== 'undefined') {
+      jid = localStorage.getItem('letify_jobId') || '';
+    }
+    setEffectiveJobId(jid);
+  }, []);
   const [busy, setBusy] = useState(false);
   // Toast hook'u ekle
   const { toast } = require('@/components/ui/use-toast');
+
+  // Step başında: sourceUrl ve listingId store'a Supabase'den doğru şekilde yazılsın
+  useEffect(() => {
+    async function ensureListingIdAndSourceUrl() {
+      let effectiveSourceUrl = sourceUrl;
+      let effectiveListingId = listingId;
+      if (typeof window !== 'undefined') {
+        effectiveSourceUrl = effectiveSourceUrl || localStorage.getItem('letify_sourceUrl') || null;
+        effectiveListingId = effectiveListingId || localStorage.getItem('letify_listingId') || null;
+      }
+      // Supabase fallback
+      if ((!effectiveSourceUrl || !effectiveListingId) && supabase) {
+        if (effectiveSourceUrl && !effectiveListingId) {
+          const { data: listing } = await supabase
+            .from('listings')
+            .select('id')
+            .eq('property_url', effectiveSourceUrl)
+            .maybeSingle();
+          if (listing?.id) {
+            setListingId(listing.id);
+            if (typeof window !== 'undefined') localStorage.setItem('letify_listingId', listing.id);
+            effectiveListingId = listing.id;
+          }
+        } else if (!effectiveSourceUrl && effectiveListingId) {
+          const { data: listing } = await supabase
+            .from('listings')
+            .select('property_url')
+            .eq('id', effectiveListingId)
+            .maybeSingle();
+          if (listing?.property_url) {
+            setSourceUrl(listing.property_url);
+            if (typeof window !== 'undefined') localStorage.setItem('letify_sourceUrl', listing.property_url);
+            effectiveSourceUrl = listing.property_url;
+          }
+        }
+      }
+      // Store ve localStorage sync
+      if (effectiveListingId) setListingId(effectiveListingId);
+      if (effectiveSourceUrl) setSourceUrl(effectiveSourceUrl);
+      if (typeof window !== 'undefined') {
+        if (effectiveListingId) localStorage.setItem('letify_listingId', effectiveListingId);
+        if (effectiveSourceUrl) localStorage.setItem('letify_sourceUrl', effectiveSourceUrl);
+      }
+    }
+    ensureListingIdAndSourceUrl();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function expired() {
     return !jobStartedAt || Date.now() - jobStartedAt > JOB_TTL_MS;
@@ -26,32 +84,16 @@ export default function Step2Actions() {
 
   async function triggerPostInBackground() {
     let user = null, fb = null;
-    let effectiveJobId = jobId;
-    let effectiveListingId = listingId;
+    // jobId'yi SSR/CSR uyumlu şekilde kullan
+    const jobIdToUse = effectiveJobId || '';
+    // Her payload öncesi, Supabase fallback ile sourceUrl ve listingId'yi garanti altına al
+    const { sourceUrl: effectiveSourceUrl, listingId: effectiveListingId } = await getListingInfoByJobId(jobIdToUse);
+    console.log('[Step2Actions] jobId:', jobIdToUse, 'sourceUrl:', effectiveSourceUrl, 'listingId:', effectiveListingId);
     try {
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
         user = { id: u.user.id, email: u.user.email };
-        if (!jobId) useWizardStore.getState().setJobId(u.user.id);
-      }
-      if (!effectiveJobId) {
-        effectiveJobId = localStorage.getItem('letify_jobId') || '';
-        if (effectiveJobId) useWizardStore.getState().setJobId(effectiveJobId);
-      }
-      if (!effectiveListingId) {
-        effectiveListingId = localStorage.getItem('letify_listingId') || '';
-        if (effectiveListingId) useWizardStore.getState().setListingId(effectiveListingId);
-      }
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        if (!effectiveJobId) {
-          effectiveJobId = params.get('jobId') ?? params.get('job_id') ?? params.get('id') ?? '';
-          if (effectiveJobId) useWizardStore.getState().setJobId(effectiveJobId);
-        }
-        if (!effectiveListingId) {
-          effectiveListingId = params.get('listingId') ?? params.get('listing_id') ?? '';
-          if (effectiveListingId) useWizardStore.getState().setListingId(effectiveListingId);
-        }
+  if (!effectiveJobId) useWizardStore.getState().setJobId(u.user.id);
       }
       // Facebook entegrasyonunu Supabase'den çek
       const { data: integ } = await supabase
@@ -67,13 +109,20 @@ export default function Step2Actions() {
         action: 'post',
         user,
         job: { id: effectiveJobId, kind: 'content' },
-        listing: { id: effectiveListingId },
+        listing: {
+          id: effectiveListingId,
+          sourceUrl: effectiveSourceUrl || undefined,
+        },
         images: images.filter(i => i.jobId === effectiveJobId)
           .map(i => ({ url: i.url, storagePath: i.storagePath })),
         fb,
       };
-      // Debug: log outgoing payload
-      console.log('🟢 [FE] Step2Actions - Sending payload to /api/workflows/post:', JSON.stringify(payload, null, 2));
+      // Hassas verileri maskeleyerek logla
+      const safePayload = {
+        ...payload,
+        fb: fb ? { pageId: fb.pageId ? '***' : undefined, accessToken: fb.accessToken ? '***' : undefined } : undefined
+      };
+      console.log('[Step2Actions] OUT payload:', JSON.stringify(safePayload, null, 2));
 
       const res = await fetch('/api/workflows/post', {
         method: 'POST',
@@ -101,8 +150,8 @@ export default function Step2Actions() {
       // Daha açıklayıcı toast
       const errorMsg = typeof e === 'string' ? e : (e?.message || 'Bilinmeyen hata');
       toast({
-        title: 'Paylaşım Başarısız',
-        description: `Facebook paylaşımı sırasında hata oluştu: ${errorMsg}. Lütfen tekrar deneyin veya sayfayı yenileyin.`,
+        title: 'Post Failed',
+        description: `An error occurred during Facebook sharing: ${errorMsg}. Please try again or refresh the page.`,
         variant: 'destructive',
       });
       // Stepper'ı mevcut adımda tut
@@ -119,7 +168,7 @@ export default function Step2Actions() {
       router.replace('/dashboard?expired=1');
       return;
     }
-    if (!jobId) return;
+  if (!effectiveJobId) return;
 
     setBusy(true);
     startPost();     // state: running
@@ -134,20 +183,21 @@ export default function Step2Actions() {
         className="rounded-xl border px-4 py-2 text-sm"
         onClick={() => {
           clearUploads();
+          useWizardStore.setState({ jobStartedAt: undefined });
           setStep(1);
           router.replace('/dashboard/new-post');
         }}
       >
-        Tümünü Temizle
+        Reset All
       </button>
 
       <button
         type="button"
-        disabled={busy || !jobId || images.filter(i => i.jobId === jobId).length === 0}
+  disabled={busy || !effectiveJobId || images.filter(i => i.jobId === effectiveJobId).length === 0}
         onClick={onStartPost}
         className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
       >
-        {busy ? 'Başlatılıyor...' : 'Start Post'}
+        {busy ? 'Starting...' : 'Start Post'}
       </button>
     </div>
   );

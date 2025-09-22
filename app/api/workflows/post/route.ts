@@ -58,6 +58,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data?.error || 'n8n error' }, { status: 500 });
     }
 
+    // FB Post URL'yi listings tablosuna yaz
+    try {
+      const postUrl = data?.result?.post_url || data?.post_url;
+      let listingId = patchedPayload?.listing?.id || patchedPayload?.listingId;
+      const { createClient } = require('@/lib/supabase/server');
+      const supabase = createClient();
+      // Eğer listingId yoksa, jobId üzerinden eşle
+      if (!listingId && patchedPayload?.job?.id) {
+        const { data: listingRow } = await supabase
+          .from('listings')
+          .select('id')
+          .eq('job_id', patchedPayload.job.id)
+          .maybeSingle();
+        if (listingRow?.id) listingId = listingRow.id;
+      }
+      if (postUrl && listingId) {
+        // Hem fb_post_url hem facebook_post_url ve status alanlarını güncelle
+        await supabase
+          .from('listings')
+          .update({ fb_post_url: postUrl, facebook_post_url: postUrl, status: 'shared' })
+          .eq('id', listingId);
+      }
+    } catch (e) {
+      console.error('[API] Failed to update FB post url in listings:', e);
+    }
+
     return NextResponse.json(data); // n8n Respond to Webhook: { result: { post_url: ... }, jobId: ... }
   } catch (error) {
     console.error('[API] n8n request failed:', error);

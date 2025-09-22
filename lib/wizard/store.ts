@@ -9,6 +9,8 @@ export type ReelsImageSel = { order: 1|2|3|4|5; storagePath: string; url: string
 
 type WizardState = {
   listingId: string | null;
+  sourceUrl: string | null;
+  setSourceUrl: (v: string | null) => void;
   jobId: string | null;
   jobStartedAt: number | null;   // CTA ile set
   step: Step;
@@ -31,7 +33,7 @@ type WizardState = {
   reelsShareError: string | null;
 
   // Eklenenler: user ve fb
-  user: { id: string; email: string } | null;
+  user: { id: string; email: string; full_name?: string } | null;
   fb: any | null;
 
   startFlow: () => void;
@@ -60,6 +62,7 @@ export const useWizardStore = create<WizardState>()(
   persist(
     (set) => ({
   listingId: null,
+  sourceUrl: null,
   jobId: null,
   jobStartedAt: null,
   step: 1,
@@ -83,13 +86,22 @@ export const useWizardStore = create<WizardState>()(
   fb: null,
 
       startFlow: async () => {
-        let user: { id: string; email: string } | null = null;
+        let user: { id: string; email: string; full_name?: string } | null = null;
         try {
           const { createClient } = await import('@/lib/supabase/client');
           const supabase = createClient();
           const { data: u } = await supabase.auth.getUser();
           if (u?.user?.id && u?.user?.email) {
             user = { id: u.user.id, email: u.user.email };
+            // Fetch full_name from profiles
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', u.user.id)
+              .maybeSingle();
+            if (profile?.full_name) {
+              user.full_name = profile.full_name;
+            }
           }
         } catch {}
         set({
@@ -113,7 +125,8 @@ export const useWizardStore = create<WizardState>()(
         });
       },
 
-      setListingId: (v) => set({ listingId: v }),
+  setListingId: (v) => set({ listingId: v }),
+  setSourceUrl: (v: string | null) => set({ sourceUrl: v }),
       setJobId: (v, startedAt) =>
         set((s) => ({
           jobId: v,
@@ -135,7 +148,8 @@ export const useWizardStore = create<WizardState>()(
       finishReelsShare: (url) => set({ reelsShareStatus: 'done', reelsShareUrl: url ?? null }),
       failReelsShare: (err) => set({ reelsShareStatus: 'error', reelsShareError: err }),
 
-      clear: () =>
+      clear: () => {
+        // Clear Zustand/sessionStorage state
         set({
           listingId: null,
           jobId: null,
@@ -154,7 +168,16 @@ export const useWizardStore = create<WizardState>()(
           reelsShareError: null,
           user: null,
           fb: null,
-        }),
+        });
+        // Also clear localStorage keys for job/listing/session
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('letify_jobId');
+            localStorage.removeItem('letify_listingId');
+            localStorage.removeItem('letify_sourceUrl');
+          } catch {}
+        }
+      },
     }),
     { name: 'letify-wizard', storage: createJSONStorage(() => sessionStorage) }
   )

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,6 +15,54 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   const { toast } = useToast();
   const supabase = createClient();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [totalListings, setTotalListings] = useState<number | null>(null);
+  const [sharesThisMonth, setSharesThisMonth] = useState<number | null>(null);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+
+  // Quick Stats: Toplam ve bu ayki paylaşım sayısını çek
+  useEffect(() => {
+    async function fetchStats() {
+      const { count: total, error: totalError } = await supabase
+        .from('listings')
+        .select('*', { count: 'exact', head: true });
+      if (!totalError) setTotalListings(total ?? 0);
+
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstDayISO = firstDay.toISOString();
+      const { count: monthCount, error: monthError } = await supabase
+        .from('listings')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', firstDayISO);
+      if (!monthError) setSharesThisMonth(monthCount ?? 0);
+    }
+    fetchStats();
+    // Dashboard refresh event listener
+    const handler = () => fetchStats();
+    window.addEventListener('dashboard:refresh', handler);
+    return () => window.removeEventListener('dashboard:refresh', handler);
+  }, []);
+
+  // Son 5 aktiviteyi çek
+  useEffect(() => {
+    async function fetchRecentActivities() {
+      setRecentLoading(true);
+      const { data, error } = await supabase
+        .from('activity')
+        .select('id, type, data, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (!error && data) setRecentActivities(data);
+      setRecentLoading(false);
+    }
+    fetchRecentActivities();
+    // Dashboard refresh event listener
+    const handler = () => fetchRecentActivities();
+    window.addEventListener('dashboard:refresh', handler);
+    return () => window.removeEventListener('dashboard:refresh', handler);
+  }, [user.id]);
 
   if (!user || !profile) {
     return (
@@ -181,11 +229,11 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shares This Month:</span>
-                  <span className="font-medium">0</span>
+                  <span className="font-medium">{sharesThisMonth === null ? '...' : sharesThisMonth}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Listings:</span>
-                  <span className="font-medium">0</span>
+                  <span className="font-medium">{totalListings === null ? '...' : totalListings}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Active Integration:</span>
@@ -199,9 +247,26 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               <CardTitle>Recent Activities</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">
-                No activity yet. Start by creating your first content!
-              </p>
+              {recentLoading ? (
+                <p className="text-muted-foreground text-sm">Loading...</p>
+              ) : recentActivities.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No activity yet. Start by creating your first content!</p>
+              ) : (
+                <ul className="space-y-2">
+                  {recentActivities.map((activity) => (
+                    <li key={activity.id} className="flex items-center justify-between">
+                      <span>
+                        {activity.type === 'listing' && 'New Listing Shared'}
+                        {activity.type === 'subscription' && 'Subscription Purchased'}
+                        {activity.type === 'credit' && 'Credit Purchased'}
+                        {activity.type === 'profile_update' && 'Profile Updated'}
+                        {/* Diğer activity tipleri için ekle */}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </div>

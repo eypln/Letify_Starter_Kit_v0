@@ -50,7 +50,7 @@ export default function Uploader() {
     return (
       <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
         <p className="text-sm text-amber-600">
-          🚨 Önce 1. adımda içerik üretin (jobId yok).
+          🚨 Please complete Step 1 to create content (jobId missing).
         </p>
       </div>
     );
@@ -76,8 +76,8 @@ export default function Uploader() {
       if (currentJobImages.length + files.length > MAX) {
         files = files.slice(0, MAX - currentJobImages.length);
         toast({
-          title: "Dosya limiti",
-          description: `En fazla ${MAX} görsel yükleyebilirsiniz. İlk ${files.length} dosya işlenecek.`,
+          title: "File limit",
+          description: `You can upload up to ${MAX} images. Only the first ${files.length} files will be processed.`,
           variant: "destructive",
         });
       }
@@ -85,8 +85,8 @@ export default function Uploader() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         toast({
-          title: "Kimlik Doğrulama Hatası",
-          description: "Oturum bulunamadı. Lütfen tekrar giriş yapın.",
+          title: "Authentication Error",
+          description: "No active session found. Please sign in again.",
           variant: "destructive",
         });
         return;
@@ -100,20 +100,35 @@ export default function Uploader() {
           console.log('📁 Processing file:', { name: original.name, jobId });
           
           toast({
-            title: "İşleniyor",
-            description: `${original.name} sıkıştırılıyor...`,
+            title: "Processing",
+            description: `${original.name} is being compressed...`,
           });
           
           const compressed = await compressImageTo1MB(original);
           
           toast({
-            title: "Yükleniyor",
-            description: `${original.name} Supabase'e yükleniyor...`,
+            title: "Uploading",
+            description: `${original.name} is being uploaded to Supabase...`,
           });
           
           const { publicUrl, storagePath } = await uploadToSupabase(compressed, user.id, jobId!);
-          
-          // JobId ile birlikte kaydet
+          // Storage'a upload sonrası tabloya insert
+          try {
+            const { error: insertError } = await supabase.from('uploaded_assets').insert({
+              user_id: user.id,
+              job_id: jobId!,
+              storage_path: storagePath,
+              public_url: publicUrl,
+              size_bytes: compressed.size,
+              created_at: new Date().toISOString()
+            });
+            if (insertError) {
+              console.error('❌ uploaded_assets insert error:', insertError);
+            }
+          } catch (e) {
+            console.error('💥 uploaded_assets insert exception:', e);
+          }
+          // JobId ile birlikte kaydet (local store)
           add({
             name: original.name,
             url: publicUrl,
@@ -128,8 +143,8 @@ export default function Uploader() {
           failedFiles.push(original);
           
           toast({
-            title: "Yükleme Hatası",
-            description: `${original.name}: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+            title: "Upload Error",
+            description: `${original.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             variant: "destructive",
           });
         }
@@ -137,8 +152,8 @@ export default function Uploader() {
 
       if (successCount > 0) {
         toast({
-          title: "Başarılı",
-          description: `${successCount} görsel başarıyla yüklendi.`,
+          title: "Success",
+          description: `${successCount} images uploaded successfully.`,
         });
       }
 
@@ -148,8 +163,8 @@ export default function Uploader() {
     } catch (error) {
       console.error('💥 Upload process failed:', error);
       toast({
-        title: "Genel Hata",
-        description: "Dosya yükleme işlemi başarısız oldu.",
+        title: "General Error",
+        description: "File upload failed.",
         variant: "destructive",
       });
     } finally {
@@ -170,17 +185,17 @@ export default function Uploader() {
     <div className="space-y-4">
       <ImageDropzone 
         disabled={busy || currentJobImages.length >= MAX} 
-        onFiles={handleFiles} 
+        onFilesAction={handleFiles} 
         maxCount={MAX - currentJobImages.length} 
       />
       
       <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>Yüklü: {currentJobImages.length}/{MAX}</span>
-  <span>Job: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{jobId?.slice(0, 8)}...</span></span>
+        <span>Uploaded: {currentJobImages.length}/{MAX}</span>
+        <span>Job: <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{jobId?.slice(0, 8)}...</span></span>
         {busy && (
           <div className="flex items-center space-x-2">
             <RefreshCw className="h-4 w-4 animate-spin" />
-            <span>İşleniyor...</span>
+            <span>Processing...</span>
           </div>
         )}
         {retryFiles.length > 0 && !busy && (
@@ -191,7 +206,7 @@ export default function Uploader() {
             className="flex items-center space-x-1"
           >
             <RefreshCw className="h-3 w-3" />
-            <span>Tekrar Dene ({retryFiles.length})</span>
+            <span>Retry ({retryFiles.length})</span>
           </Button>
         )}
       </div>

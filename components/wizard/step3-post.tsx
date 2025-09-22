@@ -11,7 +11,7 @@ function Spinner() {
         <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.2" />
         <path d="M4 12a8 8 0 0 1 8-8" fill="none" stroke="currentColor" strokeWidth="4" />
       </svg>
-      İşlem devam ediyor...
+      Processing...
     </div>
   );
 }
@@ -28,9 +28,11 @@ export default function Step3Post() {
     let listingId = store.listingId;
     let user = store.user;
     let fb = store.fb;
-    // localStorage'dan çek
-    if (!jobId) jobId = localStorage.getItem('letify_jobId') || '';
-    if (!listingId) listingId = localStorage.getItem('letify_listingId') || '';
+    // localStorage'dan çek (sadece browser'da)
+    if (typeof window !== 'undefined') {
+      if (!jobId) jobId = localStorage.getItem('letify_jobId') || '';
+      if (!listingId) listingId = localStorage.getItem('letify_listingId') || '';
+    }
     // Supabase'den çek
     try {
       const { createClient } = await import('@/lib/supabase/client');
@@ -70,13 +72,13 @@ export default function Step3Post() {
 
   return (
     <section className="space-y-4">
-      <h3 className="text-lg font-semibold">3. Adım: Share a Post</h3>
+      <h3 className="text-lg font-semibold">Step 3: Share a Post</h3>
 
       {postStatus === 'running' && (
         <div className="rounded-xl border p-6">
           <Spinner />
           <p className="mt-2 text-sm text-gray-600">
-            Facebook paylaşımı hazırlanıyor. Bu işlem 5–20 saniye sürebilir.
+            Facebook post is being prepared. This may take 15–25 seconds.
           </p>
         </div>
       )}
@@ -84,7 +86,7 @@ export default function Step3Post() {
       {(postStatus === 'done' || postStatus === 'idle' || postStatus === 'error') && (
         <div className="rounded-xl border p-6">
           <div className="text-sm">
-            {postStatus === 'done' ? 'Paylaşım tamamlandı.' : 'Paylaşım henüz tamamlanmadı.'}
+            {postStatus === 'done' ? 'Post shared successfully.' : 'Post not shared yet.'}
           </div>
 
           <div className="mt-4 flex items-center gap-3">
@@ -95,16 +97,16 @@ export default function Step3Post() {
                 target="_blank"
                 className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
               >
-                Paylaşımı Gör
+                View Post
               </a>
             ) : (
               <button
                 type="button"
                 disabled
                 className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
-                title="Post URL bulunamadı"
+                title="Post URL not found"
               >
-                Paylaşımı Gör
+                View Post
               </button>
             )}
 
@@ -116,13 +118,13 @@ export default function Step3Post() {
                   localStorage.removeItem('letify_jobId');
                   localStorage.removeItem('letify_listingId');
                 } catch {}
-                useWizardStore.setState({ jobId: '', listingId: '' });
+                useWizardStore.setState({ jobId: '', listingId: '', jobStartedAt: undefined });
                 setStep(1);
                 router.replace('/dashboard/new-post');
               }}
               className="rounded-lg border px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50"
             >
-              Tümünü Temizle
+              Reset All
             </button>
 
             {/* Next Button */}
@@ -147,7 +149,7 @@ export default function Step3Post() {
 
       {postStatus === 'error' && (
         <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-          Bir hata oluştu: {postError}
+          An error occurred: {postError}
         </div>
       )}
     </section>

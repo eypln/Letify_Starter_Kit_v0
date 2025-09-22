@@ -6,26 +6,26 @@ const ACCEPT = { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] } as const;
 
 export type DropzoneProps = {
   disabled?: boolean;
-  onFiles: (files: File[]) => void;
+  onFilesAction: (files: File[]) => void;
   maxCount?: number;
 };
 
-export default function ImageDropzone({ disabled, onFiles, maxCount = 15 }: DropzoneProps) {
+export default function ImageDropzone({ disabled, onFilesAction, maxCount = 15 }: DropzoneProps) {
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback(
     (accepted: File[], rejected: any[]) => {
       setError(null);
       if (rejected?.length) {
-        setError('Bazı dosyalar tür/limit nedeniyle reddedildi.');
+        setError('Some files were rejected due to type or limit.');
       }
       if (accepted.length > maxCount) {
-        setError(`En fazla ${maxCount} görsel yükleyebilirsiniz.`);
+        setError(`You can upload up to ${maxCount} images.`);
         accepted = accepted.slice(0, maxCount);
       }
-      onFiles(accepted);
+  onFilesAction(accepted);
     },
-    [maxCount, onFiles]
+  [maxCount, onFilesAction]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -38,8 +38,8 @@ export default function ImageDropzone({ disabled, onFiles, maxCount = 15 }: Drop
   return (
     <div {...getRootProps()} className={`rounded-2xl border border-dashed p-8 text-center ${isDragActive ? 'opacity-80' : ''} ${disabled ? 'opacity-50' : ''}`}>
       <input {...getInputProps()} disabled={disabled} />
-      <p className="font-medium">Görselleri buraya sürükleyin veya tıklayın</p>
-      <p className="text-sm">JPEG/PNG/WEBP • Maks. 15 görsel • Her biri sıkıştırma sonrası ≤1 MB</p>
+      <p className="font-medium">Drag and drop images here or click to select</p>
+      <p className="text-sm">JPEG/PNG/WEBP • Max. 15 images • Each ≤1 MB after compression</p>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );

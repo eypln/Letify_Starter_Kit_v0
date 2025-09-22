@@ -20,6 +20,17 @@ export async function POST(req: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id && user?.email) patchedPayload.user = { id: user.id, email: user.email };
     }
+    // User full_name
+    if (patchedPayload.user && patchedPayload.user.id && !patchedPayload.user.full_name) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', patchedPayload.user.id)
+        .maybeSingle();
+      if (profile?.full_name) {
+        patchedPayload.user.full_name = profile.full_name;
+      }
+    }
     // Job
     if (!patchedPayload.job || !patchedPayload.job.id) {
       // jobId varsa jobs tablosundan çekebilirsin
@@ -75,6 +86,32 @@ export async function POST(req: Request) {
     data?.driveUrl ??
     data?.url ??
     null;
+
+  // FB Reels URL'yi listings tablosuna yaz
+  try {
+    const reelsUrl = videoUrl;
+    let listingId = patchedPayload?.listing?.id || patchedPayload?.listingId;
+    const { createClient } = require('@/lib/supabase/server');
+    const supabase = createClient();
+    // Eğer listingId yoksa, jobId üzerinden eşle
+    if (!listingId && patchedPayload?.job?.id) {
+      const { data: listingRow } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('job_id', patchedPayload.job.id)
+        .maybeSingle();
+      if (listingRow?.id) listingId = listingRow.id;
+    }
+    if (reelsUrl && listingId) {
+      // Hem fb_reels_url hem video_url ve status alanlarını güncelle
+      await supabase
+        .from('listings')
+        .update({ fb_reels_url: reelsUrl, video_url: reelsUrl, status: 'shared' })
+        .eq('id', listingId);
+    }
+  } catch (e) {
+    console.error('[API] Failed to update FB reels url in listings:', e);
+  }
 
   return NextResponse.json({
     ok: true,

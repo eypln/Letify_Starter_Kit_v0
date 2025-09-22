@@ -33,6 +33,29 @@ export default function StartContent() {
       });
       const { ok, jobId, message } = await res.json();
       if (!ok) throw new Error(message || 'Start failed');
+      // sourceUrl ve listingId'yi store ve localStorage'a yaz
+      if (jobId) {
+        useWizardStore.getState().setJobId(jobId);
+        if (typeof window !== 'undefined') localStorage.setItem('letify_jobId', jobId);
+      }
+      if (url) {
+        useWizardStore.getState().setSourceUrl(url);
+        if (typeof window !== 'undefined') localStorage.setItem('letify_sourceUrl', url);
+      }
+      // listingId'yi Supabase'den çek ve store+localStorage'a yaz
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: listing } = await supabase
+          .from('listings')
+          .select('id')
+          .eq('property_url', url)
+          .maybeSingle();
+        if (listing?.id) {
+          useWizardStore.getState().setListingId(listing.id);
+          if (typeof window !== 'undefined') localStorage.setItem('letify_listingId', listing.id);
+        }
+      } catch {}
       setOpen(false);
       setUrl("");
       router.push(`/dashboard/new-post?jobId=${jobId}`);

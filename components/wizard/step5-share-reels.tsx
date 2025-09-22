@@ -3,6 +3,7 @@ import { useWizardStore } from '@/lib/wizard/store';
 import React from 'react';
 import { useStepMarker } from '@/lib/wizard/useStepMarker';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/use-toast';
 
 function Spinner() {
   return (
@@ -11,7 +12,7 @@ function Spinner() {
         <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.2" />
         <path d="M4 12a8 8 0 0 1 8-8" fill="none" stroke="currentColor" strokeWidth="4" />
       </svg>
-      Reels Facebook'ta paylaşılıyor...
+      Reels are being shared on Facebook...
     </div>
   );
 }
@@ -77,20 +78,25 @@ export default function Step5ShareReels() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { toast } = useToast();
   const goToDashboard = () => {
     clear(); // Wizard state'ini temizle
+    toast({
+      title: 'Success',
+      description: 'Property shared on social media successfully!'
+    });
     router.push('/dashboard'); // Dashboard'a yönlendir
   };
 
   return (
     <section id="step-5" className="space-y-4">
-      <h3 className="text-lg font-semibold">5. Adım: Share Reels</h3>
+      <h3 className="text-lg font-semibold">Step 5: Share Reels</h3>
 
       {reelsShareStatus === 'running' && (
         <div className="rounded-xl border p-6">
           <Spinner />
           <p className="mt-2 text-sm text-gray-600">
-            Video Reels olarak Facebook'ta paylaşılıyor. Bu işlem birkaç dakika sürebilir.
+            Video is being shared as Reels on Facebook. This may take a few minutes.
           </p>
           <div className="mt-3 h-2 w-full overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-[progress_1.2s_linear_infinite] bg-blue-500" />
@@ -107,7 +113,7 @@ export default function Step5ShareReels() {
 
       {reelsShareStatus === 'done' && (
         <div className="rounded-xl border p-6">
-          <div className="text-sm text-green-700">✅ Reels başarıyla Facebook'ta paylaşıldı!</div>
+          <div className="text-sm text-green-700">✅ Reels successfully shared on Facebook!</div>
           {reelsShareUrl ? (
             <div className="mt-4 flex items-center gap-3">
               <a 
@@ -115,27 +121,27 @@ export default function Step5ShareReels() {
                 target="_blank" 
                 className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
               >
-                Reels'ı Gör
+                View Reels
               </a>
               <button 
                 type="button" 
                 onClick={goToDashboard} 
                 className="rounded-lg bg-purple-600 px-3 py-2 text-sm text-white hover:bg-purple-700"
               >
-                Tamamlandı → Dashboard
+                Done → Dashboard
               </button>
             </div>
           ) : (
             <div className="mt-4">
-              <div className="text-sm text-amber-700 mb-3">
-                Reels paylaşıldı ancak link bulunamadı. Facebook hesabınızı kontrol edin.
+              <div className="text-sm text-gray-600 mb-3">
+                Please check your Facebook account.
               </div>
               <button 
                 type="button" 
                 onClick={goToDashboard} 
                 className="rounded-lg bg-purple-600 px-3 py-2 text-sm text-white hover:bg-purple-700"
               >
-                Tamamlandı → Dashboard
+                Done → Dashboard
               </button>
             </div>
           )}
@@ -144,16 +150,15 @@ export default function Step5ShareReels() {
 
       {reelsShareStatus === 'error' && (
         <div className="rounded-xl border border-red-300 bg-red-50 p-4">
-          <div className="text-sm text-red-700 mb-3">❌ Reels paylaşımında hata oluştu:</div>
+          <div className="text-sm text-red-700 mb-3">❌ Error occurred while sharing Reels:</div>
           <div className="text-sm text-red-600 mb-4 font-mono bg-red-100 p-2 rounded">
             {reelsShareError}
           </div>
-          
           <div className="flex items-center gap-3">
             <button 
               type="button" 
               onClick={() => {
-                // Tekrar dene - Step 4'e geri dön
+                // Retry - go back to Step 4
                 setStep(4);
                 requestAnimationFrame(() => {
                   document.getElementById('step-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -161,14 +166,14 @@ export default function Step5ShareReels() {
               }}
               className="rounded-lg bg-orange-500 px-3 py-2 text-sm text-white hover:bg-orange-600"
             >
-              ← Step 4'e Dön
+              ← Back to Step 4
             </button>
             <button 
               type="button" 
               onClick={goToDashboard} 
               className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white hover:bg-gray-700"
             >
-              Atla → Dashboard
+              Skip → Dashboard
             </button>
           </div>
         </div>
@@ -177,7 +182,7 @@ export default function Step5ShareReels() {
       {reelsShareStatus === 'idle' && (
         <div className="rounded-xl border p-6">
           <div className="text-sm text-gray-600">
-            Reels paylaşımı bekleniyor. Step 4'ten "Uygun → 5. Adım" butonuna tıklayın.
+            Waiting to share Reels. Click "Proceed → Step 5" in Step 4.
           </div>
         </div>
       )}

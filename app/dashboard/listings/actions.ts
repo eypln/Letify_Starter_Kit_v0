@@ -41,7 +41,8 @@ export async function getListings({ page }: { page: number }) {
       property_type,
       description,
       fb_post_url,
-      fb_reels_url
+      fb_reels_url,
+      title
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to);
@@ -59,7 +60,8 @@ export async function getListings({ page }: { page: number }) {
     propertyType: d.property_type,
     description: d.description,
     fbPostUrl: d.fb_post_url,
-    fbReelsUrl: d.fb_reels_url
+    fbReelsUrl: d.fb_reels_url,
+    title: d.title,
   }));
 
   return {

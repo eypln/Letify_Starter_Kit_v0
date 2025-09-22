@@ -24,35 +24,45 @@ export function JobSessionProvider({children}:{children: React.ReactNode}) {
     const fromUrl = sp.get('jobId') ?? sp.get('job_id') ?? sp.get('id') ?? '';
     if (fromUrl) {
       setJobIdState(fromUrl);
-      try { localStorage.setItem('letify_jobId', fromUrl); } catch {}
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('letify_jobId', fromUrl); } catch {}
+      }
       return;
     }
-    try {
-      const j = localStorage.getItem('letify_jobId') || '';
-      if (j) {
-        setJobIdState(j);
-        router.replace(`${pathname}?jobId=${j}`);
-      }
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        const j = localStorage.getItem('letify_jobId') || '';
+        if (j) {
+          setJobIdState(j);
+          router.replace(`${pathname}?jobId=${j}`);
+        }
+      } catch {}
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp, router, pathname]);
 
   // listingId senkronu
   useEffect(() => {
-    try {
-      const l = localStorage.getItem('letify_listingId') || '';
-      if (l) setListingIdState(l);
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        const l = localStorage.getItem('letify_listingId') || '';
+        if (l) setListingIdState(l);
+      } catch {}
+    }
   }, []);
 
   const setJobId = (id: string) => {
     setJobIdState(id);
-    try { localStorage.setItem('letify_jobId', id); } catch {}
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('letify_jobId', id); } catch {}
+    }
     router.replace(`${pathname}?jobId=${id}`);
   };
   const setListingId = (id: string) => {
     setListingIdState(id);
-    try { localStorage.setItem('letify_listingId', id); } catch {}
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('letify_listingId', id); } catch {}
+    }
   };
 
   const clear = async ({hard=false}: {hard?:boolean} = {}) => {
@@ -65,10 +75,12 @@ export function JobSessionProvider({children}:{children: React.ReactNode}) {
         body: JSON.stringify({ jobId: jid, listingId: lid, hardDeleteListing: hard })
       });
     } catch {}
-    try {
-      localStorage.removeItem('letify_jobId');
-      localStorage.removeItem('letify_listingId');
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('letify_jobId');
+        localStorage.removeItem('letify_listingId');
+      } catch {}
+    }
     setJobIdState('');
     setListingIdState('');
   };
@@ -85,8 +97,9 @@ export function useJobSession() {
 
 /** Guard: jobId yoksa false döner ve kullanıcıya uyarı verebilirsiniz */
 export function getEffectiveJobId(): string {
+  if (typeof window === 'undefined') return '';
   // URL
-  const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const params = new URLSearchParams(window.location.search);
   const fromUrl = params.get('jobId') ?? params.get('job_id') ?? params.get('id');
   if (fromUrl) return fromUrl;
   // localStorage

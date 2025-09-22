@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { stripe, PRICES, CreditAmount } from '@/lib/stripe';
 import { getOrCreateStripeCustomer } from '@/lib/billing';
 import { createClient } from '@/lib/supabase/server';
+import { logActivity } from '@/lib/activity';
 
 const CheckoutSchema = z.object({
   credits: z.enum(['10', '20', '50', '100', '200']),
@@ -63,7 +64,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ url: session.url });
+      // Activity log: credit
+      await logActivity({ user_id: user.id, type: 'credit' });
+
+      // Success response
+      return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Stripe checkout error:', error);
     return NextResponse.json(

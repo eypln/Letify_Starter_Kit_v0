@@ -20,6 +20,8 @@ import Step4PrepareReels from '@/components/wizard/step4-prepare-reels'
 import Step5ShareReels from '@/components/wizard/step5-share-reels'
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
 import CreateHeader from '@/components/wizard/CreateHeader'
+import JobTimer from '@/components/wizard/JobTimer'
+import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
 
 export default function NewPostPage() {
@@ -30,13 +32,23 @@ export default function NewPostPage() {
 
   // jobId ve listingId'yi URL ve localStorage'dan normalize et
   const jobIdFromUrl = searchParams.get('jobId') ?? searchParams.get('job_id') ?? searchParams.get('job') ?? searchParams.get('id') ?? '';
-  const listingIdFromLs = typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '';
+  const [listingIdFromLs, setListingIdFromLs] = React.useState('');
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setListingIdFromLs(localStorage.getItem('letify_listingId') || '');
+    }
+  }, []);
 
+  const setStep = useWizardStore((s) => s.setStep);
   async function handleReset() {
     setResetting(true);
     try {
-      const jobId = jobIdFromUrl || (typeof window !== 'undefined' ? localStorage.getItem('letify_jobId') || '' : '');
-      const listingId = listingIdFromLs || (typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '');
+      let jobId = jobIdFromUrl;
+      let listingId = listingIdFromLs;
+      if (typeof window !== 'undefined') {
+        jobId = jobIdFromUrl || localStorage.getItem('letify_jobId') || '';
+        listingId = listingIdFromLs || localStorage.getItem('letify_listingId') || '';
+      }
       await fetch('/api/jobs/cancel', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -44,9 +56,12 @@ export default function NewPostPage() {
       });
     } catch {}
     try {
-      localStorage.removeItem('letify_jobId');
-      localStorage.removeItem('letify_listingId');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('letify_jobId');
+        localStorage.removeItem('letify_listingId');
+      }
     } catch {}
+    setStep(1); // Wizard'ı 1. stepe döndür
     router.replace('/dashboard/new-post');
     setResetting(false);
   }
@@ -64,7 +79,7 @@ export default function NewPostPage() {
     {
       step: 1,
       title: 'Paste Listing URL → Start Content',
-      description: 'Paste the listing link, n8n WF#1 scrapes + prepares caption',
+      description: 'Paste the listing link, Workflow1 scrapes + prepares caption',
       status: step >= 1 ? 'active' : 'pending',
     },
     {
@@ -76,19 +91,19 @@ export default function NewPostPage() {
     {
       step: 3,
       title: 'Share a Post',
-      description: 'Share Facebook Post with n8n WF#2, get post_url',
+      description: 'Share Facebook Post with Workflow2, get post_url',
       status: step >= 3 ? 'active' : 'pending',
     },
     {
       step: 4,
       title: 'Prepare Reels',
-      description: 'Select 5 images, choose video template, render with n8n',
+      description: 'Select 5 images, choose video template, render with it',
       status: step >= 4 ? 'active' : 'pending',
     },
     {
       step: 5,
       title: 'Share a Reels',
-      description: 'Share Reels with WF#4, get final reel_url',
+      description: 'Share Reels with Workflow4, get final reel_url',
       status: step >= 5 ? 'active' : 'pending',
     },
   ];
@@ -97,7 +112,13 @@ export default function NewPostPage() {
     <div className="max-w-6xl mx-auto p-6">
       <ExpiredBannerFromQuery />
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Create New Post</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">Create New Post</h1>
+          {/* HeaderTTL: her zaman göster */}
+          <div className="ml-2">
+            <HeaderTTL />
+          </div>
+        </div>
         <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>

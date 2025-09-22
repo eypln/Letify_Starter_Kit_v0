@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
 import { IntegrationFormSchema, type IntegrationFormData, ProfileUpdateSchema, type ProfileUpdateFormData } from '@/lib/validation'
+import { logActivity } from '@/lib/activity'
 
 export async function upsertIntegration(data: IntegrationFormData) {
   try {
@@ -73,6 +74,9 @@ export async function updateProfile(data: ProfileUpdateFormData) {
       console.error('Profile update error:', error)
       return { success: false, error: 'Profil bilgileri güncellenemedi' }
     }
+
+    // Activity log: profile update
+    await logActivity({ user_id: user.id, type: 'profile_update' });
 
     // Revalidate the profile page
     revalidatePath('/dashboard/profile')

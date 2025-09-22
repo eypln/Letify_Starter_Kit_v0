@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useWizardStore } from "@/lib/wizard/store";
+import { getListingInfoByJobId } from "@/lib/wizard/getListingInfo";
 import { useWizardJobSync } from "@/lib/wizard/sync";
 
 type JobRow = {
@@ -26,6 +27,8 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { setStep } = useWizardStore();
+  // Step'i URL parametresinden oku (stepper'ın hangi adımda olduğunu anlamak için)
+  const stepParam = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('step') || '1') : '1';
 
   // ✅ Hook'lar component'in en üstünde
   const [loading, setLoading] = React.useState(false);
@@ -39,9 +42,13 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
 
   // Debug: Component render edildiğinde konsola yazdır
   React.useEffect(() => {
+    let currentStep = '1';
+    if (typeof window !== 'undefined') {
+      currentStep = new URLSearchParams(window.location.search).get('step') || '1';
+    }
     console.log('🚀 ContentDraftPanel rendered!', { 
       jobId, 
-      currentStep: new URLSearchParams(window.location.search).get('step') || '1',
+      currentStep,
       searchParams: sp.toString() 
     });
   }, [jobId, sp]);
@@ -55,6 +62,8 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
     stopRef.current = false;
 
     console.log('🔄 Starting polling for job:', jobId);
+
+    let initialContentShown = false;
 
     const tick = async () => {
       try {
@@ -86,16 +95,19 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
         const contentReady = job?.status === "done" && desc;
         setHasContent(contentReady);
         
-        // Sadece boşsa güncelle (kullanıcı edit yaptıysa üzerine yazma)
-        if (desc && !draft) setDraft(desc);
+        // Sadece ilk kez content geldiyse draft'ı set et
+        if (desc && !draft && !initialContentShown) {
+          setDraft(desc);
+          initialContentShown = true;
+        }
         
-        // 🔒 toast sadece 1 kere
-        if (contentReady && !toastShownRef.current) {
+        // 🔒 toast sadece 1 kere, sadece step 1'de ve sadece ilk content geldiğinde göster
+        if (contentReady && !toastShownRef.current && stepParam === '1') {
           toastShownRef.current = true;
           console.log('🎉 Content is ready, showing toast');
           toast({
-            title: "İçerik Hazır!",
-            description: "AI tarafından üretilen içerik aşağıda görünüyor. Düzenleyip kaydedebilirsiniz.",
+            title: "Content is Ready!",
+            description: "Property description has been generated. You can edit it and proceed to Step 2.",
           });
         }
         
@@ -127,50 +139,59 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
       clearInterval(intervalId);
       console.log('🛑 Stopping polling for job:', jobId);
     };
-  }, [jobId, toast, draft]);
+  }, [jobId, toast, stepParam]);
 
   const onSave = async () => {
+    console.log('[onSave] called', jobId);
     if (!jobId) {
-      toast({ title: "Hata", description: "Job bulunamadı.", variant: "destructive" });
+      toast({ title: "Error", description: "Job not found.", variant: "destructive" });
       return;
     }
     if (!draft.trim()) {
-      toast({ title: "Açıklama gerekli", description: "Lütfen açıklamayı girin.", variant: "destructive" });
+      toast({ title: "Description required", description: "Please enter a description.", variant: "destructive" });
       return;
     }
 
-    // İstersen kullanıcıyı bekletmeden hemen 2. adıma geçir:
-    setStep(2);
-    // Step-2 paneline nazikçe kaydır:
-    requestAnimationFrame(() => {
-      document.getElementById('step-2')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
 
-    setLoading(true);
+    // Supabase fallback zinciri: sourceUrl ve listingId'yi jobId ile garanti altına al
+    let sourceUrl = '';
+    let listingId = '';
     try {
-  const res = await fetch("/api/jobs/save", {
+      const info = await getListingInfoByJobId(jobId ?? undefined);
+      sourceUrl = info.sourceUrl || '';
+      listingId = info.listingId || '';
+      // fetch öncesi helper'dan dönen değerleri logla
+      console.log('[onSave] jobId:', jobId, 'sourceUrl:', sourceUrl, 'listingId:', listingId);
+      const res = await fetch("/api/jobs/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId, description: draft }),
+        body: JSON.stringify({ jobId, description: draft, sourceUrl, listingId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) throw new Error(data?.message || "Kaydedilemedi");
+      if (!res.ok || !data?.ok) throw new Error(data?.message || "Could not save");
 
-      toast({ title: "Kaydedildi", description: "İçerik kaydedildi, 2. adıma geçildi." });
+      toast({ title: "Saved", description: "Content has been saved, proceeding to Step 2." });
+      setStep(2);
+      if (typeof window !== 'undefined') {
+        requestAnimationFrame(() => {
+          document.getElementById('step-2')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     } catch (e: any) {
-      toast({ title: "Hata", description: e?.message ?? "Bilinmeyen hata", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Unknown error", variant: "destructive" });
     } finally {
       setLoading(false);
     }
+
   };
 
   // Job ID yoksa hiçbir şey gösterme
   if (!jobId) {
-    console.log('❌ ContentDraftPanel: jobId yok, mevcut parametreler:', sp.toString());
+    console.log('❌ ContentDraftPanel: jobId not found, current parameters:', sp.toString());
     return null;
   }
 
-  console.log('✅ ContentDraftPanel: jobId bulundu:', jobId);
+  console.log('✅ ContentDraftPanel: jobId found:', jobId);
   console.log('📏 Panel check:', { hasContent, jobStatus: jobData?.status });
 
   // Content hazırsa editor'u göster
@@ -178,41 +199,43 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
     return (
       <div className="mt-4 rounded-lg border p-4">
         <div className="mb-4">
-          <h3 className="font-medium text-green-900 mb-2">✅ AI İçeriği Hazır - Düzenleyebilirsiniz</h3>
+          <h3 className="font-medium text-green-900 mb-2">✅ Content is Ready - You Can Edit</h3>
         </div>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Açıklama</label>
+            <label className="block text-sm font-medium mb-1">Descrition</label>
             <Textarea
               rows={12}
-              placeholder="İçerik hazır. Dilediğiniz gibi düzenleyin."
+              placeholder="Content is ready. Feel free to edit."
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              AI tarafından üretilen metni düzenleyip kaydedin; ardından 2. adıma geçeceğiz.
+              Edit the text generated and save it; then we will proceed to Step 2.
             </p>
           </div>
 
           <div className="flex gap-2">
             <Button type="button" onClick={onSave} disabled={loading || !draft.trim()}>
-              {loading ? "Kaydediliyor..." : "Kaydet ve 2. Adıma Geç"}
+              {loading ? "Saving..." : "Save and Proceed to Step 2"}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => {
-                try {
-                  localStorage.removeItem('letify_jobId');
-                  localStorage.removeItem('letify_listingId');
-                } catch {}
+                if (typeof window !== 'undefined') {
+                  try {
+                    localStorage.removeItem('letify_jobId');
+                    localStorage.removeItem('letify_listingId');
+                  } catch {}
+                }
                 useWizardStore.setState({ jobId: '', listingId: '' });
                 setStep(1);
                 router.replace('/dashboard/new-post');
               }}
             >
-              Tümünü Temizle
+              Reset All
             </Button>
           </div>
         </div>
@@ -224,15 +247,17 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
   if (jobData?.status === 'error') {
     return (
       <div className="mt-4 rounded-lg border p-6 bg-red-50">
-        <h3 className="font-medium text-red-900">Hata Oluştu</h3>
-        <p className="text-sm text-red-700 mt-1">İçerik üretimi sırasında bir hata oluştu. Job ID: {jobId}</p>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <h3 className="font-medium text-red-900">Error Occurred</h3>
+        <p className="text-sm text-red-700 mt-1">An error occurred during content generation. Job ID: {jobId}</p>
+        <Button
+          variant="outline"
+          size="sm"
           className="mt-3"
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            if (typeof window !== 'undefined') window.location.reload();
+          }}
         >
-          Tekrar Dene
+          Try Again
         </Button>
       </div>
     );

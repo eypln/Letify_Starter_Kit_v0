@@ -28,10 +28,12 @@ export default function HeaderTTL() {
     if (timeoutRef.current)  clearTimeout(timeoutRef.current);
     if (!jobStartedAt) return;
 
-    intervalRef.current = window.setInterval(() => setNow(Date.now()), 1000);
 
-    const msLeft = Math.max(0, JOB_TTL_MS - (Date.now() - jobStartedAt));
-    timeoutRef.current = window.setTimeout(endFlow, msLeft);
+    if (typeof window !== 'undefined') {
+      intervalRef.current = window.setInterval(() => setNow(Date.now()), 1000);
+      const msLeft = Math.max(0, JOB_TTL_MS - (Date.now() - jobStartedAt));
+      timeoutRef.current = window.setTimeout(endFlow, msLeft);
+    }
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

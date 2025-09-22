@@ -85,7 +85,7 @@ export function useBillingController() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Failed to start checkout process');
-      if (json?.url) window.location.href = json.url;
+      if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
       setErrorMsg(e?.message || 'Checkout başlatılamadı.');
     } finally {
@@ -104,7 +104,7 @@ export function useBillingController() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Checkout başlatılamadı (credit).');
-      if (json?.url) window.location.href = json.url;
+      if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
       setErrorMsg(e?.message || 'Kredi satın alma başlatılamadı.');
     } finally {
@@ -122,7 +122,7 @@ export function useBillingController() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Portal açılamadı.');
-      if (json?.url) window.location.href = json.url;
+      if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
       setErrorMsg(e?.message || 'Portal açılamadı.');
     } finally {
@@ -133,11 +133,13 @@ export function useBillingController() {
   // ---- Mount
   useEffect(() => {
     refresh();
-    const url = new URL(window.location.href);
-    const success = url.searchParams.get('success') || url.searchParams.get('status');
-    if (success === '1' || success === 'success') {
-      setInfoMsg('Ödeme tamamlandı. Bilgileriniz güncelleniyor…');
-      setTimeout(refresh, 1500);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const success = url.searchParams.get('success') || url.searchParams.get('status');
+      if (success === '1' || success === 'success') {
+        setInfoMsg('Ödeme tamamlandı. Bilgileriniz güncelleniyor…');
+        setTimeout(refresh, 1500);
+      }
     }
   }, [refresh]);
 

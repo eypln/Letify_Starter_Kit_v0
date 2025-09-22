@@ -107,7 +107,12 @@ export async function POST(req: Request) {
     property_type: listing.propertyType ?? null,
     description: body.description ?? listing.description ?? null,
     title: listing.title ?? null,
-    location: listing.location ?? null
+    location: listing.location ?? null,
+    // Yeni eklenen alanlar (linkler ve video)
+    facebook_post_url: body.facebook_post_url ?? body.fb_post_url ?? body.post_url ?? null,
+    fb_post_url: body.fb_post_url ?? body.facebook_post_url ?? body.post_url ?? null,
+    fb_reels_url: body.fb_reels_url ?? body.reelPublishId ?? body.reels_url ?? null,
+    video_url: body.video_url ?? body.reelsPreviewUrl ?? null
   };
   const { error } = await sb.from('listings').upsert(upsert, { onConflict: 'listing_id' });
   if (error) return NextResponse.json({ ok:false, error: error.message }, { status:500 });
