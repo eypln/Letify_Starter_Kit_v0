@@ -179,11 +179,11 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                   <span>Clients</span>
                 </CardTitle>
                 <CardDescription>
-                  Client management and reporting (coming soon)
+                  Client management and reporting
                 </CardDescription>
               </CardHeader>
               <CardContent>
-          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700" disabled>Coming Soon</Button>
+                <Button variant="default" className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold">Add Lead</Button>
               </CardContent>
             </Card>
           </Link>
