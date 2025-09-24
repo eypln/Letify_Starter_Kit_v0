@@ -29,47 +29,58 @@ export async function getListings({ page }: { page: number }) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, error, count } = await supabase
-    .from('listings')
-    .select(`
-      id,
-      created_at,
-      property_url,
-      city, location,
-      price,
-      bedrooms, bathrooms,
-      property_type,
-      description,
-      fb_post_url,
-      fb_reels_url,
-      title
-    `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+  try {
+    const { data, error, count } = await supabase
+      .from('listings')
+      .select(`
+        id,
+        created_at,
+        property_url,
+        city, location,
+        price,
+        bedrooms, bathrooms,
+        property_type,
+        description,
+        fb_post_url,
+        fb_reels_url,
+        facebook_post_url,
+        facebook_reel_url,
+        title
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-  if (error) throw error;
+    if (error) {
+      // Sadece gerçek Supabase hatası loglanır
+      console.error('Supabase listings fetch error:', error);
+      throw new Error(error.message || 'Supabase listings fetch error');
+    }
 
-  const rows = (data ?? []).map((d: any) => ({
-    id: d.id,
-    addingDate: d.created_at,
-    sourceUrl: d.property_url,
-    city: d.city ?? d.location ?? null,
-    price: d.price,
-    bedroom: d.bedrooms,
-    bathroom: d.bathrooms,
-    propertyType: d.property_type,
-    description: d.description,
-    fbPostUrl: d.fb_post_url,
-    fbReelsUrl: d.fb_reels_url,
-    title: d.title,
-  }));
+    const rows = (Array.isArray(data) ? data : []).map((d: any) => ({
+      id: d?.id ?? '',
+      addingDate: d?.created_at ?? '',
+      sourceUrl: d?.property_url ?? '',
+      city: d?.city ?? d?.location ?? null,
+      price: d?.price ?? null,
+      bedroom: d?.bedrooms ?? null,
+      bathroom: d?.bathrooms ?? null,
+      propertyType: d?.property_type ?? null,
+      description: d?.description ?? '',
+      fbPostUrl: d?.facebook_post_url ?? d?.fb_post_url ?? null,
+      fbReelsUrl: d?.facebook_reel_url ?? d?.fb_reels_url ?? null,
+      title: d?.title ?? '',
+    }));
 
-  return {
-    rows,
-    total: count ?? 0,
-    pageCount: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
-    pageSize: PAGE_SIZE
-  };
+    return {
+      rows,
+      total: count ?? 0,
+      pageCount: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
+      pageSize: PAGE_SIZE
+    };
+  } catch (err: any) {
+    console.error('getListings error:', err);
+    throw new Error(err?.message || 'getListings error');
+  }
 }
 
 

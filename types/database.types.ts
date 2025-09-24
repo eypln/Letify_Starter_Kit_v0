@@ -101,6 +101,59 @@ export interface Database {
           updated_at?: string
         }
       }
+        listings: {
+          Row: {
+            id: string;
+            listing_id: string | null;
+            user_id: string;
+            property_url: string | null;
+            city: string | null;
+            price: number | null;
+            bedrooms: number | null;
+            bathrooms: number | null;
+            property_type: string | null;
+            description: string | null;
+            title: string | null;
+            location: string | null;
+            fb_post_url: string | null;
+            fb_reels_url: string | null;
+            created_at: string;
+          };
+          Insert: {
+            id?: string;
+            listing_id?: string | null;
+            user_id: string;
+            property_url?: string | null;
+            city?: string | null;
+            price?: number | null;
+            bedrooms?: number | null;
+            bathrooms?: number | null;
+            property_type?: string | null;
+            description?: string | null;
+            title?: string | null;
+            location?: string | null;
+            fb_post_url?: string | null;
+            fb_reels_url?: string | null;
+            created_at?: string;
+          };
+          Update: {
+            id?: string;
+            listing_id?: string | null;
+            user_id?: string;
+            property_url?: string | null;
+            city?: string | null;
+            price?: number | null;
+            bedrooms?: number | null;
+            bathrooms?: number | null;
+            property_type?: string | null;
+            description?: string | null;
+            title?: string | null;
+            location?: string | null;
+            fb_post_url?: string | null;
+            fb_reels_url?: string | null;
+            created_at?: string;
+          };
+        }
     }
     Views: {
       [_ in never]: never
