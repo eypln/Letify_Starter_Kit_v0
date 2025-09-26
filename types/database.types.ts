@@ -1,6 +1,85 @@
 export interface Database {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          id: number;
+          user_id: string;
+          adding_date: string | null;
+          name: string | null;
+          people: string | null;
+          bedroom: string | null;
+          cities: string | null;
+          family_sharing: string | null;
+          nationalities: string | null;
+          jobs: string | null;
+          pet: string | null;
+          budget: string | null;
+          move_in: string | null;
+          phone: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          adding_date?: string | null;
+          name?: string | null;
+          people?: string | null;
+          bedroom?: string | null;
+          cities?: string | null;
+          family_sharing?: string | null;
+          nationalities?: string | null;
+          jobs?: string | null;
+          pet?: string | null;
+          budget?: string | null;
+          move_in?: string | null;
+          phone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          adding_date?: string | null;
+          name?: string | null;
+          people?: string | null;
+          bedroom?: string | null;
+          cities?: string | null;
+          family_sharing?: string | null;
+          nationalities?: string | null;
+          jobs?: string | null;
+          pet?: string | null;
+          budget?: string | null;
+          move_in?: string | null;
+          phone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
+      activity: {
+        Row: {
+          id: number;
+          user_id: string;
+          type: string;
+          data: any | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          type: string;
+          data?: any | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          type?: string;
+          data?: any | null;
+          created_at?: string | null;
+        };
+      };
       profiles: {
         Row: {
           user_id: string

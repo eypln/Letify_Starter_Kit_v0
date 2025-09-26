@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "12"
   }
   graphql_public: {
     Tables: {
@@ -40,76 +40,112 @@ export type Database = {
   }
   public: {
     Tables: {
-      analytics_events: {
+      clients: {
         Row: {
-          created_at: string | null
-          event_type: string
-          id: string
-          listing_id: string | null
-          metadata: Json | null
-          platform: string | null
-          user_id: string | null
-        }
+          id: number;
+          user_id: string;
+          adding_date: string | null;
+          name: string | null;
+          people: number | null;
+          bedroom: number | null;
+          cities: string[] | null;
+          family_sharing: boolean | null;
+          nationalities: string[] | null;
+          jobs: string[] | null;
+          pet: boolean | null;
+          budget: number | null;
+          move_in: string | null;
+          phone: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
         Insert: {
-          created_at?: string | null
-          event_type: string
-          id?: string
-          listing_id?: string | null
-          metadata?: Json | null
-          platform?: string | null
-          user_id?: string | null
-        }
+          id?: number;
+          user_id: string;
+          adding_date?: string | null;
+          name?: string | null;
+          people?: number | null;
+          bedroom?: number | null;
+          cities?: string[] | null;
+          family_sharing?: boolean | null;
+          nationalities?: string[] | null;
+          jobs?: string[] | null;
+          pet?: boolean | null;
+          budget?: number | null;
+          move_in?: string | null;
+          phone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
         Update: {
-          created_at?: string | null
-          event_type?: string
-          id?: string
-          listing_id?: string | null
-          metadata?: Json | null
-          platform?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "analytics_events_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "analytics_events_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
+          id?: number;
+          user_id?: string;
+          adding_date?: string | null;
+          name?: string | null;
+          people?: number | null;
+          bedroom?: number | null;
+          cities?: string[] | null;
+          family_sharing?: boolean | null;
+          nationalities?: string[] | null;
+          jobs?: string[] | null;
+          pet?: boolean | null;
+          budget?: number | null;
+          move_in?: string | null;
+          phone?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      activity: {
+        Row: {
+          id: number;
+          user_id: string;
+          type: string;
+          data: Json | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          type: string;
+          data?: Json | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          type?: string;
+          data?: Json | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       approval_queue: {
         Row: {
-          admin_notes: string | null
-          created_at: string | null
-          id: string
-          reviewed_at: string | null
-          status: string | null
-          user_id: string | null
-        }
+          admin_notes: string | null;
+          created_at: string | null;
+          id: string;
+          reviewed_at: string | null;
+          status: string | null;
+          user_id: string | null;
+        };
         Insert: {
-          admin_notes?: string | null
-          created_at?: string | null
-          id?: string
-          reviewed_at?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
+          admin_notes?: string | null;
+          created_at?: string | null;
+          id?: string;
+          reviewed_at?: string | null;
+          status?: string | null;
+          user_id?: string | null;
+        };
         Update: {
-          admin_notes?: string | null
-          created_at?: string | null
-          id?: string
-          reviewed_at?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
+          admin_notes?: string | null;
+          created_at?: string | null;
+          id?: string;
+          reviewed_at?: string | null;
+          status?: string | null;
+          user_id?: string | null;
+        };
         Relationships: [
           {
             foreignKeyName: "approval_queue_user_id_fkey"
@@ -726,3 +762,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+//
