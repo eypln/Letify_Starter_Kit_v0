@@ -14,7 +14,7 @@ export async function upsertIntegration(data: IntegrationFormData) {
     // Get current user
     const user = await getUser()
     if (!user) {
-      return { success: false, error: 'Kullanıcı bulunamadı' }
+  return { success: false, error: 'User not found' }
     }
 
     const supabase = createClient()
@@ -35,7 +35,7 @@ export async function upsertIntegration(data: IntegrationFormData) {
 
     if (error) {
       console.error('Integration upsert error:', error)
-      return { success: false, error: 'Entegrasyon bilgileri kaydedilemedi' }
+  return { success: false, error: 'Integration information could not be saved' }
     }
 
     // Revalidate the profile page
@@ -44,7 +44,7 @@ export async function upsertIntegration(data: IntegrationFormData) {
     return { success: true }
   } catch (error) {
     console.error('Upsert integration error:', error)
-    return { success: false, error: 'Geçersiz veri formatı' }
+  return { success: false, error: 'Invalid data format' }
   }
 }
 
@@ -56,7 +56,7 @@ export async function updateProfile(data: ProfileUpdateFormData) {
     // Get current user
     const user = await getUser()
     if (!user) {
-      return { success: false, error: 'Kullanıcı bulunamadı' }
+  return { success: false, error: 'User not found' }
     }
 
     const supabase = createClient()
@@ -72,7 +72,7 @@ export async function updateProfile(data: ProfileUpdateFormData) {
 
     if (error) {
       console.error('Profile update error:', error)
-      return { success: false, error: 'Profil bilgileri güncellenemedi' }
+  return { success: false, error: 'Profile information could not be updated' }
     }
 
     // Activity log: profile update
@@ -84,6 +84,6 @@ export async function updateProfile(data: ProfileUpdateFormData) {
     return { success: true }
   } catch (error) {
     console.error('Update profile error:', error)
-    return { success: false, error: 'Geçersiz veri formatı' }
+  return { success: false, error: 'Invalid data format' }
   }
 }

@@ -85,7 +85,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
       });
 
       if (!response.ok) {
-        throw new Error('Çıkış yapılırken bir hata oluştu');
+        throw new Error('An error occurred during logout');
       }
 
       router.push('/sign-in');

@@ -56,7 +56,7 @@ export default function HeaderTTL() {
         type="button"
         onClick={endFlow}
         className="inline-flex items-center rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
-        title="Akışı durdur ve çık"
+        title="Stop the flow and exit"
       >
         Stop
       </button>

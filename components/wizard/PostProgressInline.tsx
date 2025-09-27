@@ -21,7 +21,7 @@ export default function PostProgressInline() {
 
   return (
     <div className="rounded-xl border p-6">
-      <div className="text-sm">Paylaşım tamamlandı.</div>
+  <div className="text-sm">Post completed.</div>
 
       <div className="mt-4 flex items-center gap-3">
         {/* Paylaşımı Gör */}
@@ -31,16 +31,16 @@ export default function PostProgressInline() {
             target="_blank"
             className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
           >
-            Paylaşımı Gör
+            View Post
           </a>
         ) : (
           <button
             type="button"
             disabled
             className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
-            title="Post URL bulunamadı"
+            title="Post URL not found"
           >
-            Paylaşımı Gör
+            View Post
           </button>
         )}
 

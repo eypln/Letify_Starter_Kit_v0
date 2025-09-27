@@ -22,7 +22,7 @@ export default function SignUpPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== password2) {
-      toast({ title: 'Şifreler uyuşmuyor', variant: 'destructive' })
+      toast({ title: 'Passwords do not match', variant: 'destructive' })
       return
     }
     setLoading(true)
@@ -41,10 +41,10 @@ export default function SignUpPage() {
         },
       })
       if (error) throw error
-      toast({ title: 'Kayıt başarılı', description: 'E-postana doğrulama linki gönderdik.' })
+  toast({ title: 'Registration successful', description: 'A verification link has been sent to your email.' })
     } catch (err: any) {
       console.error('signUp error:', err)
-      toast({ title: 'Kayıt hatası', description: String(err.message || err), variant: 'destructive' })
+  toast({ title: 'Registration error', description: String(err.message || err), variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -54,12 +54,12 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader>
-          <CardTitle className="text-center">Letify&apos;e Kayıt Ol</CardTitle>
+          <CardTitle className="text-center">Sign Up for Letify</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="fullName">Ad Soyad</Label>
+              <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -69,18 +69,18 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <Label htmlFor="phone">Telefon</Label>
+              <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+90 5xx xxx xx xx"
+                placeholder="+1 xxx xxx xxxx"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -90,7 +90,7 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <Label htmlFor="pw">Şifre</Label>
+              <Label htmlFor="pw">Password</Label>
               <Input
                 id="pw"
                 type="password"
@@ -101,7 +101,7 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <Label htmlFor="pw2">Şifre Tekrar</Label>
+              <Label htmlFor="pw2">Repeat Password</Label>
               <Input
                 id="pw2"
                 type="password"
@@ -112,13 +112,13 @@ export default function SignUpPage() {
               />
             </div>
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Gönderiliyor...' : 'Kayıt Ol'}
+              {loading ? 'Submitting...' : 'Sign Up'}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm">
-            Zaten hesabın var mı?{' '}
+            Already have an account?{' '}
             <Link className="text-blue-600 underline" href="/sign-in">
-              Giriş Yap
+              Sign In
             </Link>
           </p>
         </CardContent>

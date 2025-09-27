@@ -25,7 +25,7 @@ function pick(obj: any, keys: readonly string[]) {
 
 
 export async function getListings({ page }: { page: number }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
@@ -94,7 +94,7 @@ export async function createListing(input: {
   propertyType?: string | null;
   description?: string | null;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const payload = {
     listing: {
       sourceUrl: input.referenceUrl,

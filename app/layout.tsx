@@ -8,13 +8,13 @@ import ErrorShield from "./(app)/error-shield";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Letify - Emlak İçerik Üretim Platformu",
-  description: "Emlakçıların bir ilan linkinden içerik üretip Facebook'ta Post ve Reels olarak paylaşmasını sağlayan SaaS platformu",
+  title: "Letify - Realtor Assistant",
+  description: "A SaaS platform for realtors to generate content from a listing link and share as Facebook Post and Reels.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="en">
       <body className={inter.className}>
         <ToastRoot>
           <ErrorShield>{children}</ErrorShield>

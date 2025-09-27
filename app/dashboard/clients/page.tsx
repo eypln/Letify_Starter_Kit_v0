@@ -117,6 +117,7 @@ export default function ClientsPage() {
   ];
 
   const [form, setForm] = useState({
+    id: undefined,
     user_id: "",
     adding_date: "",
     name: "",
@@ -180,14 +181,25 @@ export default function ClientsPage() {
     e.preventDefault();
     if (!user?.id) return;
     setSubmitting(true);
-    // adding_date otomatik olarak şu anki tarih (ISO string)
-    const now = new Date();
-    const payload = { ...form, user_id: user.id, adding_date: now.toISOString() };
-    const { error } = await supabase.from("clients").insert([payload]);
+    let error;
+    if (form.id) {
+      // Güncelleme
+      const updatePayload = { ...form };
+      delete updatePayload.id;
+      const res = await supabase.from("clients").update(updatePayload).eq("id", form.id);
+      error = res.error;
+    } else {
+      // Ekleme
+      const now = new Date();
+      const payload = { ...form, user_id: user.id, adding_date: now.toISOString() };
+      const res = await supabase.from("clients").insert([payload]);
+      error = res.error;
+    }
     setSubmitting(false);
     if (!error) {
       setShowModal(false);
       setForm({
+        id: undefined,
         user_id: user.id,
         adding_date: "",
         name: "",
@@ -203,7 +215,6 @@ export default function ClientsPage() {
         phone: "",
       });
       setMoveInDate(null);
-      // Refresh table (en güncel veriyi çek)
       await getUserAndClients(1);
       setPage(1);
     } else {
@@ -233,7 +244,25 @@ export default function ClientsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Clients</CardTitle>
-          <Button className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2" onClick={() => setShowModal(true)}>
+          <Button className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2" onClick={() => {
+            setForm({
+              id: undefined,
+              user_id: user.id,
+              adding_date: "",
+              name: "",
+              people: "",
+              bedroom: "",
+              cities: "",
+              family_sharing: "",
+              nationalities: "",
+              jobs: "",
+              pet: "",
+              budget: "",
+              move_in: "",
+              phone: "",
+            });
+            setShowModal(true);
+          }}>
             <Plus className="h-4 w-4" /> Add
           </Button>
         </CardHeader>
@@ -243,7 +272,7 @@ export default function ClientsPage() {
             <Dialog open={showModal} onOpenChange={setShowModal}>
               <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
                 <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
-                  <h3 className="text-xl font-bold mb-4">Add New Client</h3>
+                  <h3 className="text-xl font-bold mb-4">{form.id ? "Edit Client" : "Add New Client"}</h3>
                   <form onSubmit={handleAddClient} className="space-y-4">
                     <Input name="name" value={form.name} onChange={handleInputChange} placeholder="Name" required />
                     <div>
@@ -354,7 +383,7 @@ export default function ClientsPage() {
                     <Input name="phone" value={form.phone} onChange={handleInputChange} placeholder="Phone" required />
                     <div className="flex justify-end gap-2 mt-4">
                       <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-                      <Button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white" disabled={submitting}>{submitting ? "Adding..." : "Add"}</Button>
+                      <Button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white" disabled={submitting}>{submitting ? (form.id ? "Updating..." : "Adding...") : (form.id ? "Update" : "Add")}</Button>
                     </div>
                   </form>
                 </div>
@@ -383,7 +412,26 @@ export default function ClientsPage() {
                   </tr>
                 ) : (
                   clients.map((client: any, idx: number) => (
-                    <tr key={client.id} className="border-b hover:bg-purple-50">
+                    <tr key={client.id} className="border-b hover:bg-purple-50 cursor-pointer" onClick={() => {
+                      setForm({
+                        id: client.id,
+                        user_id: client.user_id,
+                        adding_date: client.adding_date || client.created_at || "",
+                        name: client.name || "",
+                        people: client.people || "",
+                        bedroom: client.bedroom || "",
+                        cities: client.cities || "",
+                        family_sharing: client.family_sharing || "",
+                        nationalities: client.nationalities || "",
+                        jobs: client.jobs || "",
+                        pet: client.pet || "",
+                        budget: client.budget || "",
+                        move_in: client.move_in || "",
+                        phone: client.phone || "",
+                      });
+                      setMoveInDate(client.move_in ? new Date(client.move_in) : null);
+                      setShowModal(true);
+                    }}>
                       <td className="px-3 py-2">{(page - 1) * pageSize + idx + 1}</td>
                       <td className="px-3 py-2">
                         {typeof client.adding_date === "string"

@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const redirectBase = process.env.NEXT_PUBLIC_WEBAPP_URL || "http://localhost:3000";
   const nextPath = url.searchParams.get("next") || "/dashboard/profile";
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

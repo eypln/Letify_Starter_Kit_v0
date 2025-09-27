@@ -14,15 +14,15 @@ export default function StartFlowCTA(props: Props) {
     <Button
       {...props}
       onClick={async (e) => {
-        // 1) CTA'nın mevcut davranışını KORU (kart açma/navigasyon vb.)
+        // 1) Preserve CTA's current behavior (open card/navigation etc.)
         props.onClick?.(e);
 
-        // 2) İlave davranış: sayaç başlat + eski yüklemeleri sıfırla
+        // 2) Additional behavior: start timer + clear previous uploads
         clearUploads();
-        await startFlow(); // Supabase'den user id/email store'a yazılana kadar bekle
+        await startFlow(); // Wait until user id/email is written to store from Supabase
       }}
     >
-      {props.children ?? '+ Yeni içerik üretimine başla'}
+      {props.children ?? '+ Start new content creation'}
     </Button>
   );
 }

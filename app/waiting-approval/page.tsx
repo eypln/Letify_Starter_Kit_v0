@@ -46,17 +46,16 @@ export default async function WaitingApprovalPage() {
             <Clock className="h-10 w-10 text-orange-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Hesabın Admin Onayı Bekliyor
+            Your Account is Awaiting Admin Approval
           </CardTitle>
           <CardDescription>
-            Letify platformuna hoş geldin! Hesabın inceleme aşamasında.
+            Welcome to the Letify platform! Your account is under review.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
             <p className="text-muted-foreground">
-              Hesabın admin ekibimiz tarafından gözden geçiriliyor. 
-              Bu işlem genellikle 24 saat içinde tamamlanır.
+              Your account is being reviewed by our admin team. This process is usually completed within 24 hours.
             </p>
           </div>
 
@@ -64,8 +63,7 @@ export default async function WaitingApprovalPage() {
             <Alert>
               <Settings className="h-4 w-4" />
               <AlertDescription>
-                <strong>Önemli:</strong> Admin onayını hızlandırmak için profil ayarlarını tamamlamanız önerilir. 
-                Facebook entegrasyon bilgilerinizi ekleyerek onay sürecini kısaltabilirsiniz.
+                <strong>Important:</strong> To speed up admin approval, it is recommended to complete your profile settings. You can shorten the approval process by adding your Facebook integration information.
               </AlertDescription>
             </Alert>
           )}
@@ -74,29 +72,29 @@ export default async function WaitingApprovalPage() {
             <div className="rounded-lg border p-4">
               <h3 className="font-semibold mb-2 flex items-center">
                 <User className="mr-2 h-5 w-5" />
-                Hesap Durumu
+                Account Status
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>E-posta:</span>
+                  <span>Email:</span>
                   <span className="font-medium">{user.email}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>E-posta Doğrulama:</span>
+                  <span>Email Verification:</span>
                   <span className={`font-medium ${
                     user.email_confirmed_at ? 'text-green-600' : 'text-orange-600'
                   }`}>
-                    {user.email_confirmed_at ? '✓ Tamamlandı' : '⚠️ Beklemede'}
+                    {user.email_confirmed_at ? '✓ Completed' : '⚠️ Pending'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Profil Durumu:</span>
-                  <span className="text-orange-600 font-medium">⏳ Onay Bekliyor</span>
+                  <span>Profile Status:</span>
+                  <span className="text-orange-600 font-medium">⏳ Awaiting Approval</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Facebook Entegrasyonu:</span>
+                  <span>Facebook Integration:</span>
                   <span className={`font-medium ${hasCompletedIntegrations ? 'text-green-600' : 'text-orange-600'}`}>
-                    {hasCompletedIntegrations ? '✓ Tamamlandı' : '⚠️ Eksik'}
+                    {hasCompletedIntegrations ? '✓ Completed' : '⚠️ Missing'}
                   </span>
                 </div>
               </div>
@@ -106,26 +104,26 @@ export default async function WaitingApprovalPage() {
               <Link href="/dashboard/profile">
                 <Button className="w-full">
                   <Settings className="mr-2 h-4 w-4" />
-                  Profil Ayarlarını Tamamla
+                  Complete Profile Settings
                 </Button>
               </Link>
               
               <p className="text-sm text-muted-foreground">
-                Onay süreciyle ilgili sorularınız için:{' '}
-                <a href="mailto:destek@letify.com" className="text-primary hover:underline">
-                  destek@letify.com
+                For questions about the approval process:{' '}
+                <a href="mailto:support@letify.cloud" className="text-primary hover:underline">
+                  support@letify.cloud
                 </a>
               </p>
             </div>
           </div>
 
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Onaylandıktan Sonra Neler Yapabileceksin?</h4>
+            <h4 className="font-medium text-blue-900 mb-2">What Can You Do After Approval?</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• İlan linklerinden otomatik içerik üretme</li>
-              <li>• Facebook'ta post ve reels paylaşma</li>
-              <li>• Analytics ve raporlama özelliklerini kullanma</li>
-              <li>• Chrome Extension ile hızlı içerik üretme</li>
+              <li>• Automatically generate content from listing links</li>
+              <li>• Share posts and reels on Facebook</li>
+              <li>• Use analytics and reporting features</li>
+              <li>• Quickly create content with Chrome Extension</li>
             </ul>
           </div>
         </CardContent>

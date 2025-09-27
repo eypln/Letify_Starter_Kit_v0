@@ -2,8 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/supabase'
 
-export function createClient() {
-  const cookieStore = cookies()
+
+export async function createClient() {
+  const cookieStore = await cookies();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,11 +12,11 @@ export function createClient() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookieStore.set({ name, value, ...options });
           } catch (error) {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
@@ -24,7 +25,7 @@ export function createClient() {
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options })
+            cookieStore.set({ name, value: '', ...options });
           } catch (error) {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
@@ -42,7 +43,7 @@ export function createClient() {
 
 // Server-side utility functions
 export async function getSession() {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const {
       data: { session },
@@ -55,7 +56,7 @@ export async function getSession() {
 }
 
 export async function getUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const {
       data: { user },
@@ -68,7 +69,7 @@ export async function getUser() {
 }
 
 export async function getProfile(userId?: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const id = userId || (await getUser())?.id
   if (!id) return null
@@ -93,7 +94,7 @@ export async function getProfile(userId?: string) {
 }
 
 export async function getUserIntegrations(userId?: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const id = userId || (await getUser())?.id
   if (!id) return null
@@ -118,6 +119,6 @@ export async function getUserIntegrations(userId?: string) {
 }
 
 // Export for API routes
-export function getSupabaseServer() {
-  return createClient()
+export async function getSupabaseServer() {
+  return await createClient()
 }

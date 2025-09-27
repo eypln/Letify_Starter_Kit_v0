@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   try {
     // Supabase client
     const { createClient } = require('@/lib/supabase/server');
-    const supabase = createClient();
+  const supabase = await createClient();
     // User (id ve email zorunlu)
     if (!patchedPayload.user || !patchedPayload.user.id || !patchedPayload.user.email) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       const postUrl = data?.result?.post_url || data?.post_url;
       let listingId = patchedPayload?.listing?.id || patchedPayload?.listingId;
       const { createClient } = require('@/lib/supabase/server');
-      const supabase = createClient();
+  const supabase = await createClient();
       // Eğer listingId yoksa, jobId üzerinden eşle
       if (!listingId && patchedPayload?.job?.id) {
         const { data: listingRow } = await supabase

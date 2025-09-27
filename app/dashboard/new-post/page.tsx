@@ -232,7 +232,7 @@ export default function NewPostPage() {
             <CardContent className="space-y-3">
               <div className="text-sm space-y-2">
                 <p>• Choose high-resolution images</p>
-                <p>• Make sure your listing title is clear</p>
+                <p>• Make sure your listing description is clear</p>
                 <p>• Ensure your Facebook page is active</p>
                 <p>• Video render time is 5-6 minutes</p>
               </div>

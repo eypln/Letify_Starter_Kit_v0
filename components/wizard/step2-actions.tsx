@@ -93,9 +93,9 @@ export default function Step2Actions() {
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
         user = { id: u.user.id, email: u.user.email };
-  if (!effectiveJobId) useWizardStore.getState().setJobId(u.user.id);
+        if (!effectiveJobId) useWizardStore.getState().setJobId(u.user.id);
       }
-      // Facebook entegrasyonunu Supabase'den çek
+      // Fetch Facebook integration from Supabase
       const { data: integ } = await supabase
         .from('users_integrations')
         .select('fb_page_id, fb_access_token')
@@ -117,7 +117,7 @@ export default function Step2Actions() {
           .map(i => ({ url: i.url, storagePath: i.storagePath })),
         fb,
       };
-      // Hassas verileri maskeleyerek logla
+      // Mask sensitive data in logs
       const safePayload = {
         ...payload,
         fb: fb ? { pageId: fb.pageId ? '***' : undefined, accessToken: fb.accessToken ? '***' : undefined } : undefined
@@ -138,23 +138,23 @@ export default function Step2Actions() {
 
       const postUrl = data?.result?.post_url || data?.post_url || '';
       finishPost(postUrl);
-      console.log('🎉 finishPost çağrıldı, postStatus done olmalı, postUrl:', postUrl);
-      // Stepper'ı otomatik olarak 4. adıma geçirme! Kullanıcı Next'e basınca geçecek.
+      console.log('🎉 finishPost called, postStatus should be done, postUrl:', postUrl);
+      // Automatically go to step 4 in stepper! User will go to next by clicking Next.
       setStep(3);
       if (!postUrl) {
-        console.log('⚠️ n8n workflow başarısız, stepper 3. adımda kaldı.');
+        console.log('⚠️ n8n workflow failed, stepper stayed at step 3.');
       }
     } catch (e: any) {
-      console.log('❌ Post hatası:', e);
+      console.log('❌ Post error:', e);
       failPost(e.message || 'unknown error');
-      // Daha açıklayıcı toast
-      const errorMsg = typeof e === 'string' ? e : (e?.message || 'Bilinmeyen hata');
+      // More descriptive toast
+      const errorMsg = typeof e === 'string' ? e : (e?.message || 'Unknown error');
       toast({
         title: 'Post Failed',
         description: `An error occurred during Facebook sharing: ${errorMsg}. Please try again or refresh the page.`,
         variant: 'destructive',
       });
-      // Stepper'ı mevcut adımda tut
+      // Keep stepper at current step
       setStep(3);
     } finally {
       setBusy(false);

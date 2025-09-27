@@ -30,12 +30,12 @@ export default function VerifyEmailPage() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
-        setError('Oturum bilgisi alınamadı')
+        setError('Session information could not be retrieved')
         return
       }
 
       if (!session) {
-        setError('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
+        setError('Session not found. Please sign in again.')
         router.push('/sign-in')
         return
       }
@@ -44,19 +44,19 @@ export default function VerifyEmailPage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError || !user) {
-        setError('Kullanıcı bilgisi alınamadı')
+        setError('User information could not be retrieved')
         return
       }
 
       if (user.email_confirmed_at) {
-        // E-posta doğrulandı, dashboard'a yönlendir
+        // Email verified, redirect to dashboard
         router.push('/dashboard')
         router.refresh()
       } else {
-        setError('E-posta henüz doğrulanmamış. Lütfen e-posta kutunuzu kontrol edin.')
+        setError('Email not yet verified. Please check your inbox.')
       }
     } catch (err) {
-      setError('Bir hata oluştu. Lütfen tekrar deneyiniz.')
+  setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -71,7 +71,7 @@ export default function VerifyEmailPage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user?.email) {
-        setError('E-posta adresi bulunamadı')
+        setError('Email address not found')
         return
       }
 
@@ -84,13 +84,13 @@ export default function VerifyEmailPage() {
       })
 
       if (error) {
-        setError('E-posta gönderilemedi. Lütfen tekrar deneyiniz.')
+        setError('Email could not be sent. Please try again.')
       } else {
         setError(null)
-        // Başarılı mesaj burada gösterilebilir
+        // Success message can be shown here
       }
     } catch (err) {
-      setError('Bir hata oluştu. Lütfen tekrar deneyiniz.')
+  setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -104,10 +104,10 @@ export default function VerifyEmailPage() {
             <Mail className="h-10 w-10 text-blue-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            E-postanı Doğrula
+            Verify Your Email
           </CardTitle>
           <CardDescription>
-            E-posta adresinize gönderilen doğrulama linkine tıklayın
+            Click the verification link sent to your email address
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -119,8 +119,7 @@ export default function VerifyEmailPage() {
 
           <div className="space-y-4 text-center">
             <p className="text-sm text-muted-foreground">
-              E-posta kutunuzu kontrol edin ve doğrulama linkine tıklayın. 
-              Spam klasörünü de kontrol etmeyi unutmayın.
+              Check your inbox and click the verification link. Don't forget to check your spam folder.
             </p>
 
             <div className="space-y-2">
@@ -131,7 +130,7 @@ export default function VerifyEmailPage() {
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Doğruladım, Devam Et
+                Verified, Continue
               </Button>
 
               <Button 
@@ -141,7 +140,7 @@ export default function VerifyEmailPage() {
                 className="w-full"
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                E-postayı Tekrar Gönder
+                Resend Email
               </Button>
             </div>
 
@@ -150,7 +149,7 @@ export default function VerifyEmailPage() {
                 onClick={() => router.push('/sign-in')}
                 className="text-primary hover:underline"
               >
-                Farklı hesapla giriş yap
+                Sign in with a different account
               </button>
             </div>
           </div>

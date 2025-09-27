@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/button';
 import { LayoutDashboard, CheckCircle } from 'lucide-react';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
-export default function ListingsPage({ searchParams }: { searchParams: { page?: string } }) {
+import { useSearchParams } from 'next/navigation';
+
+export default function ListingsPage() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
   const [listingsData, setListingsData] = React.useState<any>(null);
-  const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
+  const searchParams = useSearchParams();
+  const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
 
   React.useEffect(() => {
     getListings({ page }).then(setListingsData);
@@ -24,7 +27,7 @@ export default function ListingsPage({ searchParams }: { searchParams: { page?: 
   const startIndex = (page - 1) * pageSize;
 
   function hrefFor(p: number) {
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(searchParams.toString());
     params.set('page', String(p));
     return `?${params.toString()}`;
   }

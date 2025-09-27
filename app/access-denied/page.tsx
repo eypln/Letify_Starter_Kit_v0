@@ -18,46 +18,44 @@ export default function AccessDeniedPage() {
             <XCircle className="h-10 w-10 text-red-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Erişim Reddedildi
+            Access Denied
           </CardTitle>
           <CardDescription>
-            Hesabınızın Letify platformuna erişimi reddedilmiştir.
+            Your account has been denied access to the Letify platform.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 text-center">
           <div className="space-y-4">
             <p className="text-muted-foreground">
-              Hesabınız admin ekibimiz tarafından incelendi ancak şu anda platformumuza uygun bulunmadı.
+              Your account has been reviewed by our admin team but is currently not eligible for our platform.
             </p>
             
             <div className="p-4 bg-red-50 rounded-lg">
               <p className="text-sm text-red-800">
-                Bu karar hakkında daha fazla bilgi almak veya itirazda bulunmak için 
-                destek ekibimizle iletişime geçebilirsiniz.
+                If you would like more information about this decision or wish to appeal, you can contact our support team.
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
             <a 
-              href="mailto:destek@letify.com?subject=Hesap Erişimi Hakkında" 
+              href="mailto:support@letify.cloud?subject=Account Access Inquiry" 
               className="block"
             >
               <Button className="w-full">
-                Destek Ekibiyle İletişime Geç
+                Contact Support Team
               </Button>
             </a>
-            
             <Link href="/sign-in">
               <Button variant="outline" className="w-full">
-                Giriş Sayfasına Dön
+                Return to Sign In Page
               </Button>
             </Link>
           </div>
 
           <div className="text-xs text-muted-foreground">
             <p>
-              Hesap durumunuz değiştiğinde e-posta ile bilgilendirileceksiniz.
+              You will be notified by email if your account status changes.
             </p>
           </div>
         </CardContent>

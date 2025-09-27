@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as StartPayload;
 
   // Auth
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -27,31 +27,50 @@ export async function POST(req: Request) {
   if (body.mode === 'url' && !sourceUrl)
     return NextResponse.json({ ok: false, message: 'sourceUrl is required' }, { status: 400 });
 
-  // 1) Listing: varsa bul, yoksa oluştur (DB kolonu: property_url)
+  // 1) Listing: varsa bul, yoksa oluştur (property_url yoksa title ile kontrol)
   let listingId = body.mode === 'manual' ? body.listingId ?? null : null;
+  // AddDialog ve stepper için: title alanı AddDialog'dan, property_url stepper'dan gelir. n8n ve stepper mantığı bozulmaz.
+  const title = (body as any).title ?? null;
 
-  if (!listingId && sourceUrl) {
-    const { data: existing } = await supabase
-      .from('listings')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('property_url', sourceUrl)
-      .maybeSingle();
-    if (existing?.id) listingId = existing.id;
-  }
   if (!listingId) {
-    const insertFields: Record<string, any> = { user_id: user.id };
-    if (sourceUrl) insertFields.property_url = sourceUrl;
-    const { data: newListing, error: listingErr } = await supabase
-      .from('listings')
-      .insert(insertFields)
-      .select('id')
-      .single();
-    if (listingErr || !newListing) {
-      console.error('[jobs.start] listings.insert', listingErr);
-      return NextResponse.json({ ok: false, message: 'Failed to create listing' }, { status: 500 });
+    let existing;
+    if (sourceUrl) {
+      // Önce property_url ile kontrol
+      const { data } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('property_url', sourceUrl)
+        .maybeSingle();
+      existing = data;
+    } else if (title) {
+      // property_url yoksa title ile kontrol
+      const { data } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('title', title)
+        .maybeSingle();
+      existing = data;
     }
-    listingId = newListing.id;
+    if (existing?.id) {
+      listingId = existing.id;
+    } else {
+      // Yeni kayıt oluştur
+      const insertFields: Record<string, any> = { user_id: user.id };
+      if (sourceUrl) insertFields.property_url = sourceUrl;
+      if (title) insertFields.title = title;
+      const { data: newListing, error: listingErr } = await supabase
+        .from('listings')
+        .insert(insertFields)
+        .select('id')
+        .single();
+      if (listingErr || !newListing) {
+        console.error('[jobs.start] listings.insert', listingErr);
+        return NextResponse.json({ ok: false, message: 'Failed to create listing' }, { status: 500 });
+      }
+      listingId = newListing.id;
+    }
   }
 
   // 2) FB kimlikleri: users_integrations (fb_page_id, fb_access_token)

@@ -17,7 +17,7 @@ function Banner({ message, onClose }: { message: string; onClose?: () => void })
             className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50" 
             onClick={onClose}
           >
-            Kapat
+            Close
           </button>
         </div>
       </div>
@@ -34,7 +34,7 @@ export function ExpiredBannerFromQuery() {
   
   return (
     <Banner
-      message="Akış zaman aşımına uğradı, lütfen linki tekrar yapıştırın."
+  message="Session expired, please paste the link again."
       onClose={() => {
         setShow(false);
         // URL'den expired parametresini temizle

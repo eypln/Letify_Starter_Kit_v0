@@ -50,7 +50,7 @@ export function useBillingController() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setUserId(null); setCredits(null); setSub(null);
-      setErrorMsg('Lütfen oturum açın.');
+      setErrorMsg('Please sign in.');
       return;
     }
     setUserId(user.id);
@@ -84,10 +84,10 @@ export function useBillingController() {
         body: JSON.stringify({ plan, cycle }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'Failed to start checkout process');
+  if (!res.ok) throw new Error(json?.error || 'Failed to start checkout process');
       if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
-      setErrorMsg(e?.message || 'Checkout başlatılamadı.');
+      setErrorMsg(e?.message || 'Checkout could not be started.');
     } finally {
       setLoadingKey(null);
     }
@@ -103,10 +103,10 @@ export function useBillingController() {
         body: JSON.stringify({ type: 'credit', amount: String(amount) }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'Checkout başlatılamadı (credit).');
+  if (!res.ok) throw new Error(json?.error || 'Checkout could not be started (credit).');
       if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
-      setErrorMsg(e?.message || 'Kredi satın alma başlatılamadı.');
+      setErrorMsg(e?.message || 'Credit purchase could not be started.');
     } finally {
       setLoadingKey(null);
     }
@@ -121,10 +121,10 @@ export function useBillingController() {
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'Portal açılamadı.');
+  if (!res.ok) throw new Error(json?.error || 'Portal could not be opened.');
       if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
     } catch (e: any) {
-      setErrorMsg(e?.message || 'Portal açılamadı.');
+      setErrorMsg(e?.message || 'Portal could not be opened.');
     } finally {
       setLoadingKey(null);
     }
@@ -137,7 +137,7 @@ export function useBillingController() {
       const url = new URL(window.location.href);
       const success = url.searchParams.get('success') || url.searchParams.get('status');
       if (success === '1' || success === 'success') {
-        setInfoMsg('Ödeme tamamlandı. Bilgileriniz güncelleniyor…');
+        setInfoMsg('Payment completed. Your information is being updated…');
         setTimeout(refresh, 1500);
       }
     }

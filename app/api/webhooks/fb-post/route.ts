@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     };
     try {
       const { createClient } = require('@/lib/supabase/server');
-      const supabase = createClient();
+  const supabase = await createClient();
       // User
       if (!patchedPayload.user || !patchedPayload.user.id) {
         const { data: { user } } = await supabase.auth.getUser();
