@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       user_id = jobRow?.user_id;
     }
     if (user_id) {
-      await logActivity({ user_id, type: 'listing', data: { listingId: resolvedListingId } });
+  await logActivity(supabase, { user_id, type: 'listing', data: { listingId: resolvedListingId } });
     }
 
     return NextResponse.json({ success: true });

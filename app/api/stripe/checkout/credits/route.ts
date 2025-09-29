@@ -13,8 +13,8 @@ const CheckoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,24 +24,19 @@ export async function POST(request: NextRequest) {
     const validation = CheckoutSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: validation.error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: 'Invalid request data',
+        details: validation.error.errors
+      }, { status: 400 });
     }
 
     const { credits, successUrl, cancelUrl } = validation.data;
 
     // Get or create Stripe customer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', user.id)
-      .single();
-
+    // Email alanı profile tablosunda yoksa user.email kullanılır
     const customerId = await getOrCreateStripeCustomer(
       user.id,
-      profile?.email || user.email
+      user.email
     );
 
     // Create checkout session
@@ -64,11 +59,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-      // Activity log: credit
-      await logActivity({ user_id: user.id, type: 'credit' });
+    // Activity log: credit
+    await logActivity(supabase, { user_id: user.id, type: 'credit' });
 
-      // Success response
-      return NextResponse.json({ success: true });
+    // Success response
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Stripe checkout error:', error);
     return NextResponse.json(

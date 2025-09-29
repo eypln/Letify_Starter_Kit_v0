@@ -26,8 +26,8 @@ function pickPrice(plan: "mini" | "full", cycle: "monthly" | "yearly") {
 export async function POST(req: Request) {
   try {
     // 1) Auth: kullanıcıyı cookie üzerinden al (client token'a gerek yok)
-    const cookieStore = cookies();
-    const supaUser = createServerClient(
+  const cookieStore = await cookies();
+  const supaUser = await createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -46,25 +46,25 @@ export async function POST(req: Request) {
     const cycle = body.cycle ?? "monthly";
 
     // 2) Stripe customer'ı bul/oluştur + Supabase'te map'le
-    const svc = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE! // service-role şart
-    );
+      const svc = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE! // service-role şart
+      );
 
     let stripeCustomerId: string | null = null;
     const { data: bc } = await svc
-      .from("billing_customers")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+  .from("billing_customers")
+  .select("stripe_customer_id")
+  .eq("user_id", user.id)
+  .maybeSingle();
 
     stripeCustomerId = bc?.stripe_customer_id ?? null;
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({ email: user.email ?? undefined, metadata: { user_id: user.id } });
       stripeCustomerId = customer.id;
       const { error: mapErr } = await svc
-        .from("billing_customers")
-        .upsert({ user_id: user.id, stripe_customer_id: stripeCustomerId, credits: 0 }, { onConflict: "user_id" });
+  .from("billing_customers")
+  .upsert({ user_id: user.id, stripe_customer_id: stripeCustomerId, credits: 0 }, { onConflict: "user_id" });
       if (mapErr) console.error("upsert billing_customers map error:", mapErr);
     }
 
@@ -89,8 +89,8 @@ export async function POST(req: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard/subscription?canceled=1`,
     });
 
-      // Activity log: subscription
-      await logActivity({ user_id: user.id, type: 'subscription' });
+  // Activity log: subscription
+  await logActivity(svc, { user_id: user.id, type: 'subscription' });
 
     return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (e: any) {

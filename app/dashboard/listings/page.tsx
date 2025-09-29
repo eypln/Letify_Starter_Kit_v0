@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getListings } from './actions';
 import Link from 'next/link';
 import AddDialog from './add-dialog';
@@ -9,6 +10,8 @@ import { LayoutDashboard, CheckCircle } from 'lucide-react';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 import { useSearchParams } from 'next/navigation';
+
+const queryClient = new QueryClient();
 
 export default function ListingsPage() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
@@ -42,7 +45,8 @@ export default function ListingsPage() {
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-4">
+    <QueryClientProvider client={queryClient}>
+      <div className="max-w-6xl mx-auto p-6 space-y-4">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         {/* Sol: Listings + Add */}
@@ -149,7 +153,8 @@ export default function ListingsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </QueryClientProvider>
   );
 // End of ListingsPage
 }

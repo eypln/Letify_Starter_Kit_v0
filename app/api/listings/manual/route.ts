@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // mevcut user'ı okumak için
+import { logActivity } from '@/lib/activity';
 
 export async function POST(req: Request) {
   // multipart/form-data
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
   const file         = form.get('image') as File | null; // tek resim
 
   // oturumdan user_id
-  const sbAuth = createClient();
+  const sbAuth = await createClient();
   const { data: { user } } = await sbAuth.auth.getUser();
   if (!user) return NextResponse.json({ ok:false, error:'unauthorized' }, { status:401 });
 
@@ -98,6 +99,12 @@ export async function POST(req: Request) {
           userId: user.id,
           listing: { city, price, bedroom, bathroom, propertyType, description, imageUrl }
         }),
+      });
+      // Aktivite kaydı ekle
+      await logActivity(service, {
+        user_id: user.id,
+        type: 'listing',
+        data: { listingId }
       });
     } catch (e) {
       console.warn('n8n webhook call failed', (e as Error).message);

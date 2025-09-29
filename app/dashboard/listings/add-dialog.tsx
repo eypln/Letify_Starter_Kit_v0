@@ -1,10 +1,13 @@
+
 "use client";
+import ListingPostButton from '@/components/listing/listing-post-button';
 
 import { useState, useTransition, useRef, ChangeEvent } from 'react';
 import Select from 'react-select';
 import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/use-toast';
 
 // Malta cities options (full list)
 const maltaCitiesOptions = [
@@ -73,6 +76,7 @@ const propertyTypeOptions = [
   { label: 'Rooms', value: 'Rooms' }
 ];
 export default function AddDialog() {
+  const { toast } = useToast();
   async function handleStart() {
     setLoading(true);
     try {
@@ -84,7 +88,11 @@ export default function AddDialog() {
         .eq('title', referenceNo)
         .single();
       if (findError && findError.code !== 'PGRST116') {
-  alert('Listing query error: ' + findError.message);
+            toast({
+              title: 'Listing query error',
+              description: findError.message,
+              variant: 'destructive',
+            });
         setLoading(false);
         return;
       }
@@ -94,16 +102,39 @@ export default function AddDialog() {
         setListingId(finalListingId);
         // Mevcut satırı güncelle
         await updateListingFields(finalListingId);
-        alert('A listing with this reference number already exists. Only a new job will be created.');
+            toast({
+              title: 'Listing already exists',
+              description: 'Only a new job will be created.',
+              variant: 'default',
+            });
       } else {
-        // Yeni listing oluştur
+        // Oturumdaki kullanıcı id'sini al
+        const {
+          data: { user },
+          error: userError
+        } = await supabase.auth.getUser();
+        if (userError || !user) {
+              toast({
+                title: 'User ID error',
+                description: 'Could not get user id from Supabase auth.',
+                variant: 'destructive',
+              });
+          setLoading(false);
+          return;
+        }
+        const userId = user.id;
+        // Yeni listing oluştur (user_id, title, property_url)
         const { data: newListing, error: createError } = await supabase
           .from('listings')
-          .insert({ title: referenceNo, property_url: 'manual' })
+          .insert({ user_id: userId, title: referenceNo, property_url: 'manual' })
           .select('id')
           .single();
         if (createError || !newListing) {
-          alert('Listing could not be created: ' + (createError?.message || 'Unknown error'));
+              toast({
+                title: 'Listing could not be created',
+                description: createError?.message || 'Unknown error',
+                variant: 'destructive',
+              });
           setLoading(false);
           return;
         }
@@ -125,15 +156,23 @@ export default function AddDialog() {
       });
       const { ok, jobId, message } = await res.json();
       if (!ok || !jobId) {
-  alert('Job could not be created: ' + (message || 'Unknown error'));
+            toast({
+              title: 'Job could not be created',
+              description: message || 'Unknown error',
+              variant: 'destructive',
+            });
         setLoading(false);
         return;
       }
       setJobId(jobId);
-      setStartDone(true);
-      setTimerActive(true);
-      setSecondsLeft(300);
-  alert('Job created successfully!');
+    setStartDone(true);
+    setTimerActive(true);
+    setSecondsLeft(300);
+          toast({
+            title: 'Job created successfully!',
+            description: 'Your listing job has been created and will be processed.',
+            variant: 'default',
+          });
       // Zamanlayıcı başlat
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
@@ -143,14 +182,22 @@ export default function AddDialog() {
             timerRef.current = null;
             setTimerActive(false);
             setOpen(false);
-            alert('Dialog closed because no upload was made within 5 minutes. Please try again.');
+                toast({
+                  title: 'Dialog closed',
+                  description: 'No upload was made within 5 minutes. Please try again.',
+                  variant: 'default',
+                });
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
     } catch (e) {
-  alert((e as Error).message);
+          toast({
+            title: 'Error',
+            description: (e as Error).message,
+            variant: 'destructive',
+          });
     } finally {
       setLoading(false);
     }
@@ -175,7 +222,11 @@ export default function AddDialog() {
       .update(updateFields)
       .eq('id', listingId);
     if (error) {
-  alert('Listing update failed: ' + error.message);
+          toast({
+               title: 'Listing update failed',
+               description: error.message,
+               variant: 'destructive',
+             });
     }
   }
   const router = useRouter();
@@ -206,11 +257,19 @@ export default function AddDialog() {
 
   async function handleUpload() {
     if (!jobId || !listingId) {
-  alert("You must click Start first.");
+      toast({
+        title: 'Start required',
+        description: 'You must click Start first.',
+        variant: 'destructive',
+      });
       return;
     }
     if (images.length === 0) {
-  alert("No images to upload.");
+    toast({
+      title: 'No images',
+      description: 'No images to upload.',
+      variant: 'destructive',
+    });
       return;
     }
     setLoading(true);
@@ -223,7 +282,11 @@ export default function AddDialog() {
         error: userError
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        alert('Could not get user id from Supabase auth.');
+      toast({
+        title: 'User ID error',
+        description: 'Could not get user id from Supabase auth.',
+        variant: 'destructive',
+      });
         setLoading(false);
         return;
       }
@@ -258,14 +321,30 @@ export default function AddDialog() {
       }
       setTimerActive(false);
       if (uploadError) {
-        alert('Some images failed to upload: ' + uploadError);
+        toast({
+          title: 'Upload error',
+          description: uploadError,
+          variant: 'destructive',
+        });
       } else if (urls.length > 0) {
-        alert('Images uploaded successfully.');
+        toast({
+          title: 'Images uploaded',
+          description: 'Images uploaded successfully.',
+          variant: 'default',
+        });
       } else {
-        alert('No images were uploaded.');
+        toast({
+          title: 'No images uploaded',
+          description: 'No images were uploaded.',
+          variant: 'default',
+        });
       }
     } catch (e) {
-  alert('Image upload failed: ' + (e as Error).message);
+    toast({
+      title: 'Image upload failed',
+      description: (e as Error).message,
+      variant: 'destructive',
+    });
     } finally {
       setLoading(false);
     }
@@ -279,6 +358,8 @@ export default function AddDialog() {
     if (fileInputRef.current) fileInputRef.current.value = '';
     setImages([]);
     setImageUrls([]);
+    // localStorage'dan form state'ini de sil
+    localStorage.removeItem('listingForm');
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -304,11 +385,15 @@ export default function AddDialog() {
         }),
       });
       const { ok, jobId, message } = await res.json();
-      if (!ok) throw new Error(message || 'Start failed');
+  if (!ok) throw new Error(message || 'Start failed');
       setOpen(false);
       setReferenceNo(""); setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); clearFiles();
     } catch (e) {
-  alert((e as Error).message);
+    toast({
+      title: 'Error',
+      description: (e as Error).message,
+      variant: 'destructive',
+    });
     } finally {
       setLoading(false);
     }
@@ -343,6 +428,8 @@ export default function AddDialog() {
                   timerRef.current = null;
                 }
                 setTimerActive(false);
+                // localStorage'dan form state'ini de sil
+                localStorage.removeItem('listingForm');
               }} className="p-1">✕</button>
             </div>
             {timerActive && (
@@ -472,15 +559,61 @@ export default function AddDialog() {
                 }
                 setTimerActive(false);
               }} className="px-3 py-2 rounded-md border">Cancel</button>
-              <button type="button" onClick={handleStart} disabled={loading || startDone} className="px-3 py-2 rounded-md bg-blue-600 text-white">
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={loading || startDone}
+                className={`px-3 py-2 rounded-md bg-blue-600 text-white${loading || startDone ? ' opacity-50 cursor-not-allowed' : ''}`}
+              >
                 Start
               </button>
-              <button type="button" onClick={handleUpload} disabled={!startDone || loading || uploadDone} className="px-3 py-2 rounded-md bg-green-600 text-white">
+              <button
+                type="button"
+                onClick={handleUpload}
+                disabled={!startDone || images.length === 0 || loading || uploadDone}
+                className={`px-3 py-2 rounded-md bg-green-600 text-white${(!startDone || images.length === 0 || loading || uploadDone) ? ' opacity-50 cursor-not-allowed' : ''}`}
+              >
                 Upload
               </button>
-              <button type="button" disabled className="px-3 py-2 rounded-md bg-purple-600 text-white opacity-50 cursor-not-allowed">
-                Finish
-              </button>
+              {/* Post tuşu sadece startDone && uploadDone && jobId && listingId olduğunda aktif, diğer zamanlarda disabled */}
+              {startDone && uploadDone && jobId && listingId ? (
+                <ListingPostButton
+                  listingId={listingId}
+                  jobId={jobId}
+                  formData={{
+                    referenceNo,
+                    city,
+                    price: price ? Number(price) : 0,
+                    bedroom: bedroom ? Number(bedroom) : 0,
+                    bathroom: bathroom ? Number(bathroom) : 0,
+                    propertyType,
+                    description,
+                    images,
+                  }}
+                  onSuccess={() => {
+                    setOpen(false);
+                    setReferenceNo("");
+                    setCity("");
+                    setPrice("");
+                    setBedroom("");
+                    setBathroom("");
+                    setPropertyType("");
+                    setDescription("");
+                    setImages([]);
+                    setImageUrls([]);
+                    setJobId("");
+                    setListingId("");
+                    setStartDone(false);
+                    setUploadDone(false);
+                    // localStorage'dan form state'ini de sil
+                    localStorage.removeItem('listingForm');
+                  }}
+                />
+              ) : (
+                <button type="button" disabled className="px-3 py-2 rounded-md bg-purple-600 text-white opacity-50 cursor-not-allowed">
+                  Post
+                </button>
+              )}
             </div>
           </form>
         </div>

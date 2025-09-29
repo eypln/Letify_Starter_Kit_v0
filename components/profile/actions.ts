@@ -17,7 +17,7 @@ export async function upsertIntegration(data: IntegrationFormData) {
   return { success: false, error: 'User not found' }
     }
 
-    const supabase = createClient()
+  const supabase = await createClient()
 
     // Upsert integration (insert or update on conflict)
     const { error } = await supabase
@@ -59,7 +59,7 @@ export async function updateProfile(data: ProfileUpdateFormData) {
   return { success: false, error: 'User not found' }
     }
 
-    const supabase = createClient()
+  const supabase = await createClient()
 
     // Update profile
     const { error } = await supabase
@@ -76,7 +76,7 @@ export async function updateProfile(data: ProfileUpdateFormData) {
     }
 
     // Activity log: profile update
-    await logActivity({ user_id: user.id, type: 'profile_update' });
+    await logActivity(supabase, { user_id: user.id, type: 'profile_update' });
 
     // Revalidate the profile page
     revalidatePath('/dashboard/profile')
