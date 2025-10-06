@@ -37,21 +37,41 @@ export async function addCredits(
     invoice_id?: string 
   }
 ) {
-  await supa.from('billing_credit_ledger').insert({ 
-    user_id: userId, 
-    delta, 
-    reason: meta.reason, 
-    stripe_payment_intent_id: meta.payment_intent_id, 
-    stripe_invoice_id: meta.invoice_id 
-  });
+  console.log("lib/billing addCredits called with:", { userId, delta, meta });
   
-  await supa.rpc('increment_credits', { 
-    p_user_id: userId, 
-    p_delta: delta 
-  }).then(null, async () => {
-    // fallback: direct update
-    await supa.rpc('noop');
-  });
-  
-  await supa.from('billing_customers').update({}).eq('user_id', userId); // touch
+  try {
+    const { data, error } = await supa.from('billing_credit_ledger').insert({ 
+      user_id: userId, 
+      delta, 
+      reason: meta.reason, 
+      stripe_payment_intent_id: meta.payment_intent_id, 
+      stripe_invoice_id: meta.invoice_id 
+    });
+    
+    console.log("billing_credit_ledger insert result:", { data, error });
+    
+    if (error) {
+      console.error("Error inserting into billing_credit_ledger:", error);
+      return;
+    }
+    
+    const { data: rpcData, error: rpcError } = await supa.rpc('increment_credits', { 
+      p_user_id: userId, 
+      p_delta: delta 
+    });
+    
+    console.log("increment_credits RPC result:", { rpcData, rpcError });
+    
+    if (rpcError) {
+      console.error("Error calling increment_credits:", rpcError);
+      // fallback: direct update
+      const { data: noopData, error: noopError } = await supa.rpc('noop');
+      console.log("noop RPC result:", { noopData, noopError });
+    }
+    
+    const { data: updateData, error: updateError } = await supa.from('billing_customers').update({}).eq('user_id', userId); // touch
+    console.log("billing_customers update result:", { updateData, updateError });
+  } catch (err) {
+    console.error("Unexpected error in addCredits:", err);
+  }
 }

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useWizardStore } from "@/lib/wizard/store";
+import { useUploadStore } from "@/lib/uploads/store"; // 👈 useUploadStore'u içe aktar
 import { getListingInfoByJobId } from "@/lib/wizard/getListingInfo";
 import { useWizardJobSync } from "@/lib/wizard/sync";
 
@@ -102,7 +103,11 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
         }
         
         // 🔒 toast sadece 1 kere, sadece step 1'de ve sadece ilk content geldiğinde göster
-        if (contentReady && !toastShownRef.current && stepParam === '1') {
+        // Ayrıca URL'de expired=1 parametresi yoksa göster (Reset All veya timer expiration durumunda gösterme)
+        const params = new URLSearchParams(window.location.search);
+        const isExpired = params.get('expired') === '1';
+        
+        if (contentReady && !toastShownRef.current && stepParam === '1' && !isExpired) {
           toastShownRef.current = true;
           console.log('🎉 Content is ready, showing toast');
           toast({
@@ -231,8 +236,13 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
                   } catch {}
                 }
                 useWizardStore.setState({ jobId: '', listingId: '' });
-                setStep(1);
-                router.replace('/dashboard/new-post');
+                // 👇 Her iki store'u da temizle
+                const clearWizard = useWizardStore.getState().clear;
+                clearWizard();
+                const clearUploads = useUploadStore.getState().clear;
+                clearUploads();
+                // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+                router.replace('/dashboard?expired=1');
               }}
             >
               Reset All

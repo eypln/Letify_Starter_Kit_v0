@@ -11,6 +11,7 @@ const PieChart = dynamic(() => import('@/components/ui/pie-chart'), { ssr: false
 
 export default function AnalyticsPage() {
   const [listings, setListings] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,9 +19,12 @@ export default function AnalyticsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
         setListings([]);
+        setClients([]);
         setLoading(false);
         return;
       }
+      
+      // Fetch listings data
       supabase
         .from('listings')
         .select('city,price,bedrooms')
@@ -28,6 +32,16 @@ export default function AnalyticsPage() {
         .then(({ data, error }) => {
           console.log('Supabase listings data:', data, 'error:', error);
           setListings(data ?? []);
+        });
+      
+      // Fetch clients data
+      supabase
+        .from('clients')
+        .select('cities,budget')
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          console.log('Supabase clients data:', data, 'error:', error);
+          setClients(data ?? []);
           setLoading(false);
         });
     });
@@ -119,6 +133,47 @@ export default function AnalyticsPage() {
   );
   const histogramData = histogramLabels.map(label => ({ range: label, count: histogram[label] || 0 }));
 
+  // Clients analytics
+  // Şehirlere göre client dağılımı (Pie Chart)
+  const clientCityCounts: Record<string, number> = {};
+  clients.forEach((client: any) => {
+    if (client.cities) {
+      // Client'ın şehirleri virgülle ayrılmış olabilir
+      const cities = client.cities.split(',');
+      cities.forEach((city: string) => {
+        const trimmedCity = city.trim();
+        if (trimmedCity) {
+          clientCityCounts[trimmedCity] = (clientCityCounts[trimmedCity] || 0) + 1;
+        }
+      });
+    }
+  });
+
+  // Budget aralıklarına göre dağılım histogramı
+  const budgetRanges = [0, 1000, 2000, 3000, 4000, 5000];
+  const budgetHistogram: Record<string, number> = {};
+  clients.forEach((client: any) => {
+    if (client.budget) {
+      const budget = Number(client.budget);
+      let rangeLabel = '';
+      for (let i = 0; i < budgetRanges.length - 1; i++) {
+        if (budget >= budgetRanges[i] && budget < budgetRanges[i + 1]) {
+          rangeLabel = `${budgetRanges[i]} - ${budgetRanges[i + 1]}`;
+          break;
+        }
+      }
+      if (!rangeLabel && budget >= budgetRanges[budgetRanges.length - 1]) {
+        rangeLabel = `${budgetRanges[budgetRanges.length - 1]}+`;
+      }
+      if (rangeLabel) budgetHistogram[rangeLabel] = (budgetHistogram[rangeLabel] || 0) + 1;
+    }
+  });
+  // Histogram verisini budgetRanges sırasına göre sırala
+  const budgetHistogramLabels = budgetRanges.map((v, i) =>
+    i < budgetRanges.length - 1 ? `${budgetRanges[i]} - ${budgetRanges[i + 1]}` : `${budgetRanges[i]}+`
+  );
+  const budgetHistogramData = budgetHistogramLabels.map(label => ({ range: label, count: budgetHistogram[label] || 0 }));
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between mb-4">
@@ -132,8 +187,8 @@ export default function AnalyticsPage() {
       </div>
       {loading ? (
         <div className="text-gray-500">Loading…</div>
-      ) : listings.length === 0 ? (
-        <div className="text-red-500">No data found from Supabase. Check your listings table and Supabase connection.</div>
+      ) : listings.length === 0 && clients.length === 0 ? (
+        <div className="text-red-500">No data found from Supabase. Check your listings and clients tables and Supabase connection.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-white rounded-lg shadow p-8">
@@ -159,6 +214,16 @@ export default function AnalyticsPage() {
           <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
             <h2 className="font-semibold mb-4">Price Distribution Histogram</h2>
             <HistogramBarChart data={histogramData} />
+          </div>
+          
+          {/* Client Analytics Charts */}
+          <div className="bg-white rounded-lg shadow p-8">
+            <h2 className="font-semibold mb-4">Clients by City</h2>
+            <PieChart data={Object.entries(clientCityCounts).map(([city, count]) => ({ bedroom: city, count }))} />
+          </div>
+          <div className="bg-white rounded-lg shadow p-8">
+            <h2 className="font-semibold mb-4">Clients by Budget Range</h2>
+            <HistogramBarChart data={budgetHistogramData} />
           </div>
         </div>
       )}

@@ -97,10 +97,10 @@ export function useBillingController() {
     try {
       clearMsgs(); setLoadingKey(`credit-${amount}`);
       const token = await getToken();
-      const res = await fetch('/api/stripe/create-checkout-session', {
+      const res = await fetch('/api/stripe/checkout/credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ type: 'credit', amount: String(amount) }),
+        body: JSON.stringify({ credits: String(amount) }),
       });
       const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error || 'Checkout could not be started (credit).');

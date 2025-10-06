@@ -40,7 +40,11 @@ export default function Uploader() {
   function ensureNotExpired() {
     if (!jobStartedAt || Date.now() - jobStartedAt > JOB_TTL_MS) {
       clear();
-      router.replace('/dashboard?expired=1'); // <-- değişti
+      // 👇 Her iki store'u da temizle
+      const clearUploads = useUploadStore.getState().clear;
+      clearUploads();
+      // Timer süresi dolduğunda doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+      router.replace('/dashboard?expired=1');
       throw new Error('Job expired');
     }
   }

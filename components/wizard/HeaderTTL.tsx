@@ -1,10 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useWizardStore } from '@/lib/wizard/store';
+import { useUploadStore } from '@/lib/uploads/store';
 import { useRouter } from 'next/navigation';
-
-// Geliştirme için 3 saat; prod'da 15 dk: 15 * 60 * 1000
-const JOB_TTL_MS = 3 * 60 * 60 * 1000;
+import { JOB_TTL_MS } from '@/lib/wizard/constants';
 
 export default function HeaderTTL() {
   const router = useRouter();
@@ -20,6 +19,9 @@ export default function HeaderTTL() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current)  clearTimeout(timeoutRef.current);
     clear();
+    const clearUploads = useUploadStore.getState().clear;
+    clearUploads();
+    // Timer süresi dolduğunda doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
     router.replace('/dashboard?expired=1');
   };
 

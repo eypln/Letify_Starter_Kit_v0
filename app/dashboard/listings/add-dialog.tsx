@@ -9,52 +9,68 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 
-// Malta cities options (full list)
+// Malta cities options (Mainland Malta only)
 const maltaCitiesOptions = [
-  { label: "Valletta", value: "Valletta" },
-  { label: "Sliema", value: "Sliema" },
-  { label: "St. Julian's", value: "St. Julian's" },
-  { label: "Birkirkara", value: "Birkirkara" },
-  { label: "Mosta", value: "Mosta" },
-  { label: "Qormi", value: "Qormi" },
-  { label: "Żabbar", value: "Żabbar" },
-  { label: "Żebbuġ", value: "Żebbuġ" },
-  { label: "Marsaskala", value: "Marsaskala" },
-  { label: "Marsaxlokk", value: "Marsaxlokk" },
-  { label: "Mellieħa", value: "Mellieħa" },
-  { label: "Mdina", value: "Mdina" },
-  { label: "Rabat", value: "Rabat" },
-  { label: "Paola", value: "Paola" },
-  { label: "Birżebbuġa", value: "Birżebbuġa" },
-  { label: "Naxxar", value: "Naxxar" },
-  { label: "Senglea", value: "Senglea" },
-  { label: "Birgu", value: "Birgu" },
-  { label: "Bormla", value: "Bormla" },
-  { label: "Gżira", value: "Gżira" },
-  { label: "Msida", value: "Msida" },
-  { label: "Floriana", value: "Floriana" },
-  { label: "Swieqi", value: "Swieqi" },
-  { label: "Xgħajra", value: "Xgħajra" },
-  { label: "Kalkara", value: "Kalkara" },
   { label: "Attard", value: "Attard" },
   { label: "Balzan", value: "Balzan" },
-  { label: "Lija", value: "Lija" },
-  { label: "Santa Venera", value: "Santa Venera" },
-  { label: "Luqa", value: "Luqa" },
-  { label: "Gudja", value: "Gudja" },
-  { label: "Kirkop", value: "Kirkop" },
-  { label: "Mqabba", value: "Mqabba" },
-  { label: "Qrendi", value: "Qrendi" },
-  { label: "Safi", value: "Safi" },
-  { label: "Żurrieq", value: "Żurrieq" },
+  { label: "Birgu", value: "Birgu" },
+  { label: "Birkirkara", value: "Birkirkara" },
+  { label: "Birżebbuġa", value: "Birżebbuġa" },
+  { label: "Bormla", value: "Bormla" },
   { label: "Dingli", value: "Dingli" },
-  { label: "Mtarfa", value: "Mtarfa" },
-  { label: "Siġġiewi", value: "Siġġiewi" },
+  { label: "Fgura", value: "Fgura" },
+  { label: "Floriana", value: "Floriana" },
   { label: "Għargħur", value: "Għargħur" },
+  { label: "Għaxaq", value: "Għaxaq" },
+  { label: "Gudja", value: "Gudja" },
+  { label: "Gżira", value: "Gżira" },
+  { label: "Ħamrun", value: "Ħamrun" },
+  { label: "Iklin", value: "Iklin" },
+  { label: "Isla", value: "Isla" },
+  { label: "Kalkara", value: "Kalkara" },
+  { label: "Kirkop", value: "Kirkop" },
+  { label: "Lija", value: "Lija" },
+  { label: "Luqa", value: "Luqa" },
+  { label: "Marsa", value: "Marsa" },
+  { label: "Marsaskala", value: "Marsaskala" },
+  { label: "Marsaxlokk", value: "Marsaxlokk" },
+  { label: "Mdina", value: "Mdina" },
+  { label: "Mellieħa", value: "Mellieħa" },
+  { label: "Mġarr", value: "Mġarr" },
+  { label: "Mosta", value: "Mosta" },
+  { label: "Mqabba", value: "Mqabba" },
+  { label: "Msida", value: "Msida" },
+  { label: "Mtarfa", value: "Mtarfa" },
+  { label: "Bormla", value: "Bormla" },
+  { label: "Bugibba", value: "Bugibba" },
+  { label: "Naxxar", value: "Naxxar" },
+  { label: "Paola", value: "Paola" },
   { label: "Pembroke", value: "Pembroke" },
+  { label: "Pietà", value: "Pietà" },
+  { label: "Qormi", value: "Qormi" },
+  { label: "Qrendi", value: "Qrendi" },
+  { label: "Rabat", value: "Rabat" },
+  { label: "Safi", value: "Safi" },
+  { label: "San Ġiljan", value: "San Ġiljan" },
+  { label: "San Ġwann", value: "San Ġwann" },
+  { label: "San Pawl il-Baħar", value: "San Pawl il-Baħar" },
+  { label: "Santa Luċija", value: "Santa Luċija" },
+  { label: "Santa Venera", value: "Santa Venera" },
+  { label: "Siġġiewi", value: "Siġġiewi" },
+  { label: "Sliema", value: "Sliema" },
+  { label: "St. Julian's", value: "St. Julian's" },
   { label: "St. Paul's Bay", value: "St. Paul's Bay" },
-  { label: "Xemxija", value: "Xemxija" },
-  { label: "Bugibba", value: "Bugibba" }
+  { label: "Swieqi", value: "Swieqi" },
+  { label: "Ta' Xbiex", value: "Ta' Xbiex" },
+  { label: "Tarxien", value: "Tarxien" },
+  { label: "Valletta", value: "Valletta" },
+  { label: "Xagħra", value: "Xagħra" },
+  { label: "Xewkija", value: "Xewkija" },
+  { label: "Xgħajra", value: "Xgħajra" },
+  { label: "Żabbar", value: "Żabbar" },
+  { label: "Żebbuġ", value: "Żebbuġ" },
+  { label: "Żejtun", value: "Żejtun" },
+  { label: "Żurrieq", value: "Żurrieq" }
 ];
 const propertyTypeOptions = [
   { label: 'Apartments', value: 'Apartments' },
@@ -82,6 +98,23 @@ export default function AddDialog() {
     try {
       // Önce referans numarası ile daha önce oluşmuş bir listing var mı kontrol et
       const supabase = createClient();
+      
+      // Oturumdaki kullanıcı id'sini al (her iki durum için de kullanılmak üzere en başta tanımlanıyor)
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+            toast({
+              title: 'User ID error',
+              description: 'Could not get user id from Supabase auth.',
+              variant: 'destructive',
+            });
+        setLoading(false);
+        return;
+      }
+      const userId = user.id;
+      
       const { data: existingListing, error: findError } = await supabase
         .from('listings')
         .select('id')
@@ -102,27 +135,27 @@ export default function AddDialog() {
         setListingId(finalListingId);
         // Mevcut satırı güncelle
         await updateListingFields(finalListingId);
+        
+        // Activity kaydı ekle - mevcut listing güncellendi
+        try {
+          await supabase
+            .from('activity')
+            .insert([{
+              user_id: userId,
+              type: 'listing_updated',
+              data: { listing_id: finalListingId, title: referenceNo },
+              created_at: new Date().toISOString(),
+            }]);
+        } catch (activityError) {
+          console.error('Activity insert error:', activityError);
+        }
+        
             toast({
               title: 'Listing already exists',
               description: 'Only a new job will be created.',
               variant: 'default',
             });
       } else {
-        // Oturumdaki kullanıcı id'sini al
-        const {
-          data: { user },
-          error: userError
-        } = await supabase.auth.getUser();
-        if (userError || !user) {
-              toast({
-                title: 'User ID error',
-                description: 'Could not get user id from Supabase auth.',
-                variant: 'destructive',
-              });
-          setLoading(false);
-          return;
-        }
-        const userId = user.id;
         // Yeni listing oluştur (user_id, title, property_url)
         const { data: newListing, error: createError } = await supabase
           .from('listings')
@@ -142,6 +175,20 @@ export default function AddDialog() {
         setListingId(finalListingId);
         // Detayları hemen güncelle
         await updateListingFields(finalListingId);
+        
+        // Activity kaydı ekle - yeni listing oluşturuldu
+        try {
+          await supabase
+            .from('activity')
+            .insert([{
+              user_id: userId,
+              type: 'listing_created',
+              data: { listing_id: finalListingId, title: referenceNo },
+              created_at: new Date().toISOString(),
+            }]);
+        } catch (activityError) {
+          console.error('Activity insert error:', activityError);
+        }
       }
       // Job oluştur
       const res = await fetch('/api/jobs/start', {
@@ -167,7 +214,7 @@ export default function AddDialog() {
       setJobId(jobId);
     setStartDone(true);
     setTimerActive(true);
-    setSecondsLeft(300);
+    setSecondsLeft(300); // 5 dakika (tekrar eski haline getirildi)
           toast({
             title: 'Job created successfully!',
             description: 'Your listing job has been created and will be processed.',
@@ -184,7 +231,7 @@ export default function AddDialog() {
             setOpen(false);
                 toast({
                   title: 'Dialog closed',
-                  description: 'No upload was made within 5 minutes. Please try again.',
+                  description: 'No upload was made within 5 minutes. Please try again.', // Açıklamayı da tekrar 5 dakika olarak güncelledik
                   variant: 'default',
                 });
             return 0;
@@ -202,10 +249,12 @@ export default function AddDialog() {
       setLoading(false);
     }
   }
+
   // Zamanlayıcı için ek state ve ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [timerActive, setTimerActive] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(300); // 5 dakika
+  const [secondsLeft, setSecondsLeft] = useState(300); // 5 dakika (tekrar eski haline getirildi)
+  
   async function updateListingFields(listingId: string) {
     const supabase = createClient();
     const updateFields: Record<string, any> = {

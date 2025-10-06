@@ -115,12 +115,14 @@ for update using (auth.uid() = user_id);
 create or replace function public.increment_credits(p_user_id uuid, p_delta int)
 returns void language plpgsql security definer as $$
 begin
+  RAISE LOG 'increment_credits called with user_id: %, delta: %', p_user_id, p_delta;
   insert into public.billing_customers (user_id, credits)
   values (p_user_id, p_delta)
   on conflict (user_id) 
   do update set 
     credits = billing_customers.credits + p_delta,
     updated_at = now();
+  RAISE LOG 'increment_credits completed for user_id: %', p_user_id;
 end; $$;
 
 -- Noop function for fallback

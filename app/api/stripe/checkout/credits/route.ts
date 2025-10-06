@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     await logActivity(supabase, { user_id: user.id, type: 'credit' });
 
     // Success response
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (error) {
     console.error('Stripe checkout error:', error);
     return NextResponse.json(

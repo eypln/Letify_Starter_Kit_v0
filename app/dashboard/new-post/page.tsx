@@ -23,6 +23,7 @@ import CreateHeader from '@/components/wizard/CreateHeader'
 import JobTimer from '@/components/wizard/JobTimer'
 import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
+import { useUploadStore } from '@/lib/uploads/store' // 👈 useUploadStore'u içe aktar
 
 export default function NewPostPage() {
   const searchParams = useSearchParams();
@@ -61,8 +62,13 @@ export default function NewPostPage() {
         localStorage.removeItem('letify_listingId');
       }
     } catch {}
-    setStep(1); // Wizard'ı 1. stepe döndür
-    router.replace('/dashboard/new-post');
+    // 👇 Her iki store'u da temizle
+    const clearWizard = useWizardStore.getState().clear;
+    clearWizard();
+    const clearUploads = useUploadStore.getState().clear;
+    clearUploads();
+    // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+    router.replace('/dashboard?expired=1');
     setResetting(false);
   }
 
@@ -211,17 +217,6 @@ export default function NewPostPage() {
                 <span className="text-sm">API Limit</span>
                 <span className="text-sm text-green-600">∞ Unlimited</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Shares</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                No shares yet. Start by creating your first content!
-              </p>
             </CardContent>
           </Card>
 

@@ -12,6 +12,24 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+// Client form interface
+interface ClientForm {
+  id?: number | null;
+  user_id: string;
+  adding_date: string;
+  name: string;
+  people: string;
+  bedroom: string;
+  cities: string;
+  family_sharing: string;
+  nationalities: string;
+  jobs: string;
+  pet: string;
+  budget: string;
+  move_in: string;
+  phone: string;
+}
+
 const columns = [
   "#",
   "Adding Date",
@@ -67,56 +85,71 @@ export default function ClientsPage() {
     { label: "Studio", value: "studio" },
   ];
 
+  // Malta cities options (Mainland Malta only)
   const maltaCitiesOptions = [
-    { label: "Valletta", value: "Valletta" },
-    { label: "Sliema", value: "Sliema" },
-    { label: "St. Julian's", value: "St. Julian's" },
-    { label: "Birkirkara", value: "Birkirkara" },
-    { label: "Mosta", value: "Mosta" },
-    { label: "Qormi", value: "Qormi" },
-    { label: "Żabbar", value: "Żabbar" },
-    { label: "Żebbuġ", value: "Żebbuġ" },
-    { label: "Marsaskala", value: "Marsaskala" },
-    { label: "Marsaxlokk", value: "Marsaxlokk" },
-    { label: "Mellieħa", value: "Mellieħa" },
-    { label: "Mdina", value: "Mdina" },
-    { label: "Rabat", value: "Rabat" },
-    { label: "Paola", value: "Paola" },
-    { label: "Birżebbuġa", value: "Birżebbuġa" },
-    { label: "Naxxar", value: "Naxxar" },
-    { label: "Senglea", value: "Senglea" },
-    { label: "Birgu", value: "Birgu" },
-    { label: "Bormla", value: "Bormla" },
-    { label: "Gżira", value: "Gżira" },
-    { label: "Msida", value: "Msida" },
-    { label: "Floriana", value: "Floriana" },
-    { label: "Swieqi", value: "Swieqi" },
-    { label: "Xgħajra", value: "Xgħajra" },
-    { label: "Kalkara", value: "Kalkara" },
     { label: "Attard", value: "Attard" },
-    { label: "Balzan", value: "Balzan" },
-    { label: "Lija", value: "Lija" },
-    { label: "Santa Venera", value: "Santa Venera" },
-    { label: "Tarxien", value: "Tarxien" },
-    { label: "Luqa", value: "Luqa" },
-    { label: "Gudja", value: "Gudja" },
-    { label: "Għaxaq", value: "Għaxaq" },
-    { label: "Kirkop", value: "Kirkop" },
-    { label: "Mqabba", value: "Mqabba" },
-    { label: "Qrendi", value: "Qrendi" },
-    { label: "Safi", value: "Safi" },
-    { label: "Żurrieq", value: "Żurrieq" },
-    { label: "Dingli", value: "Dingli" },
-    { label: "Mtarfa", value: "Mtarfa" },
-    { label: "Siġġiewi", value: "Siġġiewi" },
-    { label: "Għargħur", value: "Għargħur" },
-    { label: "Pembroke", value: "Pembroke" },
-    { label: "St. Paul's Bay", value: "St. Paul's Bay" },
-    { label: "Xemxija", value: "Xemxija" },
-    { label: "Bugibba", value: "Bugibba" },
+  { label: "Balzan", value: "Balzan" },
+  { label: "Birgu", value: "Birgu" },
+  { label: "Birkirkara", value: "Birkirkara" },
+  { label: "Birżebbuġa", value: "Birżebbuġa" },
+  { label: "Bormla", value: "Bormla" },
+  { label: "Dingli", value: "Dingli" },
+  { label: "Fgura", value: "Fgura" },
+  { label: "Floriana", value: "Floriana" },
+  { label: "Għargħur", value: "Għargħur" },
+  { label: "Għaxaq", value: "Għaxaq" },
+  { label: "Gudja", value: "Gudja" },
+  { label: "Gżira", value: "Gżira" },
+  { label: "Ħamrun", value: "Ħamrun" },
+  { label: "Iklin", value: "Iklin" },
+  { label: "Isla", value: "Isla" },
+  { label: "Kalkara", value: "Kalkara" },
+  { label: "Kirkop", value: "Kirkop" },
+  { label: "Lija", value: "Lija" },
+  { label: "Luqa", value: "Luqa" },
+  { label: "Marsa", value: "Marsa" },
+  { label: "Marsaskala", value: "Marsaskala" },
+  { label: "Marsaxlokk", value: "Marsaxlokk" },
+  { label: "Mdina", value: "Mdina" },
+  { label: "Mellieħa", value: "Mellieħa" },
+  { label: "Mġarr", value: "Mġarr" },
+  { label: "Mosta", value: "Mosta" },
+  { label: "Mqabba", value: "Mqabba" },
+  { label: "Msida", value: "Msida" },
+  { label: "Mtarfa", value: "Mtarfa" },
+  { label: "Bormla", value: "Bormla" },
+  { label: "Bugibba", value: "Bugibba" },
+  { label: "Naxxar", value: "Naxxar" },
+  { label: "Paola", value: "Paola" },
+  { label: "Pembroke", value: "Pembroke" },
+  { label: "Pietà", value: "Pietà" },
+  { label: "Qormi", value: "Qormi" },
+  { label: "Qrendi", value: "Qrendi" },
+  { label: "Rabat", value: "Rabat" },
+  { label: "Safi", value: "Safi" },
+  { label: "San Ġiljan", value: "San Ġiljan" },
+  { label: "San Ġwann", value: "San Ġwann" },
+  { label: "San Pawl il-Baħar", value: "San Pawl il-Baħar" },
+  { label: "Santa Luċija", value: "Santa Luċija" },
+  { label: "Santa Venera", value: "Santa Venera" },
+  { label: "Siġġiewi", value: "Siġġiewi" },
+  { label: "Sliema", value: "Sliema" },
+  { label: "St. Julian's", value: "St. Julian's" },
+  { label: "St. Paul's Bay", value: "St. Paul's Bay" },
+  { label: "Swieqi", value: "Swieqi" },
+  { label: "Ta' Xbiex", value: "Ta' Xbiex" },
+  { label: "Tarxien", value: "Tarxien" },
+  { label: "Valletta", value: "Valletta" },
+  { label: "Xagħra", value: "Xagħra" },
+  { label: "Xewkija", value: "Xewkija" },
+  { label: "Xgħajra", value: "Xgħajra" },
+  { label: "Żabbar", value: "Żabbar" },
+  { label: "Żebbuġ", value: "Żebbuġ" },
+  { label: "Żejtun", value: "Żejtun" },
+  { label: "Żurrieq", value: "Żurrieq" }
   ];
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ClientForm>({
     id: undefined,
     user_id: "",
     adding_date: "",
@@ -182,21 +215,42 @@ export default function ClientsPage() {
     if (!user?.id) return;
     setSubmitting(true);
     let error;
+    let clientId = form.id;
     if (form.id) {
       // Güncelleme
-      const updatePayload = { ...form };
-      delete updatePayload.id;
-      const res = await supabase.from("clients").update(updatePayload).eq("id", form.id);
+      const { id, ...updatePayload } = form;
+      const res = await supabase.from("clients").update(updatePayload).eq("id", id);
       error = res.error;
     } else {
-      // Ekleme
-      const now = new Date();
-      const payload = { ...form, user_id: user.id, adding_date: now.toISOString() };
-      const res = await supabase.from("clients").insert([payload]);
+      // Ekleme - id alanını çıkart
+      const { id, ...insertPayload } = form;
+      const payloadWithUser = { ...insertPayload, user_id: user.id, adding_date: new Date().toISOString() };
+      const res = await supabase.from("clients").insert([payloadWithUser]).select('id').single();
       error = res.error;
+      
+      // Yeni eklenen client'ın id'sini al
+      if (!error && res.data) {
+        clientId = res.data.id;
+      }
     }
     setSubmitting(false);
     if (!error) {
+      // Client oluşturulduysa activity kaydı ekle
+      if (!form.id && clientId) {
+        try {
+          await supabase
+            .from('activity')
+            .insert([{
+              user_id: user.id,
+              type: 'client_created',
+              data: { client_id: clientId, name: form.name },
+              created_at: new Date().toISOString(),
+            }]);
+        } catch (activityError) {
+          console.error('Activity insert error:', activityError);
+        }
+      }
+      
       setShowModal(false);
       setForm({
         id: undefined,
@@ -246,9 +300,8 @@ export default function ClientsPage() {
           <CardTitle>Clients</CardTitle>
           <Button className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2" onClick={() => {
             setForm({
+              ...form,
               id: undefined,
-              user_id: user.id,
-              adding_date: "",
               name: "",
               people: "",
               bedroom: "",

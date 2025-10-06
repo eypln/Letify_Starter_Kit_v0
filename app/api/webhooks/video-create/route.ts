@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { sendToN8n } from '@/lib/n8n';
 
 export async function POST(req: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

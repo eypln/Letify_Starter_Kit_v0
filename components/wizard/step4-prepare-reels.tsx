@@ -341,8 +341,13 @@ export default function Step4PrepareReels() {
                 } catch {}
               }
               useWizardStore.setState({ jobId: '', listingId: '', jobStartedAt: undefined });
-              setStep(1);
-              router.replace('/dashboard/new-post');
+              // 👇 Her iki store'u da temizle
+              const clearWizard = useWizardStore.getState().clear;
+              clearWizard();
+              const clearUploads = useUploadStore.getState().clear;
+              clearUploads();
+              // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+              router.replace('/dashboard?expired=1');
             }}
             className="rounded-xl border px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
@@ -390,7 +395,7 @@ export default function Step4PrepareReels() {
               <button
                 type="button"
                 onClick={() => {
-                  // Tümünü Temizle: localStorage ve store’u sıfırla, 1. adıma dön
+                  // Tümünü Temizle: localStorage ve store’u sıfırla, doğrudan dashboard'a yönlendir
                   if (typeof window !== 'undefined') {
                     try {
                       localStorage.removeItem('letify_jobId');
@@ -398,8 +403,13 @@ export default function Step4PrepareReels() {
                     } catch {}
                   }
                   useWizardStore.setState({ jobId: '', listingId: '' });
-                  setStep(1);
-                  router.replace('/dashboard/new-post');
+                  // 👇 Her iki store'u da temizle
+                  const clearWizard = useWizardStore.getState().clear;
+                  clearWizard();
+                  const clearUploads = useUploadStore.getState().clear;
+                  clearUploads();
+                  // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+                  router.replace('/dashboard?expired=1');
                 }}
                 className="rounded-lg border px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50"
               >
@@ -434,8 +444,8 @@ export default function Step4PrepareReels() {
                   } catch {}
                 }
                 useWizardStore.setState({ jobId: '', listingId: '', jobStartedAt: undefined });
-                setStep(1);
-                router.replace('/dashboard/new-post');
+                // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+                router.replace('/dashboard?expired=1');
               }}
               className="rounded-xl border px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >

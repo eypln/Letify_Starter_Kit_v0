@@ -7,11 +7,21 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const cookieStore = cookies();
+  // params'ı await et
+  const { id } = await params;
+  
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n) => cookieStore.get(n)?.value } }
+    { 
+      cookies: { 
+        get(name: string) {
+          const cookie = cookieStore.get(name);
+          return cookie ? cookie.value : undefined;
+        }
+      } 
+    }
   );
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
@@ -23,11 +33,16 @@ export async function GET(
   const { data, error } = await supabase
     .from('jobs')
     .select('id, status, progress_int, result, payload')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
-    .maybeSingle();
+    .single();
 
-  if (error || !data) {
+  if (error) {
+    console.error('Error fetching job:', error);
+    return NextResponse.json({ ok: false, message: 'not_found' }, { status: 404 });
+  }
+
+  if (!data) {
     return NextResponse.json({ ok: false, message: 'not_found' }, { status: 404 });
   }
 

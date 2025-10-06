@@ -1,77 +1,45 @@
-"use client";
-import React from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 import { useWizardStore } from '@/lib/wizard/store';
-import { getListingInfoByJobId } from '@/lib/wizard/getListingInfo';
-import { getEffectiveJobId } from '@/lib/client/job-session';
-import { JOB_TTL_MS } from '@/lib/wizard/constants';
-import { createClient } from '@/lib/supabase/client';
 import { useUploadStore } from '@/lib/uploads/store';
-import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { JOB_TTL_MS } from '@/lib/wizard/constants';
+import { getListingInfoByJobId } from '@/lib/wizard/getListingInfo';
 
 export default function Step2Actions() {
   const router = useRouter();
-
+  const { toast } = useToast();
   const supabase = createClient();
-  const { images, clear: clearUploads } = useUploadStore();
-  const {
-    jobStartedAt, listingId, sourceUrl,
-    startPost, finishPost, failPost, setStep, clear, setSourceUrl, setListingId
-  } = useWizardStore();
-  // jobId'yi SSR/CSR uyumlu şekilde al
-  const [effectiveJobId, setEffectiveJobId] = useState<string | null>(null);
-  useEffect(() => {
-    let jid = getEffectiveJobId();
-    if (!jid && typeof window !== 'undefined') {
-      jid = localStorage.getItem('letify_jobId') || '';
-    }
-    setEffectiveJobId(jid);
-  }, []);
   const [busy, setBusy] = useState(false);
-  // Toast hook'u ekle
-  const { toast } = require('@/components/ui/use-toast');
+  const { images } = useUploadStore();
+  const {
+    jobId: effectiveJobId,
+    listingId: effectiveListingId,
+    sourceUrl: effectiveSourceUrl,
+    setJobId,
+    setListingId,
+    setSourceUrl,
+    jobStartedAt,
+    clear,
+    setStep,
+    startPost,
+    finishPost,
+    failPost,
+  } = useWizardStore();
 
-  // Step başında: sourceUrl ve listingId store'a Supabase'den doğru şekilde yazılsın
+  // jobId'yi localStorage'dan çek (fallback)
   useEffect(() => {
     async function ensureListingIdAndSourceUrl() {
-      let effectiveSourceUrl = sourceUrl;
-      let effectiveListingId = listingId;
-      if (typeof window !== 'undefined') {
-        effectiveSourceUrl = effectiveSourceUrl || localStorage.getItem('letify_sourceUrl') || null;
-        effectiveListingId = effectiveListingId || localStorage.getItem('letify_listingId') || null;
-      }
-      // Supabase fallback
-      if ((!effectiveSourceUrl || !effectiveListingId) && supabase) {
-        if (effectiveSourceUrl && !effectiveListingId) {
-          const { data: listing } = await supabase
-            .from('listings')
-            .select('id')
-            .eq('property_url', effectiveSourceUrl)
-            .maybeSingle();
-          if (listing?.id) {
-            setListingId(listing.id);
-            if (typeof window !== 'undefined') localStorage.setItem('letify_listingId', listing.id);
-            effectiveListingId = listing.id;
-          }
-        } else if (!effectiveSourceUrl && effectiveListingId) {
-          const { data: listing } = await supabase
-            .from('listings')
-            .select('property_url')
-            .eq('id', effectiveListingId)
-            .maybeSingle();
-          if (listing?.property_url) {
-            setSourceUrl(listing.property_url);
-            if (typeof window !== 'undefined') localStorage.setItem('letify_sourceUrl', listing.property_url);
-            effectiveSourceUrl = listing.property_url;
-          }
+      if (effectiveJobId) {
+        const { listingId, sourceUrl } = await getListingInfoByJobId(effectiveJobId);
+        if (listingId) setListingId(listingId);
+        if (sourceUrl) setSourceUrl(sourceUrl);
+        if (typeof window !== 'undefined') {
+          if (listingId) localStorage.setItem('letify_listingId', listingId);
+          if (sourceUrl) localStorage.setItem('letify_sourceUrl', sourceUrl);
         }
-      }
-      // Store ve localStorage sync
-      if (effectiveListingId) setListingId(effectiveListingId);
-      if (effectiveSourceUrl) setSourceUrl(effectiveSourceUrl);
-      if (typeof window !== 'undefined') {
-        if (effectiveListingId) localStorage.setItem('letify_listingId', effectiveListingId);
-        if (effectiveSourceUrl) localStorage.setItem('letify_sourceUrl', effectiveSourceUrl);
       }
     }
     ensureListingIdAndSourceUrl();
@@ -113,8 +81,8 @@ export default function Step2Actions() {
           id: effectiveListingId,
           sourceUrl: effectiveSourceUrl || undefined,
         },
-        images: images.filter(i => i.jobId === effectiveJobId)
-          .map(i => ({ url: i.url, storagePath: i.storagePath })),
+        images: images.filter((i: any) => i.jobId === effectiveJobId)
+          .map((i: any) => ({ url: i.url, storagePath: i.storagePath })),
         fb,
       };
       // Mask sensitive data in logs
@@ -162,13 +130,13 @@ export default function Step2Actions() {
   }
 
   function onStartPost() {
-    // TTL kontrolü + redirect
+    // TTL kontrolü - artık yönlendirme yapmayacağız
     if (expired()) {
       clear();
-      router.replace('/dashboard?expired=1');
+      // Yönlendirme yerine sadece store'u temizle
       return;
     }
-  if (!effectiveJobId) return;
+    if (!effectiveJobId) return;
 
     setBusy(true);
     startPost();     // state: running
@@ -176,16 +144,23 @@ export default function Step2Actions() {
     void triggerPostInBackground(); // 👈 n8n beklemeden arka planda tetikle
   }
 
+  const clearUploads = useUploadStore.getState().clearJob;
+
   return (
     <div className="mt-4 flex items-center justify-end gap-3">
       <button
         type="button"
         className="rounded-xl border px-4 py-2 text-sm"
         onClick={() => {
-          clearUploads();
+          if (effectiveJobId) {
+            clearUploads(effectiveJobId);
+          }
+          // 👇 Her iki store'u da temizle
+          const clearAllUploads = useUploadStore.getState().clear;
+          clearAllUploads();
           useWizardStore.setState({ jobStartedAt: undefined });
-          setStep(1);
-          router.replace('/dashboard/new-post');
+          // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
+          router.replace('/dashboard?expired=1');
         }}
       >
         Reset All
@@ -193,7 +168,7 @@ export default function Step2Actions() {
 
       <button
         type="button"
-  disabled={busy || !effectiveJobId || images.filter(i => i.jobId === effectiveJobId).length === 0}
+        disabled={busy || !effectiveJobId || images.filter((i: any) => i.jobId === effectiveJobId).length === 0}
         onClick={onStartPost}
         className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
       >

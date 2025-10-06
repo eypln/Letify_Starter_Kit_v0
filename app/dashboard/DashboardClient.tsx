@@ -17,12 +17,15 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [totalListings, setTotalListings] = useState<number | null>(null);
   const [sharesThisMonth, setSharesThisMonth] = useState<number | null>(null);
+  const [totalClients, setTotalClients] = useState<number | null>(null);
+  const [clientsThisMonth, setClientsThisMonth] = useState<number | null>(null);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
 
   // Quick Stats: Toplam ve bu ayki paylaşım sayısını çek
   useEffect(() => {
     async function fetchStats() {
+      // Listing statistics
       const { count: total, error: totalError } = await supabase
         .from('listings')
         .select('*', { count: 'exact', head: true });
@@ -36,13 +39,27 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         .select('*', { count: 'exact', head: true })
         .gte('created_at', firstDayISO);
       if (!monthError) setSharesThisMonth(monthCount ?? 0);
+
+      // Client statistics
+      const { count: totalClientsCount, error: totalClientsError } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if (!totalClientsError) setTotalClients(totalClientsCount ?? 0);
+
+      const { count: monthClientsCount, error: monthClientsError } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', firstDayISO);
+      if (!monthClientsError) setClientsThisMonth(monthClientsCount ?? 0);
     }
     fetchStats();
     // Dashboard refresh event listener
     const handler = () => fetchStats();
     window.addEventListener('dashboard:refresh', handler);
     return () => window.removeEventListener('dashboard:refresh', handler);
-  }, []);
+  }, [user.id]);
 
   // Son 5 aktiviteyi çek
   useEffect(() => {
@@ -236,6 +253,14 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                   <span className="font-medium">{totalListings === null ? '...' : totalListings}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Clients This Month:</span>
+                  <span className="font-medium">{clientsThisMonth === null ? '...' : clientsThisMonth}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Clients:</span>
+                  <span className="font-medium">{totalClients === null ? '...' : totalClients}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Active Integration:</span>
                   <span className="font-medium">Facebook</span>
                 </div>
@@ -260,6 +285,10 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                         {activity.type === 'subscription' && 'Subscription Purchased'}
                         {activity.type === 'credit' && 'Credit Purchased'}
                         {activity.type === 'profile_update' && 'Profile Updated'}
+                        {activity.type === 'listing_created' && `New Listing Created: ${activity.data?.title || 'Untitled'}`}
+                        {activity.type === 'listing_updated' && `Listing Updated: ${activity.data?.title || 'Untitled'}`}
+                        {activity.type === 'client_created' && `New Client Added: ${activity.data?.name || 'Unnamed'}`}
+                        {activity.type === 'post_shared' && `Post Shared: ${activity.data?.title || 'Untitled'}`}
                         {/* Diğer activity tipleri için ekle */}
                       </span>
                       <span className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</span>

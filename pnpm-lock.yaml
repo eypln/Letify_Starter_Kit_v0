@@ -51,7 +51,7 @@ importers:
         specifier: ^0.344.0
         version: 0.344.0(react@19.1.1)
       next:
-        specifier: ^15.5.4
+        specifier: latest
         version: 15.5.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react:
         specifier: ^19.1.1

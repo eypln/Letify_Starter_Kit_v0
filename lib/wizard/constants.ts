@@ -1,1 +1,1 @@
-export const JOB_TTL_MS = 45 * 60 * 1000; // 45 dakika (geliştirme amaçlı)
+export const JOB_TTL_MS = 15 * 60 * 1000; // 15 dakika

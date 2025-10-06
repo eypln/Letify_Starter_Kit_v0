@@ -34,36 +34,19 @@ async function addCredits(
   creditsToAdd: number,
   meta: { pi?: string | null; inv?: string | null }
 ) {
-  if (!creditsToAdd || creditsToAdd <= 0) return;
-  const s = supa();
-
-  const { error: e1 } = await s.from("billing_credit_ledger").insert({
-    user_id: userId,
-    delta: creditsToAdd,
+  console.log("addCredits called with:", { userId, creditsToAdd, meta });
+  if (!creditsToAdd || creditsToAdd <= 0) {
+    console.log("Invalid creditsToAdd:", creditsToAdd);
+    return;
+  }
+  
+  // lib/billing.ts'deki addCredits fonksiyonunu kullan
+  const { addCredits: billingAddCredits } = await import('@/lib/billing');
+  await billingAddCredits(userId, creditsToAdd, {
     reason: "purchase",
-    stripe_payment_intent_id: meta.pi ?? null,
-    stripe_invoice_id: meta.inv ?? null,
+    payment_intent_id: meta.pi ?? undefined,
+    invoice_id: meta.inv ?? undefined
   });
-  if (e1) {
-    console.error("insert ledger error:", e1);
-    return;
-  }
-
-  const { data: bc, error: selErr } = await s
-    .from("billing_customers")
-    .select("credits")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (selErr) {
-    console.error("select credits error:", selErr);
-    return;
-  }
-
-  const nextCredits = (bc?.credits ?? 0) + creditsToAdd;
-  const { error: e2 } = await s
-    .from("billing_customers")
-    .upsert({ user_id: userId, credits: nextCredits }, { onConflict: "user_id" });
-  if (e2) console.error("upsert credits error:", e2);
 }
 
 /** price.id'den plan (mini/full) çıkarımı – metadata yoksa fallback */
@@ -130,12 +113,14 @@ export async function POST(req: Request) {
 
       // ---- KREDİ (mode=payment)
       if (s.mode === "payment" && userId) {
-        // Önce metadata.amount (varsa), yoksa amount_total/100
-        let creditsToAdd = Number(s.metadata?.amount ?? 0);
+        console.log("Processing credit payment for user:", userId, "session:", s);
+        // Önce metadata.credit_amount (varsa), yoksa amount_total/100
+        let creditsToAdd = Number(s.metadata?.credit_amount ?? 0);
         if (!Number.isFinite(creditsToAdd) || creditsToAdd <= 0) {
           creditsToAdd =
             typeof s.amount_total === "number" ? Math.round(s.amount_total / 100) : 0;
         }
+        console.log("Credits to add:", creditsToAdd);
         await addCredits(userId, creditsToAdd, {
           pi: String(s.payment_intent ?? ""),
           inv: (s.invoice as string) || null,
@@ -178,6 +163,7 @@ export async function POST(req: Request) {
     // 2) PAYMENT INTENT SUCCEEDED (kredi için ek güvence)
     // =========================================================
     if (event.type === "payment_intent.succeeded") {
+      console.log("Payment intent succeeded event received:", event);
       const pi = event.data.object as Stripe.PaymentIntent;
       const customerId = (pi.customer as string) || null;
 
@@ -197,6 +183,7 @@ export async function POST(req: Request) {
       if (userId) {
         const cents = (pi.amount_received ?? pi.amount ?? 0) as number;
         const creditsToAdd = Math.round(cents / 100);
+        console.log("Adding credits for payment intent:", { userId, creditsToAdd, pi: pi.id });
         await addCredits(userId, creditsToAdd, { pi: pi.id, inv: null });
       }
 
