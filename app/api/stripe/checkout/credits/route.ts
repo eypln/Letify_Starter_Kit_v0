@@ -13,17 +13,37 @@ const CheckoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log("Stripe checkout credits POST request received");
+    
+    // Try to get user from cookie-based auth first
+    const supabase = await createClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log("Cookie auth session:", session, "error:", sessionError);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (sessionError || !session || !session.user) {
+      console.error("Unauthorized: No valid session found");
+      // Detaylı hata mesajı
+      if (sessionError) {
+        console.error("Session error details:", sessionError);
+      }
+      if (!session) {
+        console.error("No session object returned");
+      }
+      if (session && !session.user) {
+        console.error("Session exists but no user found");
+      }
+      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
     }
+
+    const user = session.user;
+    console.log("Authenticated user:", user.id, "Email:", user.email);
 
     const body = await request.json();
     const validation = CheckoutSchema.safeParse(body);
+    console.log("Request body:", body, "validation:", validation);
 
     if (!validation.success) {
+      console.error("Invalid request data:", validation.error.errors);
       return NextResponse.json({
         error: 'Invalid request data',
         details: validation.error.errors
@@ -34,13 +54,16 @@ export async function POST(request: NextRequest) {
 
     // Get or create Stripe customer
     // Email alanı profile tablosunda yoksa user.email kullanılır
+    console.log("Getting or creating Stripe customer for user:", user.id, user.email);
     const customerId = await getOrCreateStripeCustomer(
       user.id,
       user.email
     );
+    console.log("Stripe customer ID:", customerId);
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    console.log("Creating Stripe checkout session with price:", PRICES.credits[credits as unknown as CreditAmount]);
+    const sessionData = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'payment',
       payment_method_types: ['card'],
@@ -58,14 +81,23 @@ export async function POST(request: NextRequest) {
         type: 'credits',
       },
     });
+    console.log("Stripe session created:", sessionData.id);
 
     // Activity log: credit
     await logActivity(supabase, { user_id: user.id, type: 'credit' });
 
     // Success response
-    return NextResponse.json({ url: session.url }, { status: 200 });
+    return NextResponse.json({ url: sessionData.url }, { status: 200 });
   } catch (error) {
     console.error('Stripe checkout error:', error);
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,3 +1,4 @@
+...
 
 
 SET statement_timeout = 0;
@@ -696,6 +697,8 @@ CREATE POLICY "Users can view own profile" ON "public"."profiles" FOR SELECT USI
 CREATE POLICY "Users can view own transactions" ON "public"."credit_transactions" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 
+CREATE POLICY "Users can insert own transactions" ON "public"."credit_transactions" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
+
 
 ALTER TABLE "public"."analytics_events" ENABLE ROW LEVEL SECURITY;
 
@@ -837,38 +840,6 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

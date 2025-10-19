@@ -94,24 +94,33 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      console.log("Initiating logout request");
+      
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
+      
+      console.log("Logout response status:", response.status);
+      
       if (!response.ok) {
-        throw new Error('An error occurred during logout');
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Logout error response:", errorData);
+        throw new Error(errorData.error || 'An error occurred during logout');
       }
-
+      
+      const data = await response.json();
+      console.log("Logout successful:", data);
+      
       router.push('/sign-in');
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error);
       toast({
-  title: 'Logout failed',
-  description: 'An error occurred during logout',
+        title: 'Logout failed',
+        description: error.message || 'An error occurred during logout',
         variant: 'destructive',
       });
     } finally {
@@ -132,7 +141,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">
-              Welcome, {user.email?.split('@')[0]}!
+              Welcome, {profile.full_name || user.email?.split('@')[0]}!
             </h1>
             <p className="text-muted-foreground mt-2">
               Ready to create content on Letify?

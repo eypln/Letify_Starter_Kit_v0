@@ -6,26 +6,62 @@ const supa = createClient(
 );
 
 export async function getOrCreateStripeCustomer(userId: string, email?: string) {
+  console.log("getOrCreateStripeCustomer called with:", { userId, email });
+  
   // billing_customers'da var mı bak, yoksa Stripe'ta customer oluştur ve upsert et
-  const { data: bc } = await supa
+  const { data: bc, error: selectError } = await supa
     .from('billing_customers')
     .select('stripe_customer_id')
     .eq('user_id', userId)
     .maybeSingle();
-
-  if (bc?.stripe_customer_id) return bc.stripe_customer_id as string;
-
-  const customer = await (await import('./stripe')).stripe.customers.create({ 
-    email, 
-    metadata: { user_id: userId } 
-  });
   
-  await supa.from('billing_customers').upsert(
-    { user_id: userId, stripe_customer_id: customer.id }, 
-    { onConflict: 'user_id' }
-  );
-  
-  return customer.id;
+  console.log("Billing customer lookup result:", { data: bc, error: selectError });
+
+  if (selectError) {
+    console.error("Error looking up billing customer:", selectError);
+  }
+
+  if (bc?.stripe_customer_id) {
+    console.log("Found existing Stripe customer ID:", bc.stripe_customer_id);
+    
+    // Mevcut müşteri ID'sinin geçerli olup olmadığını kontrol edelim
+    try {
+      // Stripe müşteri bilgisini çekmeyi dene
+      const stripe = (await import('./stripe')).stripe;
+      const customer = await stripe.customers.retrieve(bc.stripe_customer_id);
+      console.log("Stripe customer is valid:", customer.id);
+      return bc.stripe_customer_id as string;
+    } catch (error) {
+      // Stripe'da müşteri bulunamadıysa, yeni bir müşteri oluştur
+      console.log("Stripe customer not found, creating new one:", bc.stripe_customer_id);
+    }
+  }
+
+  console.log("Creating new Stripe customer");
+  try {
+    const stripe = (await import('./stripe')).stripe;
+    const customer = await stripe.customers.create({ 
+      email, 
+      metadata: { user_id: userId } 
+    });
+    console.log("Created Stripe customer:", customer.id);
+    
+    const { error: upsertError } = await supa.from('billing_customers').upsert(
+      { user_id: userId, stripe_customer_id: customer.id }, 
+      { onConflict: 'user_id' }
+    );
+    
+    if (upsertError) {
+      console.error("Error upserting billing customer:", upsertError);
+    } else {
+      console.log("Successfully upserted billing customer");
+    }
+    
+    return customer.id;
+  } catch (error) {
+    console.error("Error creating Stripe customer:", error);
+    throw error;
+  }
 }
 
 export async function addCredits(
@@ -37,10 +73,11 @@ export async function addCredits(
     invoice_id?: string 
   }
 ) {
-  console.log("lib/billing addCredits called with:", { userId, delta, meta });
+  console.log("LIB addCredits called with:", { userId, delta, meta });
   
   try {
-    const { data, error } = await supa.from('billing_credit_ledger').insert({ 
+    // billing_credit_ledger tablosuna kayıt ekle
+    const { data: ledgerData, error: ledgerError } = await supa.from('billing_credit_ledger').insert({ 
       user_id: userId, 
       delta, 
       reason: meta.reason, 
@@ -48,30 +85,25 @@ export async function addCredits(
       stripe_invoice_id: meta.invoice_id 
     });
     
-    console.log("billing_credit_ledger insert result:", { data, error });
-    
-    if (error) {
-      console.error("Error inserting into billing_credit_ledger:", error);
-      return;
+    if (ledgerError) {
+      console.error("Error inserting into billing_credit_ledger:", ledgerError);
+      return { success: false, error: ledgerError };
     }
     
+    // increment_credits fonksiyonunu çağır
     const { data: rpcData, error: rpcError } = await supa.rpc('increment_credits', { 
       p_user_id: userId, 
       p_delta: delta 
     });
     
-    console.log("increment_credits RPC result:", { rpcData, rpcError });
-    
     if (rpcError) {
       console.error("Error calling increment_credits:", rpcError);
-      // fallback: direct update
-      const { data: noopData, error: noopError } = await supa.rpc('noop');
-      console.log("noop RPC result:", { noopData, noopError });
+      return { success: false, error: rpcError };
     }
     
-    const { data: updateData, error: updateError } = await supa.from('billing_customers').update({}).eq('user_id', userId); // touch
-    console.log("billing_customers update result:", { updateData, updateError });
+    return { success: true };
   } catch (err) {
-    console.error("Unexpected error in addCredits:", err);
+    console.error("Unexpected error in lib addCredits:", err);
+    return { success: false, error: err };
   }
 }
