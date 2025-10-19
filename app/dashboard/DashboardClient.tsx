@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useBillingController } from './subscription/useBillingController';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,6 +13,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner';
 
 export default function DashboardClient({ user, profile }: { user: any; profile: any }) {
+  // Subscription reminder popup state
+  const {
+    sub,
+  } = useBillingController();
+  const [showReminder, setShowReminder] = useState(false);
+  useEffect(() => {
+    if (!sub || !sub.current_period_end || sub.status !== 'active') return;
+    const end = new Date(sub.current_period_end);
+    const now = new Date();
+    const daysLeft = Math.ceil((end.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    if (daysLeft === 3 || daysLeft === 2 || daysLeft === 1) {
+      setShowReminder(true);
+    } else {
+      setShowReminder(false);
+    }
+  }, [sub]);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -129,7 +147,28 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   };
 
   return (
-  <div className="relative min-h-screen">
+    <>
+      {/* Subscription expiry reminder popup */}
+      <Dialog open={showReminder} onOpenChange={setShowReminder}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Subscription Expiry Reminder</DialogTitle>
+            <DialogDescription>
+              {sub && sub.current_period_end ? (
+                <>
+                  Your <b>{sub.plan_type === 'mini' ? 'Mini' : 'Full'} Plan</b> will expire on <b>{new Date(sub.current_period_end).toLocaleDateString('en-US')}</b>.<br />
+                  Please renew your subscription to continue enjoying premium features.<br />
+                  If you do not renew, your account will be downgraded to the Free plan.
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+      <div className="relative min-h-screen">
       <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Çıkış butonu sağ üstte, container padding içinde */}
         <div className="flex justify-end mb-4">
@@ -310,5 +349,6 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         </div>
       </div>
     </div>
+    </>
   );
 }

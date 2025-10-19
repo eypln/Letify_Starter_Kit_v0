@@ -181,14 +181,14 @@ export default function SubscriptionPage() {
             {/* Outstanding Balance */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600">Outstanding Balance</p>
-              <p className="text-lg font-semibold text-purple-600">€0.00</p>
+              <p className="text-lg font-semibold text-purple-600">{sub && sub.status === 'active' ? '€0.00' : '-'}</p>
             </div>
 
             {/* Usage This Month */}
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600">Usage This Month</p>
               <p className="text-lg font-semibold">
-                {sub ? (sub.plan_type === 'mini' ? '8/15 Posts' : '12/30 Reels') : '3/15 Posts'}
+                {sub && sub.status === 'active' ? (sub.plan_type === 'mini' ? '8/15 Posts' : '12/30 Reels') : '-'}
               </p>
             </div>
 
@@ -196,29 +196,23 @@ export default function SubscriptionPage() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600">Credit Balance</p>
               <p className="text-lg font-semibold text-purple-600">
-                {credits ?? 0} credits
+                {credits !== null ? `${credits} credits` : '-'}
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-purple-200">
-            {sub && (
-              <div className="flex items-center gap-2 ml-auto">
-                {/* Badge: variant yerine className */}
-                <Badge className={cn(
-                  'px-2 py-1 rounded-md text-xs',
-                  sub.status === 'active'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                )}>
-                  {sub.status}
-                </Badge>
-                {Boolean(sub?.cancel_at_period_end) && (
-                  <Badge className="px-2 py-1 rounded-md text-xs bg-red-600 text-white">Canceling</Badge>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2 ml-auto">
+              {sub && sub.status === 'active' && String(sub.plan_type) !== 'free' ? (
+                <Badge className="px-2 py-1 rounded-md text-xs bg-green-100 text-green-700">active</Badge>
+              ) : (
+                <Badge className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">free</Badge>
+              )}
+              {sub && Boolean(sub?.cancel_at_period_end) && (
+                <Badge className="px-2 py-1 rounded-md text-xs bg-red-600 text-white">Canceling</Badge>
+              )}
+            </div>
           </div>
         </div>
 

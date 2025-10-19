@@ -261,6 +261,18 @@ export async function POST(req: Request) {
       console.log("Status:", s.status);
       console.log("=== END PRODUCTION DEBUG ===");
 
+      // PRODUCTION LOGGING: Log all session details for debugging
+      console.log("=== PRODUCTION DEBUG: Full session object ===");
+      console.log("Session ID:", s.id);
+      console.log("Mode:", s.mode);
+      console.log("Customer ID:", s.customer);
+      console.log("Metadata:", JSON.stringify(s.metadata, null, 2));
+      console.log("Client Reference ID:", s.client_reference_id);
+      console.log("Payment Intent:", s.payment_intent);
+      console.log("Amount Total:", s.amount_total);
+      console.log("Status:", s.status);
+      console.log("=== END PRODUCTION DEBUG ===");
+
       const customerId = (s.customer as string) || null;
 
       // user_id tespiti: metadata -> client_reference_id -> map lookup -> extended search
@@ -334,6 +346,30 @@ export async function POST(req: Request) {
       if (s.mode === "payment" && userId) {
         console.log("=== PROCESSING CREDIT PAYMENT ===");
         console.log("Processing credit payment for user:", userId, "session:", s.id);
+        
+        // DUPLICATE CHECK: Aynı payment_intent_id ile daha önce process edilmiş mi kontrol et
+        const paymentIntentId = String(s.payment_intent ?? "");
+        if (paymentIntentId) {
+          console.log("Checking for duplicate payment_intent_id:", paymentIntentId);
+          const { data: existingEntry, error: checkError } = await supa()
+            .from('billing_credit_ledger')
+            .select('id')
+            .eq('stripe_payment_intent_id', paymentIntentId)
+            .limit(1);
+            
+          console.log("Duplicate check result:", { data: existingEntry, error: checkError, dataLength: existingEntry?.length });
+            
+          if (checkError) {
+            console.error("Error checking for duplicate payment:", checkError);
+          } else if (existingEntry && existingEntry.length > 0) {
+            console.log("DUPLICATE PAYMENT DETECTED: Payment already processed for payment_intent_id:", paymentIntentId);
+            console.log("Existing entry:", existingEntry[0]);
+            console.log("Skipping duplicate credit processing");
+            return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+          } else {
+            console.log("No duplicate found, proceeding with credit processing");
+          }
+        }
         
         // PRODUCTION LOGGING: Log credit processing start
         console.log("=== PRODUCTION DEBUG: Credit Processing Start ===");
@@ -483,30 +519,8 @@ export async function POST(req: Request) {
         await ensureMap(userId, customerId);
       }
 
-      if (userId) {
-        const cents = (pi.amount_received ?? pi.amount ?? 0) as number;
-        const creditsToAdd = Math.round(cents / 100);
-        console.log("Adding credits for payment intent:", { userId, creditsToAdd, pi: pi.id });
-        const result = await addCredits(userId, creditsToAdd, { 
-          reason: "purchase",
-          payment_intent_id: pi.id, 
-          invoice_id: undefined 
-        });
-        
-        if (!result.success) {
-          console.error("Failed to add credits for payment intent:", result.error);
-          // Log detailed error information
-          if (result.error && typeof result.error === 'object') {
-            console.error("Error details:", result.error);
-          }
-        } else {
-          console.log("Successfully added credits for payment intent for user:", userId);
-        }
-      } else {
-        console.log("Skipping payment intent processing", { userId, customerId });
-      }
-
-      console.log("Payment intent processing completed");
+      // Kredi ekleme işlemi sadece checkout.session.completed eventinde yapılır
+      console.log("Skipping credit addition in payment_intent.succeeded. Only handled in checkout.session.completed.");
       return NextResponse.json({ received: true }, { status: 200 });
     }
 
