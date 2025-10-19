@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
+import { addCredits } from "@/lib/billing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,175 +107,6 @@ async function findUserByVariousMethods(
   
   console.log("User not found by any method");
   return null;
-}
-
-/** Krediyi ledger’a yazar ve bakiye artırır. */
-export async function addCredits(
-  userId: string,
-  creditsToAdd: number,
-  meta: { pi?: string | null; inv?: string | null }
-): Promise<{ success: boolean; data?: any; error?: string | Error | object }> {
-  console.log("=== WEBHOOK addCredits called with:", { userId, creditsToAdd, meta });
-  console.log("Validating credits amount:", { 
-    creditsToAdd, 
-    isNumber: typeof creditsToAdd === 'number', 
-    isFinite: Number.isFinite(creditsToAdd),
-    isPositive: creditsToAdd > 0 
-  });
-  
-  if (!creditsToAdd || creditsToAdd <= 0) {
-    console.log("Invalid creditsToAdd:", creditsToAdd);
-    return { success: false, error: "Invalid credits amount" };
-  }
-  
-  try {
-    // Doğrudan Supabase client kullan
-    const supabase = supa();
-    console.log("Supabase client created");
-    
-    // Check if user exists in billing_customers table
-    console.log("Checking if user exists in billing_customers table");
-    const { data: userData, error: userError } = await supabase
-      .from('billing_customers')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    console.log("User check result:", { 
-      userData: userData ? { id: userData.user_id, credits: userData.credits } : null, 
-      userError 
-    });
-    
-    if (userError) {
-      console.error("Error checking user:", userError);
-      return { success: false, error: `User check failed: ${userError.message}` };
-    }
-    
-    if (!userData) {
-      console.error("User not found in billing_customers table:", userId);
-      // Kullanıcı yoksa, önce billing_customers tablosuna ekleyelim
-      console.log("Creating user entry in billing_customers");
-      const { error: insertError } = await supabase
-        .from('billing_customers')
-        .insert({ 
-          user_id: userId, 
-          stripe_customer_id: 'unknown', // Geçici değer, daha sonra güncellenmeli
-          credits: 0 
-        });
-      
-      if (insertError) {
-        console.error("Failed to create user entry:", insertError);
-        return { success: false, error: `Failed to create user entry: ${insertError.message}` };
-      }
-      
-      console.log("User entry created successfully");
-    }
-    
-    // billing_payments tablosuna kayıt ekle
-    console.log("Inserting into billing_payments...");
-    const paymentInsertData = { 
-      user_id: userId, 
-      stripe_payment_intent_id: meta.pi ?? 'unknown',
-      amount_cents: creditsToAdd * 100, // varsayım: 1 kredi = 1 EUR
-      status: 'succeeded',
-      credit_amount: creditsToAdd,
-      currency: 'eur'
-    };
-    console.log("Payment insert data:", paymentInsertData);
-    
-    const { data: paymentData, error: paymentError } = await supabase
-      .from('billing_payments')
-      .insert(paymentInsertData)
-      .select();
-    
-    if (paymentError) {
-      console.error("Error inserting into billing_payments:", paymentError);
-      return { success: false, error: `Payment insert failed: ${paymentError.message}` };
-    }
-    
-    console.log("billing_payments insert success:", paymentData);
-    
-    // billing_credit_ledger tablosuna kayıt ekle
-    console.log("Inserting into billing_credit_ledger...");
-    const ledgerInsertData = { 
-      user_id: userId, 
-      delta: creditsToAdd, 
-      reason: "purchase",
-      stripe_payment_intent_id: meta.pi ?? null,
-      stripe_invoice_id: meta.inv ?? null
-    };
-    console.log("Ledger insert data:", ledgerInsertData);
-    
-    const { data: ledgerData, error: ledgerError } = await supabase
-      .from('billing_credit_ledger')
-      .insert(ledgerInsertData);
-    
-    if (ledgerError) {
-      console.error("Error inserting into billing_credit_ledger:", ledgerError);
-      // Ledger hatası kritik değil, diğer işlemler devam etsin
-      console.log("Continuing despite ledger error...");
-    } else {
-      console.log("billing_credit_ledger insert success:", ledgerData);
-    }
-    
-    // increment_credits fonksiyonunu çağır
-    console.log("Calling increment_credits RPC...");
-    const rpcParams = { 
-      p_user_id: userId, 
-      p_delta: creditsToAdd 
-    };
-    console.log("RPC params:", rpcParams);
-    
-    const { data: rpcData, error: rpcError } = await supabase
-      .rpc('increment_credits', rpcParams);
-    
-    if (rpcError) {
-      console.error("Error calling increment_credits:", rpcError);
-      return { success: false, error: `RPC call failed: ${rpcError.message}` };
-    }
-    
-    console.log("increment_credits RPC success:", rpcData);
-    
-    // credit_transactions tablosuna kayıt ekle
-    console.log("Inserting into credit_transactions...");
-    const transactionInsertData = { 
-      user_id: userId, 
-      amount: creditsToAdd, 
-      type: "purchase",
-      description: `Purchased ${creditsToAdd} credits`,
-      stripe_payment_intent_id: meta.pi ?? null,
-      metadata: {
-        source: "stripe_webhook",
-        credits_purchased: creditsToAdd
-      }
-    };
-    console.log("Transaction insert data:", transactionInsertData);
-    
-    const { data: transactionData, error: transactionError } = await supabase
-      .from('credit_transactions')
-      .insert(transactionInsertData);
-    
-    if (transactionError) {
-      console.error("Error inserting into credit_transactions:", transactionError);
-      // Transaction hatası kritik değil, diğer işlemler devam etsin
-      console.log("Continuing despite transaction error...");
-    } else {
-      console.log("credit_transactions insert success:", transactionData);
-    }
-    
-    return { success: true, data: { paymentData, ledgerData, rpcData, transactionData } };
-  } catch (err) {
-    console.error("Unexpected error in webhook addCredits:", err);
-    // Log detailed error information
-    if (err instanceof Error) {
-      console.error("Error details:", {
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      });
-    }
-    return { success: false, error: `Unexpected error: ${err instanceof Error ? err.message : String(err)}` };
-  }
 }
 
 /** price.id'den plan (mini/full) çıkarımı – metadata yoksa fallback */
@@ -417,6 +249,18 @@ export async function POST(req: Request) {
         status: s.status
       });
 
+      // PRODUCTION LOGGING: Log all session details for debugging
+      console.log("=== PRODUCTION DEBUG: Full session object ===");
+      console.log("Session ID:", s.id);
+      console.log("Mode:", s.mode);
+      console.log("Customer ID:", s.customer);
+      console.log("Metadata:", JSON.stringify(s.metadata, null, 2));
+      console.log("Client Reference ID:", s.client_reference_id);
+      console.log("Payment Intent:", s.payment_intent);
+      console.log("Amount Total:", s.amount_total);
+      console.log("Status:", s.status);
+      console.log("=== END PRODUCTION DEBUG ===");
+
       const customerId = (s.customer as string) || null;
 
       // user_id tespiti: metadata -> client_reference_id -> map lookup -> extended search
@@ -432,6 +276,13 @@ export async function POST(req: Request) {
         hasMetadata: !!s.metadata,
         hasClientReferenceId: !!s.client_reference_id
       });
+
+      // PRODUCTION LOGGING: Log user identification process
+      console.log("=== PRODUCTION DEBUG: User Identification Process ===");
+      console.log("1. Metadata user_id:", s.metadata?.user_id);
+      console.log("2. Client reference ID:", s.client_reference_id);
+      console.log("3. Initial userId result:", userId);
+      console.log("4. Customer ID from session:", customerId);
 
       // Eğer metadata ve client_reference_id ile userId bulunamadıysa, 
       // genişletilmiş arama yöntemlerini kullan
@@ -483,6 +334,14 @@ export async function POST(req: Request) {
       if (s.mode === "payment" && userId) {
         console.log("=== PROCESSING CREDIT PAYMENT ===");
         console.log("Processing credit payment for user:", userId, "session:", s.id);
+        
+        // PRODUCTION LOGGING: Log credit processing start
+        console.log("=== PRODUCTION DEBUG: Credit Processing Start ===");
+        console.log("User ID:", userId);
+        console.log("Session ID:", s.id);
+        console.log("Session Mode:", s.mode);
+        console.log("Payment Intent:", s.payment_intent);
+        
         // Önce metadata.credit_amount (varsa), yoksa amount_total/100
         let creditsToAdd = Number(s.metadata?.credit_amount ?? 0);
         if (!Number.isFinite(creditsToAdd) || creditsToAdd <= 0) {
@@ -497,6 +356,12 @@ export async function POST(req: Request) {
           calculatedFromAmountTotal: typeof s.amount_total === "number" ? Math.round(s.amount_total / 100) : 0
         });
         
+        // PRODUCTION LOGGING: Log credit calculation
+        console.log("=== PRODUCTION DEBUG: Credit Calculation ===");
+        console.log("Metadata credit_amount:", s.metadata?.credit_amount);
+        console.log("Amount total:", s.amount_total);
+        console.log("Credits to add:", creditsToAdd);
+        
         // Log environment variables to check if they're set
         console.log("Environment check:", {
           supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -504,9 +369,15 @@ export async function POST(req: Request) {
         });
         
         const result = await addCredits(userId, creditsToAdd, {
-          pi: String(s.payment_intent ?? ""),
-          inv: (s.invoice as string) || null,
+          reason: "purchase",
+          payment_intent_id: String(s.payment_intent ?? ""),
+          invoice_id: (s.invoice as string) || undefined,
         });
+        
+        // PRODUCTION LOGGING: Log addCredits result
+        console.log("=== PRODUCTION DEBUG: addCredits Result ===");
+        console.log("addCredits called with:", { userId, creditsToAdd, reason: "purchase" });
+        console.log("addCredits result:", result);
         
         if (!result.success) {
           console.error("FAILED to add credits:", result.error);
@@ -514,13 +385,28 @@ export async function POST(req: Request) {
           if (result.error && typeof result.error === 'object') {
             console.error("Error details:", result.error);
           }
+          // PRODUCTION LOGGING: Log failure details
+          console.log("=== PRODUCTION DEBUG: Credit Addition FAILED ===");
+          console.log("Error:", result.error);
         } else {
           console.log("SUCCESSFULLY added credits for user:", userId);
+          // PRODUCTION LOGGING: Log success details
+          console.log("=== PRODUCTION DEBUG: Credit Addition SUCCESS ===");
+          console.log("Credits added successfully for user:", userId);
         }
       } else {
         console.log("Skipping credit processing", { mode: s.mode, userId, hasUserId: !!userId, hasPaymentIntent: !!s.payment_intent });
         if (!userId) {
           console.log("UserId is missing - cannot process credit purchase");
+          // PRODUCTION LOGGING: Log missing user ID
+          console.log("=== PRODUCTION DEBUG: MISSING USER ID ===");
+          console.log("Cannot process credit purchase - userId is null/undefined");
+          console.log("Session data:", {
+            id: s.id,
+            customer: s.customer,
+            metadata: s.metadata,
+            clientReferenceId: s.client_reference_id
+          });
         }
         if (s.mode !== "payment") {
           console.log("Mode is not payment - current mode:", s.mode);
@@ -601,7 +487,11 @@ export async function POST(req: Request) {
         const cents = (pi.amount_received ?? pi.amount ?? 0) as number;
         const creditsToAdd = Math.round(cents / 100);
         console.log("Adding credits for payment intent:", { userId, creditsToAdd, pi: pi.id });
-        const result = await addCredits(userId, creditsToAdd, { pi: pi.id, inv: null });
+        const result = await addCredits(userId, creditsToAdd, { 
+          reason: "purchase",
+          payment_intent_id: pi.id, 
+          invoice_id: undefined 
+        });
         
         if (!result.success) {
           console.error("Failed to add credits for payment intent:", result.error);

@@ -13,12 +13,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId or credits" }, { status: 400 });
     }
     
-    // Use the addCredits function from webhook
-    const { addCredits } = await import('../stripe/webhook/route');
+    // Use the addCredits function from lib
+    const { addCredits } = await import('@/lib/billing');
     
     const result = await addCredits(userId, credits, {
-      pi: `test_payment_${Date.now()}`,
-      inv: null
+      reason: "test_add",
+      payment_intent_id: `test_payment_${Date.now()}`,
+      invoice_id: undefined
     });
     
     console.log("Add credits result:", result);

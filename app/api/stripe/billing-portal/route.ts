@@ -10,7 +10,7 @@ const BillingPortalSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const customerId = await getOrCreateStripeCustomer(
       user.id,
-      profile?.email || user.email
+      user.email
     );
 
     // Create billing portal session

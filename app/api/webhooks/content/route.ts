@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     if (!sourceUrl) {
       return NextResponse.json({ ok: false, message: 'sourceUrl is required' }, { status: 400 });
     }
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
     if (userErr || !user) {
       return NextResponse.json({ ok: false, message: 'Unauthorized' }, { status: 401 });

@@ -292,7 +292,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                       <span>
                         {activity.type === 'listing' && 'New Listing Shared'}
                         {activity.type === 'subscription' && 'Subscription Purchased'}
-                        {activity.type === 'credit' && 'Credit Purchased'}
+                        {activity.type === 'credit' && `Credit Purchased: ${activity.data?.amount || 'N/A'}`}
                         {activity.type === 'profile_update' && 'Profile Updated'}
                         {activity.type === 'listing_created' && `New Listing Created: ${activity.data?.title || 'Untitled'}`}
                         {activity.type === 'listing_updated' && `Listing Updated: ${activity.data?.title || 'Untitled'}`}

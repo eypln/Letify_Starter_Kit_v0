@@ -19,7 +19,7 @@ interface UpdateJobStatusArgs {
  * Create a new job record in the database
  */
 export async function createJob(args: CreateJobArgs): Promise<{ id: string }> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('jobs')
@@ -44,7 +44,7 @@ export async function createJob(args: CreateJobArgs): Promise<{ id: string }> {
  * Update job status and related fields
  */
 export async function updateJobStatus(args: UpdateJobStatusArgs): Promise<void> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const updateData: any = {
     status: args.status,

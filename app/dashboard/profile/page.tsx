@@ -36,13 +36,11 @@ export default async function ProfilePage() {
         </p>
       </div>
 
-      <ProfileHeader user={user} profile={profile} />
-      
+      <ProfileHeader user={user} profile={profile as any} />
+
       <Separator />
-      
-      <ProfileInfoForm user={user} profile={profile} />
-      
-      <Separator />
+
+      <ProfileInfoForm user={user} profile={profile as any} />      <Separator />
       
       <FacebookIntegrationForm integrations={integrations} />
     </div>

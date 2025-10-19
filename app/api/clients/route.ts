@@ -4,7 +4,7 @@ import { logActivity } from '@/lib/activity';
 import type { Database } from '@/types/supabase';
 
 export async function POST(req: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const body = await req.json();
 
   // Beklenen alanlar (user_id hariç)

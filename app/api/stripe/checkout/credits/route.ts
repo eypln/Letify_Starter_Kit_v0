@@ -80,11 +80,12 @@ export async function POST(request: NextRequest) {
         credit_amount: credits,
         type: 'credits',
       },
+      client_reference_id: user.id, // Add this for webhook user identification fallback
     });
     console.log("Stripe session created:", sessionData.id);
 
     // Activity log: credit
-    await logActivity(supabase, { user_id: user.id, type: 'credit' });
+    await logActivity(supabase, { user_id: user.id, type: 'credit', data: { amount: credits } });
 
     // Success response
     return NextResponse.json({ url: sessionData.url }, { status: 200 });
