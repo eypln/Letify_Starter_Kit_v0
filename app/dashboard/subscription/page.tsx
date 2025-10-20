@@ -158,7 +158,13 @@ export default function SubscriptionPage() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600">Plan</p>
               <p className="text-lg font-semibold">
-                {sub ? `${sub.plan_type === 'mini' ? 'Mini' : 'Full'} Plan` : 'Free Plan'}
+                {sub
+                  ? sub.plan_type === 'mini'
+                    ? 'Mini Plan'
+                    : sub.plan_type === 'full'
+                      ? 'Full Plan'
+                      : 'Free Plan'
+                  : 'Free Plan'}
               </p>
             </div>
 
