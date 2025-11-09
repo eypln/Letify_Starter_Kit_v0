@@ -50,20 +50,20 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
       
       if (result.success) {
         toast({
-          title: 'Başarılı',
-          description: 'Facebook entegrasyon bilgileriniz kaydedildi.',
+          title: 'Success',
+          description: 'Your Facebook integration information has been saved.',
         })
       } else {
         toast({
-          title: 'Hata',
-          description: result.error || 'Bir hata oluştu. Lütfen tekrar deneyiniz.',
+          title: 'Error',
+          description: result.error || 'An error occurred. Please try again.',
           variant: 'destructive',
         })
       }
     } catch (error) {
       toast({
-        title: 'Hata',
-        description: 'Bir hata oluştu. Lütfen tekrar deneyiniz.',
+        title: 'Error',
+        description: 'An error occurred. Please try again.',
         variant: 'destructive',
       })
     } finally {

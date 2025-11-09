@@ -4,12 +4,12 @@ import { z } from 'zod'
 export const IntegrationFormSchema = z.object({
   fb_page_id: z
     .string()
-    .min(1, 'Facebook Page ID gereklidir')
-    .regex(/^\d+$/, 'Facebook Page ID sadece sayı içermelidir'),
+    .min(1, 'Facebook Page ID is required')
+    .regex(/^\d+$/, 'Facebook Page ID must contain only numbers'),
   fb_access_token: z
     .string()
-    .min(1, 'Facebook Access Token gereklidir')
-    .min(10, 'Geçerli bir Facebook Access Token giriniz'),
+    .min(1, 'Facebook Access Token is required')
+    .min(10, 'Please enter a valid Facebook Access Token'),
 })
 
 export type IntegrationFormData = z.infer<typeof IntegrationFormSchema>
@@ -18,12 +18,12 @@ export type IntegrationFormData = z.infer<typeof IntegrationFormSchema>
 export const SignInSchema = z.object({
   email: z
     .string()
-    .min(1, 'E-posta adresi gereklidir')
-    .email('Geçerli bir e-posta adresi giriniz'),
+    .min(1, 'Email address is required')
+    .email('Please enter a valid email address'),
   password: z
     .string()
-    .min(1, 'Şifre gereklidir')
-    .min(6, 'Şifre en az 6 karakter olmalıdır'),
+    .min(1, 'Password is required')
+    .min(6, 'Password must be at least 6 characters'),
 })
 
 export type SignInFormData = z.infer<typeof SignInSchema>
@@ -31,17 +31,17 @@ export type SignInFormData = z.infer<typeof SignInSchema>
 export const SignUpSchema = z.object({
   email: z
     .string()
-    .min(1, 'E-posta adresi gereklidir')
-    .email('Geçerli bir e-posta adresi giriniz'),
+    .min(1, 'Email address is required')
+    .email('Please enter a valid email address'),
   password: z
     .string()
-    .min(1, 'Şifre gereklidir')
-    .min(6, 'Şifre en az 6 karakter olmalıdır'),
+    .min(1, 'Password is required')
+    .min(6, 'Password must be at least 6 characters'),
   confirmPassword: z
     .string()
-    .min(1, 'Şifre tekrarı gereklidir'),
+    .min(1, 'Password confirmation is required'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Şifreler eşleşmiyor',
+  message: 'Passwords do not match',
   path: ['confirmPassword'],
 })
 
@@ -51,12 +51,12 @@ export type SignUpFormData = z.infer<typeof SignUpSchema>
 export const ProfileUpdateSchema = z.object({
   full_name: z
     .string()
-    .min(1, 'Ad Soyad gereklidir')
-    .max(100, 'Ad Soyad 100 karakterden uzun olamaz'),
+    .min(1, 'Full name is required')
+    .max(100, 'Full name cannot exceed 100 characters'),
   phone: z
     .string()
-    .min(1, 'Telefon numarası gereklidir')
-    .regex(/^[+]?[0-9\s\-\(\)]{10,}$/, 'Geçerli bir telefon numarası giriniz'),
+    .min(1, 'Phone number is required')
+    .regex(/^[+]?[0-9\s\-\(\)]{10,}$/, 'Please enter a valid phone number'),
 })
 
 export type ProfileUpdateFormData = z.infer<typeof ProfileUpdateSchema>
@@ -64,7 +64,7 @@ export type ProfileUpdateFormData = z.infer<typeof ProfileUpdateSchema>
 // n8n Webhook Schemas
 export const ContentSchema = z.object({
   listing: z.object({
-    sourceUrl: z.string().url('Geçerli bir URL giriniz'),
+    sourceUrl: z.string().url('Please enter a valid URL'),
   }),
   options: z.object({
     promptProfile: z.string().optional(),
@@ -74,16 +74,16 @@ export const ContentSchema = z.object({
 })
 
 export const FbPostSchema = z.object({
-  listingId: z.string().min(1, 'Listing ID gereklidir'),
-  caption: z.string().min(1, 'Caption gereklidir'),
+  listingId: z.string().min(1, 'Listing ID is required'),
+  caption: z.string().min(1, 'Caption is required'),
   images: z.array(z.object({
-    url: z.string().url('Geçerli bir görsel URL giriniz'),
-  })).min(1, 'En az 1 görsel gereklidir').max(15, 'En fazla 15 görsel yükleyebilirsiniz'),
+    url: z.string().url('Please enter a valid image URL'),
+  })).min(1, 'At least 1 image is required').max(15, 'Maximum 15 images allowed'),
 })
 
 export const VideoCreateSchema = z.object({
-  listingId: z.string().min(1, 'Listing ID gereklidir'),
-  favoriteImages: z.array(z.string().url()).min(5, 'Tam 5 favori görsel seçmelisiniz').max(5, 'Tam 5 favori görsel seçmelisiniz'),
+  listingId: z.string().min(1, 'Listing ID is required'),
+  favoriteImages: z.array(z.string().url()).min(5, 'You must select exactly 5 favorite images').max(5, 'You must select exactly 5 favorite images'),
   template: z.object({
     style: z.string().optional(),
     music: z.string().optional(),
@@ -95,13 +95,13 @@ export const VideoCreateSchema = z.object({
 })
 
 export const FbReelsSchema = z.object({
-  listingId: z.string().min(1, 'Listing ID gereklidir'),
-  videoUrl: z.string().url('Geçerli bir video URL giriniz'),
+  listingId: z.string().min(1, 'Listing ID is required'),
+  videoUrl: z.string().url('Please enter a valid video URL'),
   caption: z.string().optional(),
 })
 
 export const StatusCallbackSchema = z.object({
-  jobId: z.string().uuid('Geçerli bir job ID giriniz'),
+  jobId: z.string().uuid('Please enter a valid job ID'),
   status: z.enum(['queued', 'running', 'done', 'error']),
   progress_int: z.number().int().min(0).max(100).optional(),
   result: z.unknown().optional(),

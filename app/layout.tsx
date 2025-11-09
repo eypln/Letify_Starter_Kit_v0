@@ -4,6 +4,7 @@ import "./globals.css";
 
 import ToastRoot from "@/components/system/ToastRoot";
 import ErrorShield from "./(app)/error-shield";
+import ErrorBoundary from "@/components/system/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <ToastRoot>
-          <ErrorShield>{children}</ErrorShield>
+          <ErrorBoundary>
+            <ErrorShield>{children}</ErrorShield>
+          </ErrorBoundary>
         </ToastRoot>
       </body>
     </html>

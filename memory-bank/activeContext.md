@@ -3,51 +3,138 @@
 ## Mevcut Çalışma Odağı
 
 ### Ana Odak Alanları
-1. **Kod Bütünlüğü ve Memory Bank**: Proje karmaşıklığı arttıkça, kod bütünlüğünü sağlamak için memory bank sistemi kuruluyor
-2. **Production Readiness**: MVP özelliklerinin production-ready hale getirilmesi
-3. **Performance Optimization**: Büyük dosya yüklemeleri ve database query'lerinin optimize edilmesi
-4. **Error Handling**: Comprehensive error handling ve user feedback iyileştirmesi
+1. **Post Limitleri & Subscription Control**: Free plan'daki post limitleri (30/ay) ve reels üretimi kontrolü
+2. **Analytics & Monthly Activity Tracking**: Aylık post ve client ekleme aktivitesi analizi
+3. **UI/UX İyileştirmesi**: Hata mesajları, tooltip'ler ve grafik gösterimler
+4. **Kod Bütünlüğü ve Memory Bank**: Proje karmaşıklığı arttıkça, kod bütünlüğünü sağlamak için memory bank sistemi
 
-## Son Değişiklikler
+## Son Değişiklikler (Tarih Sırası)
 
-### Recent Commits/Changes
-- Image upload and compression feature implementation (SPEC-3)
-- Stripe billing integration with subscriptions and credits
-- N8N workflow integration for automation
-- Dashboard analytics and statistics
-- Client management system
-- Activity logging and audit trails
+### 09.11.2025 - Error Boundaries & Comprehensive Error Handling ✅
+**Yeni Features:**
+1. **React Error Boundary Component** ✅
+   - File: `components/system/ErrorBoundary.tsx`
+   - English UI: "Oops! Something Went Wrong"
+   - Retry button with user recovery option
+   - Development mode: detailed stack trace display
+   - Error counter: tracks recurring errors
+   - Production-ready: prepared for external logging (Sentry, LogRocket etc)
 
-### Architecture Decisions
-- Zustand for complex state management (image uploads)
-- React Query for server state management
-- Supabase RLS for data security
-- Stripe webhooks for payment processing
-- N8N for workflow orchestration
+2. **API Error Handler Middleware** ✅
+   - File: `lib/errorHandler.ts`
+   - Consistent API response format: `{success, error, data}`
+   - Error type detection: UNAUTHORIZED, FORBIDDEN, NOT_FOUND, VALIDATION_ERROR
+   - `withErrorHandler()` wrapper function
+   - `validateRequestBody()` and `createErrorResponse()` utilities
+
+3. **Client-side Error Display Components** ✅
+   - File: `components/system/ErrorDisplay.tsx`
+   - `ErrorDisplay` component: 3 variants (inline, toast, modal)
+   - `useError()` hook: Error state management
+   - `AsyncOperation` wrapper: automatic error handling for async operations
+
+4. **Root Layout Integration** ✅
+   - `app/layout.tsx`: ErrorBoundary wrapped around ErrorShield
+   - Import structure: `ErrorBoundary > ErrorShield > Children`
+   - Production-ready error UI with graceful fallback
+
+5. **Existing Error Handling** ✅
+   - `app/api/stripe/webhook/route.ts`: Already has comprehensive try-catch and error logging
+   - Error recovery: Graceful fallbacks, detailed console logging
+   - Environment validation: Warnings for missing variables
+
+**Değiştirilen Dosyalar:**
+- `components/system/ErrorBoundary.tsx`: NEW - React Error Boundary
+- `components/system/ErrorDisplay.tsx`: NEW - Client error display UI
+- `lib/errorHandler.ts`: NEW - API error handling middleware
+- `app/layout.tsx`: ErrorBoundary integration
+
+---
+
+### 09.11.2025 - Post Limit & Analytics Session ✅
+**Yeni Features:**
+1. **Post Limit System** ✅
+   - Free plan kullanıcıları: Max 30 post/ay
+   - `user_post_usage` tablosu oluşturuldu (migration: `2025_11_user_post_usage.sql`)
+   - Step 3'te post tamamlandığında sayaç otomatik güncelleniyor
+   - Limit aşıldığında orange uyarı gösteriliyor
+
+2. **Subscription Kontrol** ✅
+   - Free plan kullanıcıları Step 4'e (Reels) geçemiyorlar
+   - Next butonu disabled: `userPlan !== 'free'` kontrolü
+   - Tooltip: "Upgrade to a paid plan to create reels"
+
+3. **UI Iyileştirmeleri** ✅
+   - **View Post Tooltip**: Post başarısız olduğunda "Update Facebook Access Token" mesajı
+   - **Quick Tips**: "Make sure that your access token is active" eklendi
+   - **Analytics Başlığı**: "Analytics" → "Portfolio Analysis"
+   - **Monthly Activity Chart**: "Clients Added" → "Clients"
+
+4. **Analytics Enhancements** ✅
+   - Listings tablosundan aylık post sayıları
+   - Clients tablosundan aylık client sayıları
+   - GroupedBarChart ile Posts vs Clients karşılaştırma
+   - Geçmiş ayları görerek trend analizi
+
+5. **Dashboard Updates** ✅
+   - Quick Stats: "Shares This Month" listings tablosundan çekiliyor
+   - Dinamik sayaçlar her sayfa yüklenmesinde refresh
+
+**Değiştirilen Dosyalar:**
+- `components/wizard/step3-post.tsx`: Post limit, tooltip, uyarı, free plan kontrolü
+- `app/dashboard/subscription/page.tsx`: Free plan 30 limit, "Usage This Month" dinamik
+- `app/dashboard/subscription/useBillingController.ts`: `monthlyPostUsage` state eklendi
+- `app/dashboard/analytics/page.tsx`: Monthly activity chart, Portfolio Analysis başlığı
+- `app/dashboard/DashboardClient.tsx`: Dashboard Quick Stats güncellendi
+- `app/dashboard/new-post/page.tsx`: Quick Tips eklenti
+- `supabase/migrations/2025_11_user_post_usage.sql`: Yeni tablo migration
+
+---
+
+### Önceki Sessions (Tarihsel)
+- **Image Upload & Compression**: 15 görsele kadar, client-side compression, Supabase Storage
+- **Stripe Integration**: Subscriptions, credits, webhooks
+- **N8N Workflows**: Automation, webhook callbacks
+- **Client Management**: CRUD operations, dashboard
+- **Activity Logging**: Event tracking ve audit trails
 
 ## Sonraki Adımlar
 
 ### Kısa Vadeli (1-2 hafta)
-1. **Memory Bank Completion**: Tüm core dosyaları oluştur ve dokümantasyon tamamla
-2. **Error Boundaries**: Comprehensive error handling implement et
-3. **Testing Setup**: Unit ve integration test'leri kur
-4. **Performance Audit**: Bundle size ve load times optimize et
+1. **Error Boundaries**: Comprehensive error handling implement et
+2. **Testing Setup**: Unit ve integration test'leri kur
+3. **Reels Feature**: Step 4-5 reels üretimi ve paylaşımı
+4. **Email Notifications**: Post shared, subscription emails
 
 ### Orta Vadeli (1-3 ay)
-1. **Advanced Analytics**: Detaylı raporlama ve insights
-2. **Multi-platform Support**: Instagram, Facebook, Twitter entegrasyonları
-3. **Team Collaboration**: Multi-user features
+1. **Advanced Analytics**: Export features, detailed reports
+2. **Performance Optimization**: Bundle analysis, lazy loading
+3. **Multi-language Support**: i18n implementation
 4. **API Rate Limiting**: Usage limits ve quota management
 
-### Uzun Vadeli
-1. **Mobile App**: React Native mobile application
-2. **AI Integration**: Content generation ve optimization
-3. **Enterprise Features**: Advanced team management
-4. **White-label Solutions**: Custom branding
+### Uzun Vadeli (3-6 ay)
+1. **AI Integration**: Automated captions, optimal posting times
+2. **Social Media Expansion**: LinkedIn, TikTok, Instagram Threads support
+3. **Team Collaboration**: Multi-user accounts, permission management
+4. **API for Partners**: Third-party integration capabilities
+5. **Mobile App**: Native iOS/Android applications
+6. **Advanced Scheduling**: Queue management, auto-posting strategies
+
+### Tamamlanan Görevler (Yapıldı) ✅
+- Image upload and compression feature
+- Stripe billing integration
+- N8N workflow integration
+- Dashboard analytics and statistics
+- Client management system
+- Activity logging
+- Post limit system (09.11.2025)
+- Monthly analytics tracking (09.11.2025)
+- Error Boundaries & comprehensive error handling (09.11.2025)
 
 ## Aktif Kararlar ve Değerlendirmeler
 
 ### Technical Decisions
+
 - **Next.js 15 Adoption**: Latest features ve performance improvements
 - **Supabase Choice**: Full-stack BaaS solution for rapid development
 - **Stripe Integration**: Battle-tested payment processing
