@@ -44,6 +44,7 @@ export function useBillingController() {
   const [userId, setUserId] = useState<string | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [sub, setSub] = useState<SubRow | null>(null);
+  const [monthlyPostUsage, setMonthlyPostUsage] = useState<number | null>(null);
 
   const testMode = useMemo(
     () => (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').startsWith('pk_test_'),
@@ -108,6 +109,18 @@ export function useBillingController() {
         .maybeSingle<SubRow>();
       console.log("refresh subscription data:", subRow);
       setSub(subRow ?? null);
+
+      // Bu ay yapılan post sayısını çek
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const { data: postUsage } = await supabase
+        .from('user_post_usage')
+        .select('count')
+        .eq('user_id', user.id)
+        .eq('month', currentMonth)
+        .maybeSingle<{ count: number }>();
+      console.log("refresh post usage data:", postUsage);
+      setMonthlyPostUsage(postUsage?.count ?? 0);
     } catch (err) {
       console.error("refresh error:", err);
       setErrorMsg('Failed to refresh data.');
@@ -278,6 +291,6 @@ export function useBillingController() {
     buySubscription, buyCredit, openPortal, refresh,
     // state
     loadingKey, errorMsg, infoMsg, testMode,
-    userId, credits, sub,
+    userId, credits, sub, monthlyPostUsage,
   };
 }

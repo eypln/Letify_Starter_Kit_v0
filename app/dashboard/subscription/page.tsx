@@ -46,7 +46,7 @@ const SUBSCRIPTION_PLANS = [
     description: 'Perfect for getting started',
     features: [
       'Link 1 profile',
-      'Monthly 15 Facebook Post (text+image)',
+      'Monthly 30 Facebook Post (text+image)',
       'Email Support',
     ],
     icon: Star,
@@ -121,7 +121,7 @@ export default function SubscriptionPage() {
   const {
     buySubscription, buyCredit, openPortal, refresh,
     loadingKey, errorMsg, infoMsg, testMode,
-    userId, credits, sub,
+    userId, credits, sub, monthlyPostUsage,
   } = useBillingController();
 
   return (
@@ -194,7 +194,11 @@ export default function SubscriptionPage() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-600">Usage This Month</p>
               <p className="text-lg font-semibold">
-                {sub && sub.status === 'active' ? (sub.plan_type === 'mini' ? '8/15 Posts' : '12/30 Reels') : '-'}
+                {sub && sub.status === 'active' ? (
+                  sub.plan_type === 'mini' || sub.plan_type === 'full' 
+                    ? `${monthlyPostUsage ?? 0}/Unlimited Posts` 
+                    : `${monthlyPostUsage ?? 0}/30 Posts`
+                ) : '-'}
               </p>
             </div>
 

@@ -229,7 +229,8 @@ export default function NewPostPage() {
                 <p>• Choose high-resolution images</p>
                 <p>• Make sure your listing description is clear</p>
                 <p>• Ensure your Facebook page is active</p>
-                <p>• Video render time is 5-6 minutes</p>
+                <p>• Make sure that your access token is active</p>
+                <p>• Reels render time is 5-6 minutes</p>
               </div>
             </CardContent>
           </Card>

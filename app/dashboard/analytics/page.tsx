@@ -12,6 +12,8 @@ const PieChart = dynamic(() => import('@/components/ui/pie-chart'), { ssr: false
 export default function AnalyticsPage() {
   const [listings, setListings] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [monthlyPostUsage, setMonthlyPostUsage] = useState<any[]>([]);
+  const [monthlyClientsAdded, setMonthlyClientsAdded] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,6 +22,8 @@ export default function AnalyticsPage() {
       if (!user) {
         setListings([]);
         setClients([]);
+        setMonthlyPostUsage([]);
+        setMonthlyClientsAdded([]);
         setLoading(false);
         return;
       }
@@ -37,11 +41,58 @@ export default function AnalyticsPage() {
       // Fetch clients data
       supabase
         .from('clients')
-        .select('cities,budget')
+        .select('cities,budget,created_at')
         .eq('user_id', user.id)
         .then(({ data, error }) => {
           console.log('Supabase clients data:', data, 'error:', error);
           setClients(data ?? []);
+        });
+
+      // Fetch monthly post usage from listings table
+      supabase
+        .from('listings')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          if (!error && data) {
+            // Group listings by creation month
+            const grouped: Record<string, number> = {};
+            data.forEach((listing: any) => {
+              if (listing.created_at) {
+                const date = new Date(listing.created_at);
+                const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                grouped[month] = (grouped[month] || 0) + 1;
+              }
+            });
+            const monthlyData = Object.entries(grouped)
+              .map(([month, count]) => ({ month, count }))
+              .sort((a, b) => a.month.localeCompare(b.month));
+            console.log('Monthly post usage data:', monthlyData, 'error:', error);
+            setMonthlyPostUsage(monthlyData);
+          }
+        });
+
+      // Fetch clients grouped by creation month
+      supabase
+        .from('clients')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          if (!error && data) {
+            // Group clients by month
+            const grouped: Record<string, number> = {};
+            data.forEach((client: any) => {
+              if (client.created_at) {
+                const date = new Date(client.created_at);
+                const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                grouped[month] = (grouped[month] || 0) + 1;
+              }
+            });
+            const monthlyData = Object.entries(grouped)
+              .map(([month, count]) => ({ month, count }))
+              .sort((a, b) => a.month.localeCompare(b.month));
+            setMonthlyClientsAdded(monthlyData);
+          }
           setLoading(false);
         });
     });
@@ -177,7 +228,7 @@ export default function AnalyticsPage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Analytics</h1>
+        <h1 className="text-2xl font-bold">Portfolio Analysis</h1>
         <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
@@ -224,6 +275,34 @@ export default function AnalyticsPage() {
           <div className="bg-white rounded-lg shadow p-8">
             <h2 className="font-semibold mb-4">Clients by Budget Range</h2>
             <HistogramBarChart data={budgetHistogramData} />
+          </div>
+
+          {/* Monthly Posts & Clients - Combined Histogram */}
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+            <h2 className="font-semibold mb-4">Monthly Activity: Posts vs Clients</h2>
+            {monthlyPostUsage.length > 0 || monthlyClientsAdded.length > 0 ? (
+              <div className="overflow-x-auto">
+                <GroupedBarChart 
+                  data={(() => {
+                    // Combine both datasets by month
+                    const allMonths = new Set([
+                      ...monthlyPostUsage.map(d => d.month),
+                      ...monthlyClientsAdded.map(d => d.month)
+                    ]);
+                    
+                    return Array.from(allMonths)
+                      .sort()
+                      .map(month => ({
+                        city: month,  // GroupedBarChart expects 'city' key for X-axis
+                        'Posts': monthlyPostUsage.find(d => d.month === month)?.count ?? 0,
+                        'Clients': monthlyClientsAdded.find(d => d.month === month)?.count ?? 0,
+                      }));
+                  })()} 
+                />
+              </div>
+            ) : (
+              <div className="text-gray-500 text-center py-8">No monthly activity data available yet.</div>
+            )}
           </div>
         </div>
       )}

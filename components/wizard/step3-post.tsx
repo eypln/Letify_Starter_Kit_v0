@@ -23,14 +23,27 @@ export default function Step3Post() {
   const { postStatus, postUrl, postError, setStep, clear } = useWizardStore(); // 👈 clear fonksiyonunu içe aktar
   const router = useRouter();
   const [userEmail, setUserEmail] = React.useState<string | null>(null);
+  const [userPlan, setUserPlan] = React.useState<string | null>(null);
+  const [limitReachedWarning, setLimitReachedWarning] = React.useState<boolean>(false);
 
-  // Kullanıcı emailini al
+  // Kullanıcı emailini ve plan bilgisini al
   React.useEffect(() => {
     async function fetchUser() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         setUserEmail(user?.email || null);
+        
+        // Kullanıcının plan bilgisini al
+        if (user?.id) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('plan')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          setUserPlan(profile?.plan || 'free');
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
       }
@@ -88,7 +101,7 @@ export default function Step3Post() {
     ensureCriticalData();
   }, []);
 
-  // Activity kaydı için fonksiyon
+  // Activity kaydı ve post sayısı güncelleme fonksiyonu
   const logPostActivity = async () => {
     try {
       const supabase = createClient();
@@ -110,6 +123,7 @@ export default function Step3Post() {
           }
         }
         
+        // Activity kaydı yap
         await supabase
           .from('activity')
           .insert([{
@@ -119,10 +133,45 @@ export default function Step3Post() {
               post_url: postUrl,
               listing_id: listingId,
               job_id: useWizardStore.getState().jobId,
-              title: listingTitle // Title'ı da activity data'ya ekliyoruz
+              title: listingTitle
             },
             created_at: new Date().toISOString(),
           }]);
+
+        // Post sayısını güncelle (bu ay yapılan post sayacını artır)
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
+        const { data: existingRecord } = await supabase
+          .from('user_post_usage')
+          .select('id, count')
+          .eq('user_id', user.id)
+          .eq('month', currentMonth)
+          .maybeSingle();
+        
+        let newCount = 1;
+        if (existingRecord) {
+          // Mevcut ay kaydını güncelle
+          newCount = existingRecord.count + 1;
+          await supabase
+            .from('user_post_usage')
+            .update({ count: newCount })
+            .eq('id', existingRecord.id);
+        } else {
+          // Yeni ay kaydı oluştur
+          await supabase
+            .from('user_post_usage')
+            .insert([{
+              user_id: user.id,
+              month: currentMonth,
+              count: 1,
+            }]);
+        }
+
+        // Free plan kullanıcılar için limit kontrolü
+        if (userPlan === 'free' && newCount >= 30) {
+          setLimitReachedWarning(true);
+        }
       }
     } catch (error) {
       console.error('Activity log error:', error);
@@ -136,12 +185,19 @@ export default function Step3Post() {
     }
   }, [postStatus, postUrl]);
 
-  // Sadece belirli kullanıcı için Next butonunu aktif et
-  const isNextButtonEnabled = postStatus === 'done' && userEmail === 'erhanyurdakul1@hotmail.com';
+  // Free plan kullanıcıları reels üretemez - Next butonu sadece paid plan için aktif
+  const isNextButtonEnabled = postStatus === 'done' && userPlan !== 'free';
 
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold">Step 3: Share a Post</h3>
+
+      {limitReachedWarning && (
+        <div className="rounded-xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-700">
+          <strong>Monthly Limit Reached:</strong> You have reached your free plan limit of 30 posts per month. 
+          To share more posts, please upgrade to a paid plan.
+        </div>
+      )}
 
       {postStatus === 'running' && (
         <div className="rounded-xl border p-6">
@@ -169,14 +225,18 @@ export default function Step3Post() {
                 View Post
               </a>
             ) : (
-              <button
-                type="button"
-                disabled
-                className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
-                title="Post URL not found"
-              >
-                View Post
-              </button>
+              <div className="relative group">
+                <button
+                  type="button"
+                  disabled
+                  className="rounded-lg bg-gray-300 px-3 py-2 text-sm text-white cursor-not-allowed"
+                >
+                  View Post
+                </button>
+                <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                  Update Facebook Access Token
+                </div>
+              </div>
             )}
 
             {/* Tümünü Temizle Button */}
@@ -200,7 +260,7 @@ export default function Step3Post() {
               Reset All
             </button>
 
-            {/* Next Button - Sadece belirli kullanıcı için aktif */}
+            {/* Next Button - Free plan kullanıcıları için devre dışı */}
             <button
               type="button"
               disabled={!isNextButtonEnabled}
@@ -217,6 +277,7 @@ export default function Step3Post() {
                   });
                 }
               }}
+              title={userPlan === 'free' ? 'Upgrade to a paid plan to create reels' : ''}
             >
               Next
             </button>
