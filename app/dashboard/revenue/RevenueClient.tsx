@@ -1,48 +1,735 @@
 "use client";
 
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign } from 'lucide-react';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Select from "react-select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Edit2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+// Revenue form interface
+interface RevenueForm {
+  id?: number | null;
+  user_id: string;
+  ref_no: string;
+  client_name: string;
+  rent_amount: string;
+  landlord_discount: boolean;
+  client_discount: boolean;
+  has_listing_fee: boolean;
+  vatable: boolean;
+  date_rented: string;
+  date_signed: string;
+  date_move_in: string;
+  landlord_paid_date: string;
+  client_paid_date: string;
+  collaboration_with: string;
+  inform_boss_after_both_sides_paid: boolean;
+}
+
+const columns = [
+  "#",
+  "Date Rented",
+  "Ref No",
+  "Client Name",
+  "Rent Amount (€)",
+  "Landlord Fee (€)",
+  "Client Fee (€)",
+  "Listing Fee (€)",
+  "Agent Income (€)",
+  "Agent TAX (€)",
+  "Date Signed",
+  "Date Move In",
+  "Landlord Paid Date",
+  "Client Paid Date",
+  "Collaboration with",
+  "Inform Boss",
+  "Actions",
+];
+
+const pageSize = 10;
+
+const vatOptions = [
+  { label: "Vatable (40%)", value: true },
+  { label: "Non-Vatable (32%)", value: false },
+];
 
 export default function RevenueClient({ user, profile }: { user: any; profile: any }) {
-  return (
-    <div className="relative min-h-screen">
-      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Revenue</h1>
-          <p className="text-muted-foreground mt-2">
-            Track rental records, contract dates, and commission income
-          </p>
-        </div>
+  const { toast } = useToast();
+  const [revenues, setRevenues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const supabase = createClient();
 
-        <div className="grid grid-cols-1 gap-6">
-          <div className="relative">
-            <Link href="/dashboard" className="absolute -top-14 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
-              <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
-                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
-              </svg>
-              Dashboard
-            </Link>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="h-6 w-6 text-purple-600" />
-                  <span>Revenue Overview</span>
-                </CardTitle>
-              <CardDescription>
-                Rental records, contract dates, and commission income including listing fees and bonuses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Coming soon - View your revenue details here
-              </p>
-            </CardContent>
-          </Card>
+  const [form, setForm] = useState<RevenueForm>({
+    id: undefined,
+    user_id: "",
+    ref_no: "",
+    client_name: "",
+    rent_amount: "",
+    landlord_discount: false,
+    client_discount: false,
+    has_listing_fee: false,
+    vatable: true,
+    date_rented: "",
+    date_signed: "",
+    date_move_in: "",
+    landlord_paid_date: "",
+    client_paid_date: "",
+    collaboration_with: "",
+    inform_boss_after_both_sides_paid: false,
+  });
+
+  // Date state
+  const [dateRented, setDateRented] = useState<Date | null>(null);
+  const [dateSigned, setDateSigned] = useState<Date | null>(null);
+  const [dateMoveIn, setDateMoveIn] = useState<Date | null>(null);
+  const [landlordPaidDate, setLandlordPaidDate] = useState<Date | null>(null);
+  const [clientPaidDate, setClientPaidDate] = useState<Date | null>(null);
+
+  // Calculated fees
+  const [calculatedFees, setCalculatedFees] = useState({
+    landlord_fee: 0,
+    landlord_fee_vat: 0,
+    landlord_fee_total: 0,
+    client_fee: 0,
+    client_fee_vat: 0,
+    client_fee_total: 0,
+    listing_fee: 0,
+    agent_income: 0,
+    agent_tax: 0,
+  });
+
+  // Calculate fees when rent amount or discounts change
+  useEffect(() => {
+    const rentAmount = parseFloat(form.rent_amount) || 0;
+    
+    let landlord_fee = rentAmount / 2;
+    if (form.landlord_discount) {
+      landlord_fee = landlord_fee * 0.85; // 15% discount
+    }
+
+    let client_fee = rentAmount / 2;
+    if (form.client_discount) {
+      client_fee = client_fee * 0.85; // 15% discount
+    }
+
+    // Calculate VAT (18%) for landlord and client fees
+    const landlord_fee_vat = landlord_fee * 0.18;
+    const landlord_fee_total = landlord_fee + landlord_fee_vat;
+
+    const client_fee_vat = client_fee * 0.18;
+    const client_fee_total = client_fee + client_fee_vat;
+
+    const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
+    
+    // Agent income: 40% if vatable, 32% if non-vatable
+    let agent_income = form.vatable ? rentAmount * 0.40 : rentAmount * 0.32;
+    
+    // Agent TAX: If non-vatable, the difference between 40% and 32% (8% of rent amount)
+    const agent_tax = form.vatable ? 0 : rentAmount * 0.08;
+    
+    // Reduce agent income based on discounts
+    // If landlord has 15% discount, reduce agent income by 7.5%
+    // If client has 15% discount, reduce agent income by 7.5%
+    let agent_income_reduction = 0;
+    if (form.landlord_discount) {
+      agent_income_reduction += 0.075; // 7.5%
+    }
+    if (form.client_discount) {
+      agent_income_reduction += 0.075; // 7.5%
+    }
+    
+    if (agent_income_reduction > 0) {
+      agent_income = agent_income * (1 - agent_income_reduction);
+    }
+
+    setCalculatedFees({
+      landlord_fee,
+      landlord_fee_vat,
+      landlord_fee_total,
+      client_fee,
+      client_fee_vat,
+      client_fee_total,
+      listing_fee,
+      agent_income,
+      agent_tax,
+    });
+  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vatable]);
+
+  async function getUserAndRevenues(currentPage = page) {
+    setLoading(true);
+
+    const { data, error, count } = await supabase
+      .from("revenue")
+      .select("*", { count: "exact" })
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+
+    if (!error && data) {
+      setRevenues(data);
+      setPageCount(Math.ceil((count || 0) / pageSize));
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    getUserAndRevenues();
+  }, [page]);
+
+  const resetForm = () => {
+    setForm({
+      id: undefined,
+      user_id: user?.id || "",
+      ref_no: "",
+      client_name: "",
+      rent_amount: "",
+      landlord_discount: false,
+      client_discount: false,
+      has_listing_fee: false,
+      vatable: true,
+      date_rented: "",
+      date_signed: "",
+      date_move_in: "",
+      landlord_paid_date: "",
+      client_paid_date: "",
+      collaboration_with: "",
+      inform_boss_after_both_sides_paid: false,
+    });
+    setDateRented(null);
+    setDateSigned(null);
+    setDateMoveIn(null);
+    setLandlordPaidDate(null);
+    setClientPaidDate(null);
+  };
+
+  const handleAddNew = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleEdit = (revenue: any) => {
+    setForm({
+      id: revenue.id,
+      user_id: revenue.user_id,
+      ref_no: revenue.ref_no || "",
+      client_name: revenue.client_name || "",
+      rent_amount: revenue.rent_amount?.toString() || "",
+      landlord_discount: revenue.landlord_discount || false,
+      client_discount: revenue.client_discount || false,
+      has_listing_fee: revenue.has_listing_fee || false,
+      vatable: revenue.vatable ?? true,
+      date_rented: revenue.date_rented || "",
+      date_signed: revenue.date_signed || "",
+      date_move_in: revenue.date_move_in || "",
+      landlord_paid_date: revenue.landlord_paid_date || "",
+      client_paid_date: revenue.client_paid_date || "",
+      collaboration_with: revenue.collaboration_with || "",
+      inform_boss_after_both_sides_paid: revenue.inform_boss_after_both_sides_paid || false,
+    });
+    
+    setDateRented(revenue.date_rented ? new Date(revenue.date_rented) : null);
+    setDateSigned(revenue.date_signed ? new Date(revenue.date_signed) : null);
+    setDateMoveIn(revenue.date_move_in ? new Date(revenue.date_move_in) : null);
+    setLandlordPaidDate(revenue.landlord_paid_date ? new Date(revenue.landlord_paid_date) : null);
+    setClientPaidDate(revenue.client_paid_date ? new Date(revenue.client_paid_date) : null);
+    
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    const payload = {
+      ...form,
+      date_rented: dateRented ? dateRented.toISOString() : null,
+      date_signed: dateSigned ? dateSigned.toISOString() : null,
+      date_move_in: dateMoveIn ? dateMoveIn.toISOString() : null,
+      landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
+      client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
+      user_id: user?.id,
+    };
+
+    try {
+      const response = await fetch('/api/revenue', {
+        method: form.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: form.id ? "Deal updated successfully" : "Deal added successfully",
+          variant: "default",
+        });
+        setShowModal(false);
+        resetForm();
+        await getUserAndRevenues(1);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to save deal",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB');
+  };
+
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null || amount === undefined) return "-";
+    return `€${amount.toFixed(2)}`;
+  };
+
+  return (
+    <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
+      <div className="relative mt-8">
+        <Link href="/dashboard" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
+        </Link>
+      </div>
+      
+      {/* Revenue Table */}
+      <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Revenue Overview</CardTitle>
+            <Button 
+              className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2"
+              onClick={handleAddNew}
+            >
+              <Plus className="h-4 w-4" /> Add Deal
+            </Button>
+          </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {columns.map((col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : revenues.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+                      No revenue records found.
+                    </td>
+                  </tr>
+                ) : (
+                  revenues.map((revenue: any, idx: number) => (
+                    <tr key={revenue.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(page - 1) * pageSize + idx + 1}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(revenue.date_rented)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {revenue.ref_no || "-"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {revenue.client_name || "-"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.rent_amount)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.landlord_fee)}
+                        {revenue.landlord_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.client_fee)}
+                        {revenue.client_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.listing_fee)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.agent_income)}
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({revenue.vatable ? "40%" : "32%"})
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(revenue.agent_tax)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(revenue.date_signed)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(revenue.date_move_in)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(revenue.landlord_paid_date)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(revenue.client_paid_date)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {revenue.collaboration_with || "-"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <input
+                          type="checkbox"
+                          checked={revenue.inform_boss_after_both_sides_paid}
+                          disabled
+                          className="h-4 w-4"
+                        />
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(revenue)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {pageCount > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="px-3 py-1"
+              >
+                First
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+                className="px-3 py-1"
+              >
+                Prev
+              </Button>
+              
+              {/* Page Numbers */}
+              <div className="flex gap-1">
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => {
+                  // Show first page, last page, current page, and pages around current
+                  const showPage = 
+                    pageNum === 1 || 
+                    pageNum === pageCount || 
+                    (pageNum >= page - 1 && pageNum <= page + 1);
+                  
+                  // Show ellipsis
+                  const showEllipsisBefore = pageNum === page - 2 && page > 3;
+                  const showEllipsisAfter = pageNum === page + 2 && page < pageCount - 2;
+                  
+                  if (showEllipsisBefore || showEllipsisAfter) {
+                    return <span key={pageNum} className="px-2">...</span>;
+                  }
+                  
+                  if (!showPage) return null;
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      className={`px-3 py-1 min-w-[40px] ${
+                        page === pageNum 
+                          ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                          : ''
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page === pageCount}
+                className="px-3 py-1"
+              >
+                Next
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(pageCount)}
+                disabled={page === pageCount}
+                className="px-3 py-1"
+              >
+                Last
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4">
+                {form.id ? "Edit Deal" : "Add New Deal"}
+              </h2>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Row 1: Ref No, Client Name */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Ref No</label>
+                    <Input
+                      value={form.ref_no}
+                      onChange={(e) => setForm({ ...form, ref_no: e.target.value })}
+                      placeholder="Enter reference number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Client Name</label>
+                    <Input
+                      value={form.client_name}
+                      onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                      placeholder="Enter client name"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Rent Amount, VAT Type */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rent Amount (€) *</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.rent_amount}
+                      onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
+                      placeholder="Enter rent amount"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">VAT Type</label>
+                    <Select
+                      options={vatOptions}
+                      value={vatOptions.find(opt => opt.value === form.vatable)}
+                      onChange={(option) => setForm({ ...form, vatable: option?.value ?? true })}
+                      placeholder="Select VAT type"
+                    />
+                  </div>
+                </div>
+
+                {/* Discount Checkboxes */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="landlord_discount"
+                      checked={form.landlord_discount}
+                      onChange={(e) => setForm({ ...form, landlord_discount: e.target.checked })}
+                      className="h-4 w-4 mr-2"
+                    />
+                    <label htmlFor="landlord_discount" className="text-sm font-medium">
+                      Landlord 15% Discount
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="client_discount"
+                      checked={form.client_discount}
+                      onChange={(e) => setForm({ ...form, client_discount: e.target.checked })}
+                      className="h-4 w-4 mr-2"
+                    />
+                    <label htmlFor="client_discount" className="text-sm font-medium">
+                      Client 15% Discount
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="has_listing_fee"
+                      checked={form.has_listing_fee}
+                      onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
+                      className="h-4 w-4 mr-2"
+                    />
+                    <label htmlFor="has_listing_fee" className="text-sm font-medium">
+                      Listing Fee (5%)
+                    </label>
+                  </div>
+                </div>
+
+                {/* Calculated Fees Display */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="font-semibold mb-2">Calculated Fees</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      Landlord Fee: <span className="font-semibold">{formatCurrency(calculatedFees.landlord_fee)}</span>
+                      <span className="text-green-600 ml-1">+ {formatCurrency(calculatedFees.landlord_fee_vat)} VAT (18%)</span>
+                    </div>
+                    <div>
+                      Client Fee: <span className="font-semibold">{formatCurrency(calculatedFees.client_fee)}</span>
+                      <span className="text-green-600 ml-1">+ {formatCurrency(calculatedFees.client_fee_vat)} VAT (18%)</span>
+                    </div>
+                    <div>Listing Fee: <span className="font-semibold">{formatCurrency(calculatedFees.listing_fee)}</span></div>
+                    <div>Agent Income: <span className="font-semibold">{formatCurrency(calculatedFees.agent_income)}</span></div>
+                    <div>Agent TAX: <span className="font-semibold">{formatCurrency(calculatedFees.agent_tax)}</span></div>
+                  </div>
+                </div>
+
+                {/* Row 3: Date Rented, Date Signed, Date Move In */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Date Rented</label>
+                    <DatePicker
+                      selected={dateRented}
+                      onChange={(date) => setDateRented(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Date Signed</label>
+                    <DatePicker
+                      selected={dateSigned}
+                      onChange={(date) => setDateSigned(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Date Move In</label>
+                    <DatePicker
+                      selected={dateMoveIn}
+                      onChange={(date) => setDateMoveIn(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 4: Payment Dates */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Landlord Paid Date</label>
+                    <DatePicker
+                      selected={landlordPaidDate}
+                      onChange={(date) => setLandlordPaidDate(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Client Paid Date</label>
+                    <DatePicker
+                      selected={clientPaidDate}
+                      onChange={(date) => setClientPaidDate(date)}
+                      dateFormat="dd/MM/yyyy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholderText="Select date"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 5: Collaboration */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Collaboration With</label>
+                  <Input
+                    value={form.collaboration_with}
+                    onChange={(e) => setForm({ ...form, collaboration_with: e.target.value })}
+                    placeholder="Enter collaboration partner"
+                  />
+                </div>
+
+                {/* Row 6: Inform Boss Checkbox */}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="inform_boss"
+                    checked={form.inform_boss_after_both_sides_paid}
+                    onChange={(e) => setForm({ ...form, inform_boss_after_both_sides_paid: e.target.checked })}
+                    className="h-4 w-4 mr-2"
+                  />
+                  <label htmlFor="inform_boss" className="text-sm font-medium">
+                    Inform Boss after both sides paid
+                  </label>
+                </div>
+
+                {/* Form Buttons */}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowModal(false);
+                      resetForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Saving..." : form.id ? "Update" : "Add"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

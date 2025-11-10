@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = 'force-dynamic';
-import React from 'react';
+import React, { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getListings } from './actions';
 import Link from 'next/link';
@@ -65,7 +65,7 @@ function TeamworkShareButton({ listingId, title }: { listingId: string; title: s
   );
 }
 
-export default function ListingsPage() {
+function ListingsContent() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
   const [listingsData, setListingsData] = React.useState<any>(null);
   const searchParams = useSearchParams();
@@ -219,5 +219,13 @@ export default function ListingsPage() {
       )}
       </div>
     </QueryClientProvider>
+  );
+}
+
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto p-6">Loading...</div>}>
+      <ListingsContent />
+    </Suspense>
   );
 }

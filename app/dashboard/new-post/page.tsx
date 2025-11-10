@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Card,
@@ -25,7 +26,7 @@ import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
 import { useUploadStore } from '@/lib/uploads/store' // 👈 useUploadStore'u içe aktar
 
-export default function NewPostPage() {
+function NewPostContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlStep = Number(searchParams.get('step') || 1);
@@ -238,4 +239,12 @@ export default function NewPostPage() {
       </div>
     </div>
   )
+}
+
+export default function NewPostPage() {
+  return (
+    <Suspense fallback={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">Loading...</div>}>
+      <NewPostContent />
+    </Suspense>
+  );
 }

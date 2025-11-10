@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 
 import RefreshOnSuccess from './RefreshOnSuccess';
 import { useBillingController } from './useBillingController';
@@ -127,7 +127,9 @@ export default function SubscriptionPage() {
   return (
     <>
       {/* görünmez, görseli bozmaz */}
-      <RefreshOnSuccess />
+      <Suspense fallback={null}>
+        <RefreshOnSuccess />
+      </Suspense>
 
       <div className="max-w-6xl mx-auto p-6 space-y-8 relative">
         <div className="absolute top-6 right-8 z-10">

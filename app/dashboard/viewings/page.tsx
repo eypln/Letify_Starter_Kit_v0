@@ -52,7 +52,7 @@ const resultOptions = [
 ];
 
 // Generate time options (07:00 to 21:00 in 15-minute intervals)
-const timeOptions = [];
+const timeOptions: { label: string; value: string }[] = [];
 for (let hour = 7; hour <= 21; hour++) {
   for (let minute of [0, 15, 30, 45]) {
     const hourStr = hour.toString().padStart(2, '0');

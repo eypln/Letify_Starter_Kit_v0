@@ -86,6 +86,28 @@ export async function POST(req: Request) {
       data: { ref_no, client_name, viewing_date }
     });
 
+    // If result is DEAL, create revenue record automatically
+    if (result === 'DEAL' && ref_no && client_name) {
+      await supabase
+        .from('revenue')
+        .insert([{
+          user_id,
+          ref_no,
+          client_name,
+          rent_amount: 0,
+          landlord_fee: 0,
+          landlord_discount: false,
+          client_fee: 0,
+          client_discount: false,
+          listing_fee: 0,
+          agent_income: 0,
+          vatable: true,
+          date_rented: viewing_date || null,
+          inform_boss_after_both_sides_paid: false,
+          boss_notified: false,
+        }]);
+    }
+
     // Send email to team leader if inform_teamleader is true
     if (inform_teamleader) {
       try {
@@ -205,6 +227,40 @@ export async function PUT(req: Request) {
       data: { id, ref_no, client_name }
     });
 
+    // If result is DEAL, check if revenue record exists, if not create one
+    if (result === 'DEAL' && ref_no && client_name) {
+      // Check if revenue already exists for this ref_no and client
+      const { data: existingRevenue } = await supabase
+        .from('revenue')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('ref_no', ref_no)
+        .eq('client_name', client_name)
+        .maybeSingle();
+
+      // Only create if doesn't exist
+      if (!existingRevenue) {
+        await supabase
+          .from('revenue')
+          .insert([{
+            user_id: user.id,
+            ref_no,
+            client_name,
+            rent_amount: 0,
+            landlord_fee: 0,
+            landlord_discount: false,
+            client_fee: 0,
+            client_discount: false,
+            listing_fee: 0,
+            agent_income: 0,
+            vatable: true,
+            date_rented: viewing_date || null,
+            inform_boss_after_both_sides_paid: false,
+            boss_notified: false,
+          }]);
+      }
+    }
+
     // Send email to team leader if inform_teamleader is true
     if (inform_teamleader) {
       try {
@@ -285,7 +341,7 @@ export async function DELETE(req: Request) {
   const { error } = await supabase
     .from('viewings')
     .delete()
-    .eq('id', id)
+    .eq('id', parseInt(id))
     .eq('user_id', user.id);
 
   if (error) {

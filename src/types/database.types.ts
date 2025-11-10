@@ -465,6 +465,7 @@ export type Database = {
           company: string | null
           created_at: string | null
           credits: number | null
+          email: string | null
           full_name: string | null
           is_approved: boolean | null
           phone: string | null
@@ -480,6 +481,7 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           credits?: number | null
+          email?: string | null
           full_name?: string | null
           is_approved?: boolean | null
           phone?: string | null
@@ -495,6 +497,7 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           credits?: number | null
+          email?: string | null
           full_name?: string | null
           is_approved?: boolean | null
           phone?: string | null
@@ -611,6 +614,278 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      revenue: {
+        Row: {
+          id: string
+          user_id: string
+          ref_no: string | null
+          client_name: string | null
+          rent_amount: number
+          landlord_fee: number
+          landlord_discount: boolean
+          client_fee: number
+          client_discount: boolean
+          listing_fee: number
+          has_listing_fee: boolean
+          agent_income: number
+          agent_tax: number
+          vatable: boolean
+          date_rented: string | null
+          date_signed: string | null
+          date_move_in: string | null
+          landlord_paid_date: string | null
+          client_paid_date: string | null
+          collaboration_with: string | null
+          inform_boss_after_both_sides_paid: boolean
+          boss_notified: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          ref_no?: string | null
+          client_name?: string | null
+          rent_amount: number
+          landlord_fee: number
+          landlord_discount?: boolean
+          client_fee: number
+          client_discount?: boolean
+          listing_fee?: number
+          has_listing_fee?: boolean
+          agent_income: number
+          agent_tax?: number
+          vatable?: boolean
+          date_rented?: string | null
+          date_signed?: string | null
+          date_move_in?: string | null
+          landlord_paid_date?: string | null
+          client_paid_date?: string | null
+          collaboration_with?: string | null
+          inform_boss_after_both_sides_paid?: boolean
+          boss_notified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          ref_no?: string | null
+          client_name?: string | null
+          rent_amount?: number
+          landlord_fee?: number
+          landlord_discount?: boolean
+          client_fee?: number
+          client_discount?: boolean
+          listing_fee?: number
+          has_listing_fee?: boolean
+          agent_income?: number
+          agent_tax?: number
+          vatable?: boolean
+          date_rented?: string | null
+          date_signed?: string | null
+          date_move_in?: string | null
+          landlord_paid_date?: string | null
+          client_paid_date?: string | null
+          collaboration_with?: string | null
+          inform_boss_after_both_sides_paid?: boolean
+          boss_notified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      teamwork_clients: {
+        Row: {
+          id: number
+          user_id: string
+          client_id: number
+          agent_name: string
+          teamwork_date: string
+          people: string | null
+          bedroom: string | null
+          cities: string | null
+          family_sharing: string | null
+          nationalities: string | null
+          jobs: string | null
+          pet: string | null
+          budget: string | null
+          move_in: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          client_id: number
+          agent_name: string
+          teamwork_date?: string
+          people?: string | null
+          bedroom?: string | null
+          cities?: string | null
+          family_sharing?: string | null
+          nationalities?: string | null
+          jobs?: string | null
+          pet?: string | null
+          budget?: string | null
+          move_in?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          client_id?: number
+          agent_name?: string
+          teamwork_date?: string
+          people?: string | null
+          bedroom?: string | null
+          cities?: string | null
+          family_sharing?: string | null
+          nationalities?: string | null
+          jobs?: string | null
+          pet?: string | null
+          budget?: string | null
+          move_in?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamwork_clients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "teamwork_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teamwork_listings: {
+        Row: {
+          id: number
+          user_id: string
+          listing_id: string
+          agent_name: string
+          teamwork_date: string
+          city: string | null
+          price: number | null
+          bedroom: number | null
+          bathroom: number | null
+          property_type: string | null
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          listing_id: string
+          agent_name: string
+          teamwork_date?: string
+          city?: string | null
+          price?: number | null
+          bedroom?: number | null
+          bathroom?: number | null
+          property_type?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          listing_id?: string
+          agent_name?: string
+          teamwork_date?: string
+          city?: string | null
+          price?: number | null
+          bedroom?: number | null
+          bathroom?: number | null
+          property_type?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teamwork_listings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "teamwork_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      viewings: {
+        Row: {
+          id: number
+          user_id: string
+          ref_no: string | null
+          city: string | null
+          viewing_date: string | null
+          viewing_time: string | null
+          client_name: string | null
+          client_mobile_no: string | null
+          result: string | null
+          comments: string | null
+          inform_teamleader: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          ref_no?: string | null
+          city?: string | null
+          viewing_date?: string | null
+          viewing_time?: string | null
+          client_name?: string | null
+          client_mobile_no?: string | null
+          result?: string | null
+          comments?: string | null
+          inform_teamleader?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          ref_no?: string | null
+          city?: string | null
+          viewing_date?: string | null
+          viewing_time?: string | null
+          client_name?: string | null
+          client_mobile_no?: string | null
+          result?: string | null
+          comments?: string | null
+          inform_teamleader?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
