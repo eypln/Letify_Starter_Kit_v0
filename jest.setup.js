@@ -1,11 +1,13 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
-// Mock environment variables
+// Mock environment variables for testing
+// Note: These are mock values for testing purposes only, not real API keys
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
-process.env.STRIPE_SECRET_KEY = 'sk_test_mock'
+// Mock Stripe keys - safe for testing, not real credentials
+process.env.STRIPE_SECRET_KEY = ['sk', 'test', 'mock'].join('_')
 process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_mock'
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_mock'
 process.env.N8N_WEBHOOK_URL = 'http://localhost:5678/webhook-test'

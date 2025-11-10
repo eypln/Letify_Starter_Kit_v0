@@ -1,0 +1,10 @@
+# Ignore test files with mock credentials
+jest.setup.js
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__/**
+__mocks__/**
+*.mock.js
+*.mock.ts

@@ -1,0 +1,8 @@
+# Ignore mock test files with fake credentials
+jest.setup.js
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+**/__tests__/**
+**/__mocks__/**

@@ -6,6 +6,7 @@ import ToastRoot from "@/components/system/ToastRoot";
 import ErrorShield from "./(app)/error-shield";
 import ErrorBoundary from "@/components/system/ErrorBoundary";
 import WebVitals from "@/components/system/WebVitals";
+import PWAInstallPrompt from "@/components/system/PWAInstallPrompt";
 import { OrganizationSchema, WebSiteSchema, WebApplicationSchema } from "@/components/system/StructuredData";
 import { siteConfig, generateOGMetadata } from "@/lib/seo";
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <WebVitals />
+        <PWAInstallPrompt />
         <ToastRoot>
           <ErrorBoundary>
             <ErrorShield>{children}</ErrorShield>
