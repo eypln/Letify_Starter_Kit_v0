@@ -66,5 +66,33 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 - `POST /api/webhooks/fb-post`
 - `POST /api/webhooks/video-create`
 - `POST /api/webhooks/fb-reels`
+
+## Testing
+
+This project includes a comprehensive testing suite with Jest and React Testing Library.
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test suites
+npm run test:unit
+npm run test:components
+npm run test:api
+npm run test:integration
+```
+
+For detailed testing documentation, see [TESTING.md](./TESTING.md).
+
+**Test Statistics:**
+- Total Tests: 68 passing
+- Test Suites: 6 (unit, component, API, integration)
+- Coverage: See `npm run test:coverage`
 ```
 
