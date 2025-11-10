@@ -94,5 +94,35 @@ For detailed testing documentation, see [TESTING.md](./TESTING.md).
 - Total Tests: 68 passing
 - Test Suites: 6 (unit, component, API, integration)
 - Coverage: See `npm run test:coverage`
+
+## Performance Optimization
+
+This project is optimized for maximum performance with:
+
+```bash
+# Analyze production bundle
+npm run analyze
+
+# Analyze and open in browser
+npm run analyze:browser
+```
+
+**Implemented Optimizations:**
+- ✅ Bundle analysis with @next/bundle-analyzer
+- ✅ Lazy loading for heavy components (React Select, DatePicker, Charts)
+- ✅ Image optimization (AVIF/WebP, responsive sizing)
+- ✅ Font optimization with next/font
+- ✅ Tree shaking and code splitting
+- ✅ Web Vitals monitoring (LCP, FID, CLS, FCP, TTFB, INP)
+- ✅ Loading skeletons for better UX
+- ✅ Production build optimizations (SWC minify, console removal)
+
+For detailed performance documentation, see [PERFORMANCE.md](./PERFORMANCE.md).
+
+**Performance Targets:**
+- First Load JS: < 200 KB (gzipped)
+- LCP: < 2.5s
+- FID: < 100ms
+- CLS: < 0.1
 ```
 
