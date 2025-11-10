@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -6,6 +6,8 @@ import ToastRoot from "@/components/system/ToastRoot";
 import ErrorShield from "./(app)/error-shield";
 import ErrorBoundary from "@/components/system/ErrorBoundary";
 import WebVitals from "@/components/system/WebVitals";
+import { OrganizationSchema, WebSiteSchema, WebApplicationSchema } from "@/components/system/StructuredData";
+import { siteConfig, generateOGMetadata } from "@/lib/seo";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -13,18 +15,53 @@ const inter = Inter({
   preload: true,
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ffffff',
+}
+
 export const metadata: Metadata = {
-  title: "Letify - Realtor Assistant",
-  description: "A SaaS platform for realtors to generate content from a listing link and share as Facebook Post and Reels.",
-  keywords: ["realtor", "real estate", "content generation", "social media", "automation"],
-  authors: [{ name: "Letify Team" }],
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#ffffff",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.title,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  keywords: siteConfig.keywords,
+  authors: siteConfig.authors,
+  creator: siteConfig.creator,
+  ...generateOGMetadata({
+    title: siteConfig.title,
+    description: siteConfig.description,
+  }),
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="tr">
+      <head>
+        <OrganizationSchema />
+        <WebSiteSchema />
+        <WebApplicationSchema />
+      </head>
       <body className={inter.className}>
         <WebVitals />
         <ToastRoot>

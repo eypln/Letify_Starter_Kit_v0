@@ -124,5 +124,36 @@ For detailed performance documentation, see [PERFORMANCE.md](./PERFORMANCE.md).
 - LCP: < 2.5s
 - FID: < 100ms
 - CLS: < 0.1
+
+## SEO Optimization
+
+This project is fully optimized for search engines with:
+
+**Implemented SEO Features:**
+- ✅ Meta tags (title, description, keywords)
+- ✅ Open Graph tags for social media sharing
+- ✅ Twitter Card tags
+- ✅ Dynamic sitemap.xml generation
+- ✅ Robots.txt configuration
+- ✅ JSON-LD structured data (Organization, WebSite, WebApplication)
+- ✅ Mobile-friendly meta tags
+- ✅ Turkish locale (lang="tr")
+
+**Access**:
+```bash
+# View sitemap
+https://yourdomain.com/sitemap.xml
+
+# View robots.txt
+https://yourdomain.com/robots.txt
+```
+
+For detailed SEO documentation, see [SEO.md](./SEO.md).
+
+**SEO Tools Used:**
+- Sitemap for search engine crawling
+- Robots.txt for crawler control
+- Rich snippets with structured data
+- Social media preview optimization
 ```
 

@@ -1,7 +1,18 @@
+import type { Metadata } from 'next'
 import { getUser, getProfile } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import DashboardClient from './DashboardClient'
+import { seoPages, generateOGMetadata } from '@/lib/seo'
+
+export const metadata: Metadata = {
+  title: seoPages.dashboard.title,
+  description: seoPages.dashboard.description,
+  ...generateOGMetadata({
+    title: seoPages.dashboard.title,
+    description: seoPages.dashboard.description,
+  }),
+}
 
 export default async function Page() {
 	const user = await getUser()

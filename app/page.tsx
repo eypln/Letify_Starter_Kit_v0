@@ -1,3 +1,14 @@
+import type { Metadata } from 'next'
+import { seoPages, generateOGMetadata } from '@/lib/seo'
+
+export const metadata: Metadata = {
+  title: seoPages.home.title,
+  description: seoPages.home.description,
+  ...generateOGMetadata({
+    title: seoPages.home.title,
+    description: seoPages.home.description,
+  }),
+}
 
 export default function HomePage() {
   return (
