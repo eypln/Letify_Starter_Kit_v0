@@ -9,7 +9,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 // Client form interface
@@ -44,11 +45,66 @@ const columns = [
   "Budget",
   "Move In",
   "Phone",
+  "Teamwork",
 ];
 
 const pageSize = 10;
 import Link from "next/link";
 import { LayoutGrid } from "lucide-react";
+
+function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; clientName: string }) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  async function handleShare() {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/teamwork/clients/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast({
+          title: 'Success',
+          description: `"${clientName}" shared to Teamwork successfully`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to share client',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing client:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to share client',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleShare();
+      }}
+      disabled={loading}
+      className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 underline disabled:opacity-50"
+      title="Share to Teamwork"
+    >
+      <Share2 className="w-4 h-4" />
+      {loading ? 'Sharing...' : 'Share'}
+    </button>
+  );
+}
 
 export default function ClientsPage() {
   // Ülke listesi react-select için options formatında
@@ -58,6 +114,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [jobsModal, setJobsModal] = useState<string | null>(null);
   const petOptions = [
     { label: "No", value: "No" },
     { label: "Dog", value: "Dog" },
@@ -287,17 +344,16 @@ export default function ClientsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
-      {/* Dashboard button top right */}
-      <div className="flex justify-end mb-6">
-        <Link href="/dashboard">
-          <Button variant="outline" className="flex items-center gap-2 bg-muted text-muted-foreground px-4 py-2 rounded-lg shadow-none">
-            <LayoutGrid className="h-4 w-4" /> Dashboard
-          </Button>
+      <div className="relative mt-8">
+        <Link href="/dashboard" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
         </Link>
-      </div>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Clients</CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Clients</CardTitle>
           <Button className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2" onClick={() => {
             setForm({
               ...form,
@@ -499,7 +555,15 @@ export default function ClientsPage() {
                       <td className="px-3 py-2">{client.cities}</td>
                       <td className="px-3 py-2">{client.family_sharing}</td>
                       <td className="px-3 py-2">{client.nationalities}</td>
-                      <td className="px-3 py-2">{client.jobs}</td>
+                      <td 
+                        className="px-3 py-2 max-w-[80px] truncate cursor-pointer hover:text-purple-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          client.jobs && setJobsModal(client.jobs);
+                        }}
+                      >
+                        {client.jobs}
+                      </td>
                       <td className="px-3 py-2">{client.pet}</td>
                       <td className="px-3 py-2">{client.budget}</td>
                       <td className="px-3 py-2">
@@ -510,6 +574,9 @@ export default function ClientsPage() {
                             : client.move_in}
                       </td>
                       <td className="px-3 py-2">{client.phone}</td>
+                      <td className="px-3 py-2">
+                        <ClientTeamworkShareButton clientId={client.id} clientName={client.name} />
+                      </td>
                     </tr>
                   ))
                 )}
@@ -517,15 +584,44 @@ export default function ClientsPage() {
             </table>
           </div>
           {/* Pagination Controls */}
-          <div className="flex justify-end items-center gap-2 mt-4">
-            <Button variant="outline" disabled={page === 1} onClick={() => setPage(1)}>First</Button>
-            <Button variant="outline" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
-            <span className="px-2">{page}</span>
-            <Button variant="outline" disabled={page === pageCount} onClick={() => setPage(page + 1)}>Next</Button>
-            <Button variant="outline" disabled={page === pageCount} onClick={() => setPage(pageCount)}>Last</Button>
+          <div className="flex justify-center items-center space-x-2 mt-4">
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(1)}>First</Button>
+            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={page === pageNum ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(pageNum)}
+              >
+                {pageNum}
+              </Button>
+            ))}
+            <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(page + 1)}>Next</Button>
+            <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(pageCount)}>Last</Button>
           </div>
         </CardContent>
       </Card>
+      </div>
+
+      {/* Jobs Modal */}
+      {jobsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div 
+            className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-black"
+              onClick={() => setJobsModal(null)}
+              aria-label="Close"
+            >✕</button>
+            <div className="text-base whitespace-pre-line max-h-[60vh] overflow-auto">
+              {jobsModal}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

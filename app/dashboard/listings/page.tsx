@@ -6,12 +6,64 @@ import { getListings } from './actions';
 import Link from 'next/link';
 import AddDialog from './add-dialog';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, CheckCircle, Share2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 import { useSearchParams } from 'next/navigation';
 
 const queryClient = new QueryClient();
+
+function TeamworkShareButton({ listingId, title }: { listingId: string; title: string }) {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  async function handleShare() {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/teamwork/listings/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast({
+          title: 'Success',
+          description: `"${title}" shared to Teamwork successfully`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to share listing',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing listing:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to share listing',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      disabled={loading}
+      className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 underline disabled:opacity-50"
+      title="Share to Teamwork"
+    >
+      <Share2 className="w-4 h-4" />
+      {loading ? 'Sharing...' : 'Share'}
+    </button>
+  );
+}
 
 export default function ListingsPage() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
@@ -48,21 +100,20 @@ export default function ListingsPage() {
     <QueryClientProvider client={queryClient}>
       <div className="max-w-6xl mx-auto p-6 space-y-4">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        {/* Sol: Listings + Add */}
+      <div className="mb-6 relative">
+        {/* Dashboard button - top right */}
+        <Link href="/dashboard" className="absolute -top-2 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+          <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+          </svg>
+          Dashboard
+        </Link>
+        
+        {/* Listings title + Add */}
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Listings</h1>
           <AddDialog />
         </div>
-
-        {/* Sağ: diğer sayfalardaki gibi Dashboard etiketi */}
-        {/* Eğer shadcn Button kullanıyorsanız: */}
-        <Button variant="secondary" asChild>
-          <Link href="/dashboard" className="inline-flex items-center">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
-          </Link>
-        </Button>
       </div>
       <div className="overflow-x-auto rounded-xl border">
         <table className="min-w-[900px] w-full text-sm">
@@ -80,6 +131,7 @@ export default function ListingsPage() {
               <th>Description</th>
               <th>FB post</th>
               <th>FB reels</th>
+              <th>Teamwork</th>
             </tr>
           </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
@@ -113,31 +165,43 @@ export default function ListingsPage() {
                     ? <a href={r.fbReelsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-green-600 underline"><CheckCircle className="w-4 h-4" />Open</a>
                     : <span className="text-gray-400">pending</span>}
                 </td>
+                <td className="whitespace-nowrap">
+                  <TeamworkShareButton listingId={r.id} title={r.title} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {/* Pagination */}
-      <nav aria-label="Pagination" className="flex items-center gap-2">
-        <a className="px-3 py-1 rounded border" href={hrefFor(first)} aria-disabled={page===first}>First</a>
-        <a className="px-3 py-1 rounded border" href={hrefFor(prev)} aria-disabled={page===first}>Prev</a>
+      <div className="flex items-center justify-center space-x-2 mt-4">
+        <Button variant="outline" size="sm" asChild>
+          <a href={hrefFor(first)} aria-disabled={page===first}>First</a>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <a href={hrefFor(prev)} aria-disabled={page===first}>Prev</a>
+        </Button>
 
         {start > first && <span className="px-2">…</span>}
         {pages.map(n => (
-          <a
+          <Button
             key={n}
-            href={hrefFor(n)}
-            className={`px-3 py-1 rounded border ${n===page ? 'bg-black text-white' : 'bg-white hover:bg-gray-50'}`}
+            variant={n === page ? "default" : "outline"}
+            size="sm"
+            asChild
           >
-            {n}
-          </a>
+            <a href={hrefFor(n)}>{n}</a>
+          </Button>
         ))}
         {end < last && <span className="px-2">…</span>}
 
-        <a className="px-3 py-1 rounded border" href={hrefFor(next)} aria-disabled={page===last}>Next</a>
-        <a className="px-3 py-1 rounded border" href={hrefFor(last)} aria-disabled={page===last}>Last</a>
-      </nav>
+        <Button variant="outline" size="sm" asChild>
+          <a href={hrefFor(next)} aria-disabled={page===last}>Next</a>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <a href={hrefFor(last)} aria-disabled={page===last}>Last</a>
+        </Button>
+      </div>
       {/* Description Modal */}
       {descModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -156,5 +220,4 @@ export default function ListingsPage() {
       </div>
     </QueryClientProvider>
   );
-// End of ListingsPage
 }

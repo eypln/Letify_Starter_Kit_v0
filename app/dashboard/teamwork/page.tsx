@@ -1,7 +1,6 @@
 import { getUser, getProfile } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Suspense } from 'react'
-import DashboardClient from './DashboardClient'
+import TeamworkClient from './TeamworkClient'
 
 export default async function Page() {
 	const user = await getUser()
@@ -14,9 +13,5 @@ export default async function Page() {
 		redirect('/sign-in')
 	}
 
-	return (
-		<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-			<DashboardClient user={user} profile={profile} />
-		</Suspense>
-	)
+	return <TeamworkClient user={user} profile={profile} />
 }

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { LogOut, Plus, BarChart3, FileText, Users, Settings } from 'lucide-react';
+import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner';
 
@@ -188,8 +188,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/dashboard/new-post">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/dashboard/new-post" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Plus className="h-6 w-6 text-purple-600" />
@@ -204,8 +204,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/listings">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+          <Link href="/dashboard/listings" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <FileText className="h-6 w-6 text-purple-600" />
@@ -220,8 +220,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/analytics">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+          <Link href="/dashboard/analytics" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart3 className="h-6 w-6 text-purple-600" />
@@ -236,8 +236,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/clients">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+          <Link href="/dashboard/clients" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-6 w-6 text-purple-600" />
@@ -252,8 +252,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/subscription">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
+          <Link href="/dashboard/subscription" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart3 className="h-6 w-6 text-purple-400" />
@@ -268,8 +268,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/profile">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/dashboard/profile" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Settings className="h-6 w-6 text-purple-600" />
@@ -284,6 +284,54 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               </CardContent>
             </Card>
           </Link>
+          <Link href="/dashboard/teamwork" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users2 className="h-6 w-6 text-purple-600" />
+                  <span>Teamwork</span>
+                </CardTitle>
+                <CardDescription>
+                  Collaborate with your teammate if you have only a client or property in hand
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">Collaborate</Button>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/dashboard/viewings" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Calendar className="h-6 w-6 text-purple-600" />
+                  <span>Viewings</span>
+                </CardTitle>
+                <CardDescription>
+                  Follow up your viewings with your calendar
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">Schedule</Button>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/dashboard/revenue" className="block">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Euro className="h-6 w-6 text-purple-600" />
+                  <span>Revenue</span>
+                </CardTitle>
+                <CardDescription>
+                  Rented records, contract dates, commission income include listing fee and bonuses
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+          <Button variant="secondary" className="w-full bg-purple-100 text-purple-700">View</Button>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
@@ -293,7 +341,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shares This Month:</span>
+                  <span className="text-muted-foreground">Posts This Month:</span>
                   <span className="font-medium">{sharesThisMonth === null ? '...' : sharesThisMonth}</span>
                 </div>
                 <div className="flex justify-between">
@@ -337,9 +385,18 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                         {activity.type === 'listing_updated' && `Listing Updated: ${activity.data?.title || 'Untitled'}`}
                         {activity.type === 'client_created' && `New Client Added: ${activity.data?.name || 'Unnamed'}`}
                         {activity.type === 'post_shared' && `Post Shared: ${activity.data?.title || 'Untitled'}`}
-                        {/* Diğer activity tipleri için ekle */}
+                        {activity.type === 'teamwork_listing_shared' && `Listing Shared to Teamwork: ${activity.data?.listing_title || 'N/A'}`}
+                        {activity.type === 'teamwork_client_shared' && `Client Shared to Teamwork: ${activity.data?.client_name || 'N/A'}`}
                       </span>
-                      <span className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(activity.created_at).toLocaleDateString('tr-TR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
                     </li>
                   ))}
                 </ul>
