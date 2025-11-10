@@ -37,6 +37,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
   const [sharesThisMonth, setSharesThisMonth] = useState<number | null>(null);
   const [totalClients, setTotalClients] = useState<number | null>(null);
   const [clientsThisMonth, setClientsThisMonth] = useState<number | null>(null);
+  const [viewingsThisMonth, setViewingsThisMonth] = useState<number | null>(null);
+  const [totalViewings, setTotalViewings] = useState<number | null>(null);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
 
@@ -71,6 +73,20 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         .eq('user_id', user.id)
         .gte('created_at', firstDayISO);
       if (!monthClientsError) setClientsThisMonth(monthClientsCount ?? 0);
+
+      // Viewings statistics
+      const { count: totalViewingsCount, error: totalViewingsError } = await supabase
+        .from('viewings')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if (!totalViewingsError) setTotalViewings(totalViewingsCount ?? 0);
+
+      const { count: monthViewingsCount, error: monthViewingsError } = await supabase
+        .from('viewings')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', firstDayISO);
+      if (!monthViewingsError) setViewingsThisMonth(monthViewingsCount ?? 0);
     }
     fetchStats();
     // Dashboard refresh event listener
@@ -79,7 +95,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
     return () => window.removeEventListener('dashboard:refresh', handler);
   }, [user.id]);
 
-  // Son 5 aktiviteyi çek
+  // Son 7 aktiviteyi çek
   useEffect(() => {
     async function fetchRecentActivities() {
       setRecentLoading(true);
@@ -88,7 +104,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
         .select('id, type, data, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(7);
       if (!error && data) setRecentActivities(data);
       setRecentLoading(false);
     }
@@ -357,6 +373,14 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                   <span className="font-medium">{totalClients === null ? '...' : totalClients}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Viewings This Month:</span>
+                  <span className="font-medium">{viewingsThisMonth === null ? '...' : viewingsThisMonth}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Viewings:</span>
+                  <span className="font-medium">{totalViewings === null ? '...' : totalViewings}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Active Integration:</span>
                   <span className="font-medium">Facebook</span>
                 </div>
@@ -387,6 +411,8 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
                         {activity.type === 'post_shared' && `Post Shared: ${activity.data?.title || 'Untitled'}`}
                         {activity.type === 'teamwork_listing_shared' && `Listing Shared to Teamwork: ${activity.data?.listing_title || 'N/A'}`}
                         {activity.type === 'teamwork_client_shared' && `Client Shared to Teamwork: ${activity.data?.client_name || 'N/A'}`}
+                        {activity.type === 'new_viewing_added' && `New Viewing Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
+                        {activity.type === 'viewing_updated' && `Viewing Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(activity.created_at).toLocaleDateString('tr-TR', {

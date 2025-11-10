@@ -14,6 +14,7 @@ export default function AnalyticsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [monthlyPostUsage, setMonthlyPostUsage] = useState<any[]>([]);
   const [monthlyClientsAdded, setMonthlyClientsAdded] = useState<any[]>([]);
+  const [dailyViewings, setDailyViewings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,6 +93,50 @@ export default function AnalyticsPage() {
               .map(([month, count]) => ({ month, count }))
               .sort((a, b) => a.month.localeCompare(b.month));
             setMonthlyClientsAdded(monthlyData);
+          }
+        });
+
+      // Fetch viewings grouped by day for current month
+      supabase
+        .from('viewings')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          console.log('Viewings data:', data, 'error:', error);
+          if (!error && data) {
+            // Get current month's first and last day
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            
+            console.log('Current month range:', firstDay, 'to', lastDay);
+            
+            // Filter viewings for current month and group by day
+            const grouped: Record<string, number> = {};
+            data.forEach((viewing: any) => {
+              if (viewing.created_at) {
+                const createdDate = new Date(viewing.created_at);
+                if (createdDate >= firstDay && createdDate <= lastDay) {
+                  const day = createdDate.getDate();
+                  grouped[day] = (grouped[day] || 0) + 1;
+                }
+              }
+            });
+            
+            console.log('Grouped viewings by day:', grouped);
+            
+            // Create array with all days of the month
+            const daysInMonth = lastDay.getDate();
+            const dailyData = [];
+            for (let day = 1; day <= daysInMonth; day++) {
+              dailyData.push({
+                day: day.toString(),
+                count: grouped[day] || 0
+              });
+            }
+            
+            console.log('Daily viewings data:', dailyData);
+            setDailyViewings(dailyData);
           }
           setLoading(false);
         });
@@ -302,6 +347,23 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="text-gray-500 text-center py-8">No monthly activity data available yet.</div>
+            )}
+          </div>
+
+          {/* Daily Viewings Chart */}
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+            <h2 className="font-semibold mb-4">Monthly Activity: Viewings</h2>
+            {dailyViewings.length > 0 ? (
+              <div className="overflow-x-auto">
+                <BarChart 
+                  data={dailyViewings.map(({ day, count }) => ({ 
+                    city: `Day ${day}`, 
+                    count 
+                  }))} 
+                />
+              </div>
+            ) : (
+              <div className="text-gray-500 text-center py-8">No viewings data available for this month.</div>
             )}
           </div>
         </div>
