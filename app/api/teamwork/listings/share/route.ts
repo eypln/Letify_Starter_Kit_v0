@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server';
+import { sendTeamworkNotification } from '@/lib/pushNotificationHelper';
 
 export async function POST(req: Request) {
   try {
@@ -74,6 +75,21 @@ export async function POST(req: Request) {
         listing_title: listing.title,
         reference_no: listing.title,
         agent_name: profile?.full_name || user.email,
+      },
+    });
+
+    // Send push notification to all other users
+    await sendTeamworkNotification(user.id, {
+      title: '🏠 New Property Listing Shared',
+      body: `${agentName} shared a property in ${listing.city} - ${listing.property_type}, ${listing.bedrooms} bed, ${listing.price}`,
+      icon: '/icons/Logo/192.png',
+      badge: '/icons/Logo/96.png',
+      tag: 'teamwork-listing',
+      data: {
+        type: 'teamwork_listing',
+        listing_id: listingId,
+        agent_name: agentName,
+        url: '/dashboard/teamwork',
       },
     });
 

@@ -137,8 +137,7 @@ export default function PWAInstallPrompt() {
           </Button>
           <Button
             onClick={handleDismiss}
-            variant="outline"
-            className="border-white/30 text-white hover:bg-white/10"
+            className="border-2 border-white bg-white text-purple-700 hover:bg-purple-50"
           >
             Later
           </Button>

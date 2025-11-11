@@ -62,6 +62,9 @@ const vatOptions = [
 export default function RevenueClient({ user, profile }: { user: any; profile: any }) {
   const { toast } = useToast();
   const [revenues, setRevenues] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -131,11 +134,8 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
 
     const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
-    // Agent income: 40% if vatable, 32% if non-vatable
-    let agent_income = form.vatable ? rentAmount * 0.40 : rentAmount * 0.32;
-    
-    // Agent TAX: If non-vatable, the difference between 40% and 32% (8% of rent amount)
-    const agent_tax = form.vatable ? 0 : rentAmount * 0.08;
+    // Agent income calculation (always start from 40%)
+    let agent_income = rentAmount * 0.40;
     
     // Reduce agent income based on discounts
     // If landlord has 15% discount, reduce agent income by 7.5%
@@ -151,6 +151,16 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
     if (agent_income_reduction > 0) {
       agent_income = agent_income * (1 - agent_income_reduction);
     }
+
+    // Agent TAX calculation
+    let agent_tax = 0;
+    if (!form.vatable) {
+      // Non-vatable: Agent pays 20% tax on their income
+      agent_tax = agent_income * 0.20;
+      // Reduce agent income by the tax amount (net income)
+      agent_income = agent_income - agent_tax;
+    }
+    // If vatable, no tax deduction needed (already handled by company)
 
     setCalculatedFees({
       landlord_fee,
@@ -168,6 +178,7 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
   async function getUserAndRevenues(currentPage = page) {
     setLoading(true);
 
+    // Fetch revenues
     const { data, error, count } = await supabase
       .from("revenue")
       .select("*", { count: "exact" })
@@ -179,6 +190,39 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
       setRevenues(data);
       setPageCount(Math.ceil((count || 0) / pageSize));
     }
+
+    // Fetch listings for Ref No dropdown
+    const { data: listingsData } = await supabase
+      .from("listings")
+      .select("id, title")
+      .order("created_at", { ascending: false });
+
+    if (listingsData) {
+      setListings(listingsData);
+    }
+
+    // Fetch clients for Client Name dropdown
+    const { data: clientsData } = await supabase
+      .from("clients")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (clientsData) {
+      setClients(clientsData);
+    }
+
+    // Fetch profiles for Collaboration With dropdown (exclude current user)
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .neq("id", user.id)
+      .order("full_name", { ascending: true });
+
+    if (profilesData) {
+      setProfiles(profilesData);
+    }
+
     setLoading(false);
   }
 
@@ -529,19 +573,65 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">Ref No</label>
-                    <Input
-                      value={form.ref_no}
-                      onChange={(e) => setForm({ ...form, ref_no: e.target.value })}
-                      placeholder="Enter reference number"
+                    <Select
+                      isClearable
+                      placeholder="Select from listings or type manually..."
+                      options={listings.map(listing => ({
+                        label: listing.title,
+                        value: listing.title
+                      }))}
+                      value={form.ref_no ? { label: form.ref_no, value: form.ref_no } : null}
+                      onChange={(selected) => {
+                        setForm({ ...form, ref_no: selected ? selected.value : '' });
+                      }}
+                      onInputChange={(inputValue, { action }) => {
+                        // Allow manual typing
+                        if (action === 'input-change') {
+                          setForm({ ...form, ref_no: inputValue });
+                        }
+                      }}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '40px',
+                          borderColor: '#d1d5db',
+                        }),
+                      }}
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Select an existing listing or type a new reference number
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Client Name</label>
-                    <Input
-                      value={form.client_name}
-                      onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                      placeholder="Enter client name"
+                    <Select
+                      isClearable
+                      placeholder="Select from clients or type manually..."
+                      options={clients.map(client => ({
+                        label: client.name,
+                        value: client.name
+                      }))}
+                      value={form.client_name ? { label: form.client_name, value: form.client_name } : null}
+                      onChange={(selected) => {
+                        setForm({ ...form, client_name: selected ? selected.value : '' });
+                      }}
+                      onInputChange={(inputValue, { action }) => {
+                        // Allow manual typing
+                        if (action === 'input-change') {
+                          setForm({ ...form, client_name: inputValue });
+                        }
+                      }}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '40px',
+                          borderColor: '#d1d5db',
+                        }),
+                      }}
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Select an existing client or type a new name
+                    </p>
                   </div>
                 </div>
 
@@ -688,10 +778,34 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
                 {/* Row 5: Collaboration */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Collaboration With</label>
-                  <Input
-                    value={form.collaboration_with}
-                    onChange={(e) => setForm({ ...form, collaboration_with: e.target.value })}
-                    placeholder="Enter collaboration partner"
+                  <Select
+                    value={
+                      form.collaboration_with
+                        ? { label: form.collaboration_with, value: form.collaboration_with }
+                        : null
+                    }
+                    onChange={(option) =>
+                      setForm({ ...form, collaboration_with: option ? option.value : "" })
+                    }
+                    onInputChange={(inputValue) => {
+                      // Allow manual input by updating form when typing
+                      if (inputValue) {
+                        setForm({ ...form, collaboration_with: inputValue });
+                      }
+                    }}
+                    options={profiles.map((profile) => ({
+                      label: profile.full_name,
+                      value: profile.full_name,
+                    }))}
+                    isClearable
+                    placeholder="Select or type collaboration partner"
+                    className="text-sm"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: "42px",
+                      }),
+                    }}
                   />
                 </div>
 

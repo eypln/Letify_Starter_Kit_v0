@@ -47,7 +47,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12" suppressHydrationWarning>
       <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
         <h1 className="text-2xl font-bold text-center mb-6">Sign Up for Letify</h1>
         <form onSubmit={onSubmit} className="space-y-4">
@@ -61,6 +61,7 @@ export default function SignUpPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
+              suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -75,6 +76,7 @@ export default function SignUpPage() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+1 xxx xxx xxxx"
               required
+              suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -88,6 +90,7 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -102,6 +105,7 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
               required
+              suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -116,6 +120,7 @@ export default function SignUpPage() {
               onChange={(e) => setPassword2(e.target.value)}
               minLength={6}
               required
+              suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>

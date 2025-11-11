@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server';
+import { sendTeamworkNotification } from '@/lib/pushNotificationHelper';
 
 export async function POST(req: Request) {
   try {
@@ -73,6 +74,21 @@ export async function POST(req: Request) {
       data: {
         client_name: client.name,
         agent_name: profile?.full_name || user.email,
+      },
+    });
+
+    // Send push notification to all other users
+    await sendTeamworkNotification(user.id, {
+      title: '👥 New Client Shared',
+      body: `${agentName} shared a client: ${client.people} people, ${client.bedroom} bed, Budget: ${client.budget}, Cities: ${client.cities}`,
+      icon: '/icons/Logo/192.png',
+      badge: '/icons/Logo/96.png',
+      tag: 'teamwork-client',
+      data: {
+        type: 'teamwork_client',
+        client_id: clientId,
+        agent_name: agentName,
+        url: '/dashboard/teamwork',
       },
     });
 
