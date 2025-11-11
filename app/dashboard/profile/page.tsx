@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import ProfileHeader from '@/components/profile/profile-header'
 import ProfileInfoForm from '@/components/profile/profile-info-form'
 import FacebookIntegrationForm from '@/components/profile/facebook-integration-form'
+import NotificationSettings from '@/components/system/NotificationSettings'
 import { Separator } from '@/components/ui/separator'
 
 export default async function ProfilePage() {
@@ -40,7 +41,13 @@ export default async function ProfilePage() {
 
       <Separator />
 
-      <ProfileInfoForm user={user} profile={profile as any} />      <Separator />
+      <ProfileInfoForm user={user} profile={profile as any} />
+      
+      <Separator />
+      
+      <NotificationSettings userId={user.id} />
+      
+      <Separator />
       
       <FacebookIntegrationForm integrations={integrations} />
     </div>

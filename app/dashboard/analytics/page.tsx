@@ -2,8 +2,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import dynamic from 'next/dynamic';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ExportButton } from '@/components/system/AnalyticsComponents'
 import { Calendar, Download } from 'lucide-react'
@@ -299,14 +297,14 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Date Range Filter */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="p-6 pb-4">
+          <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Date Range
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6 pt-0">
           <div className="flex flex-col gap-4 md:flex-row md:items-end">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Start Date</label>
@@ -324,8 +322,8 @@ export default function AnalyticsPage() {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
+            <button
+              className="px-4 py-2 border rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
               onClick={() => {
                 const days = Math.ceil(
                   (new Date(endDate).getTime() - new Date(startDate).getTime()) /
@@ -335,10 +333,10 @@ export default function AnalyticsPage() {
               }}
             >
               Apply
-            </Button>
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Quick Filters */}
       <div className="flex flex-wrap gap-2">
@@ -348,9 +346,13 @@ export default function AnalyticsPage() {
           { label: 'Last 90 Days', days: 90 },
           { label: 'Last Year', days: 365 },
         ].map(({ label, days }) => (
-          <Button
+          <button
             key={days}
-            variant={daysBack === days ? 'default' : 'outline'}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              daysBack === days 
+                ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                : 'border hover:bg-accent hover:text-accent-foreground'
+            }`}
             onClick={() => {
               setDaysBack(days)
               const end = new Date()
@@ -360,7 +362,7 @@ export default function AnalyticsPage() {
             }}
           >
             {label}
-          </Button>
+          </button>
         ))}
       </div>
       {loading ? (
@@ -370,15 +372,15 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Export Summary */}
-          <Card className="bg-muted">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <div className="rounded-lg border bg-muted text-card-foreground shadow-sm">
+            <div className="p-6 pb-4">
+              <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                 <Download className="w-5 h-5" />
                 Advanced Export Options
-              </CardTitle>
-              <CardDescription>Export your data in multiple formats</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">Export your data in multiple formats</p>
+            </div>
+            <div className="p-6 pt-0">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <h4 className="font-semibold mb-3">Posts</h4>
@@ -401,8 +403,8 @@ export default function AnalyticsPage() {
                   <ExportButton exportType="revenue" startDate={startDate} endDate={endDate} />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <h2 className="text-2xl font-bold">Portfolio Analysis</h2>
         </>

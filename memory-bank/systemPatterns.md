@@ -152,6 +152,106 @@ export default function DashboardClient({
 - Database sync with billing tables
 - Credit ledger for transaction tracking
 
+### Push Notifications Pattern (11.11.2025)
+**Client-side Architecture**:
+```typescript
+// 1. Browser API wrapper (lib/notifications.ts)
+export async function subscribeToPush(vapidKey: string): Promise<PushSubscription | null> {
+  if (!isPushSupported()) return null
+  const permission = await requestNotificationPermission()
+  if (permission !== 'granted') return null
+  
+  const registration = await navigator.serviceWorker.ready
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey)
+  })
+  return subscription
+}
+
+// 2. Client Component with Hydration Safety
+'use client'
+export default function NotificationSettings() {
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => { setMounted(true) }, [])
+  
+  if (!mounted) return <div>Loading...</div> // Prevent hydration mismatch
+  
+  if (!isPushSupported()) return <div>Not supported</div>
+  // ... rest of component
+}
+```
+
+**Server-side Architecture**:
+```typescript
+// API endpoint (app/api/notifications/send/route.ts)
+import webpush from 'web-push'
+
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT!,
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!
+)
+
+// Send to all users or specific user
+const subscriptions = await supabase
+  .from('push_subscriptions')
+  .select('*')
+  .eq(userId ? 'user_id' : 'id', userId ? userId : subscriptions[0].id)
+
+await Promise.allSettled(
+  subscriptions.map(sub => 
+    webpush.sendNotification(sub, JSON.stringify(payload))
+  )
+)
+```
+
+**Database Pattern**:
+```sql
+-- push_subscriptions table
+CREATE TABLE push_subscriptions (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint TEXT UNIQUE NOT NULL,
+  keys JSONB NOT NULL, -- {p256dh, auth}
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS: Users can only see/modify their own subscriptions
+CREATE POLICY "Users can view own subscriptions" ON push_subscriptions
+  FOR SELECT USING (auth.uid() = user_id);
+```
+
+**Type Safety**:
+```typescript
+// Avoid conflict with browser's PushSubscription API
+type DbPushSubscription = Database['public']['Tables']['push_subscriptions']['Row']
+
+// Use in API routes
+const subscriptions = await supabase
+  .from('push_subscriptions')
+  .select('*')
+  .returns<DbPushSubscription[]>()
+```
+
+**Key Challenges Solved**:
+1. **Hydration Mismatch**: Browser APIs (ServiceWorker, PushManager) only available client-side
+   - Solution: `mounted` state flag, early return with loading state
+2. **Type Conflicts**: Browser's global `PushSubscription` vs database type
+   - Solution: Type alias `DbPushSubscription`
+3. **Permission Handling**: Complex browser permission flow
+   - Solution: Wrapper functions with error handling
+4. **Service Worker Lifecycle**: Push events, notification clicks
+   - Solution: Separate `sw-push.js` with event handlers
+
+**Future Integration Points**:
+- New listing shared → Send notification
+- Viewing reminder (1 hour before) → Send notification
+- Revenue milestone → Send notification
+- Team collaboration request → Send notification
+
 ## Component İlişkileri
 
 ### Core Components

@@ -7,7 +7,7 @@ export const siteConfig = {
   name: 'Letify',
   title: 'Letify - Letting Assistant',
   description: 'Your professional letting assistant with powerful tools for property management, viewings, and client coordination.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://letify.com',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://letify.cloud',
   ogImage: '/og-image.png',
   keywords: [
     'letting',
@@ -25,7 +25,7 @@ export const siteConfig = {
   authors: [
     {
       name: 'Letify Team',
-      url: 'https://letify.com',
+      url: 'https://letify.cloud',
     },
   ],
 }

@@ -96,7 +96,7 @@ export default function PWAInstallPrompt() {
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 p-1 hover:bg-white/20 rounded-full transition-colors"
-          aria-label="Kapat"
+          aria-label="Close"
         >
           <X className="h-4 w-4" />
         </button>
@@ -106,9 +106,9 @@ export default function PWAInstallPrompt() {
             <span className="text-2xl">🏠</span>
           </div>
           <div>
-            <h3 className="font-bold text-lg mb-1">Letify'ı Yükle</h3>
+            <h3 className="font-bold text-lg mb-1">Install Letify</h3>
             <p className="text-sm text-purple-100">
-              Ana ekranınıza ekleyin ve hızlıca erişin
+              Add to your phone screen for quick access
             </p>
           </div>
         </div>
@@ -116,15 +116,15 @@ export default function PWAInstallPrompt() {
         <ul className="space-y-2 mb-4 text-sm text-purple-100">
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>
-            Anında açılış - uygulama gibi hız
+            Instant launch - app-like speed
           </li>
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>
-            Çevrimdışı çalışma desteği
+            Offline support
           </li>
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>
-            Push bildirimleri (yakında)
+            Push notifications
           </li>
         </ul>
 
@@ -133,14 +133,14 @@ export default function PWAInstallPrompt() {
             onClick={handleInstall}
             className="flex-1 bg-white text-purple-700 hover:bg-purple-50"
           >
-            Yükle
+            Install
           </Button>
           <Button
             onClick={handleDismiss}
             variant="outline"
             className="border-white/30 text-white hover:bg-white/10"
           >
-            Sonra
+            Later
           </Button>
         </div>
       </div>

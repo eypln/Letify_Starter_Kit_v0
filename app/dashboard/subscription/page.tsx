@@ -5,8 +5,6 @@ import React, { useState, Suspense } from 'react';
 import RefreshOnSuccess from './RefreshOnSuccess';
 import { useBillingController } from './useBillingController';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Zap, Star, Users } from 'lucide-react';
 
@@ -236,31 +234,28 @@ export default function SubscriptionPage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {CREDIT_PACKAGES.map((pkg) => (
-              <Card key={pkg.amount} className="hover:shadow-lg transition-shadow border-purple-200">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-lg">{pkg.amount} Credits</CardTitle>
-                  <CardDescription>{pkg.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
+              <div key={pkg.amount} className="rounded-lg border border-purple-200 bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow">
+                <div className="p-6 pb-4 text-center">
+                  <h3 className="text-lg font-semibold leading-none tracking-tight">{pkg.amount} Credits</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{pkg.description}</p>
+                </div>
+                <div className="p-6 pt-0 text-center">
                   <div className="text-2xl font-bold text-purple-600">{pkg.price}</div>
                   <p className="text-sm text-gray-500 mt-1">
                     €
                     {(parseInt(pkg.price.replace('€', '')) / pkg.amount).toFixed(2)} per credit
                   </p>
-                </CardContent>
-                <CardFooter>
-                  <Button
+                </div>
+                <div className="p-6 pt-0">
+                  <button
                     onClick={() => buyCredit(pkg.amount as 10 | 20 | 50 | 100 | 200)}
                     disabled={loadingKey === `credit-${pkg.amount}`}
-                    className={cn(
-                      'w-full text-white border-none',
-                      'bg-purple-500 hover:bg-purple-600'
-                    )}
+                    className="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loadingKey === `credit-${pkg.amount}` ? 'Loading...' : 'Buy Now'}
-                  </Button>
-                </CardFooter>
-              </Card>
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -310,10 +305,10 @@ export default function SubscriptionPage() {
               const isEnterprise = plan.type === 'enterprise';
 
               return (
-                <Card
+                <div
                   key={plan.type}
                   className={cn(
-                    'relative transition-all duration-200 hover:shadow-lg',
+                    'relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-lg flex flex-col',
                     plan.popular && 'ring-2 ring-purple-500 scale-105',
                     isCurrentPlan && 'ring-2 ring-purple-600'
                   )}
@@ -323,7 +318,7 @@ export default function SubscriptionPage() {
                       <Badge className="bg-purple-500 text-white px-3 py-1">Most Popular</Badge>
                     </div>
                   )}
-                  <CardHeader className="text-center">
+                  <div className="p-6 pb-4 text-center">
                     <div className="flex justify-center mb-2">
                       <IconComp
                         className={cn(
@@ -335,8 +330,8 @@ export default function SubscriptionPage() {
                         )}
                       />
                     </div>
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                    <div className="space-y-1">
+                    <h3 className="text-xl font-semibold leading-none tracking-tight">{plan.name}</h3>
+                    <div className="space-y-1 mt-2">
                       <div className="text-3xl font-bold text-purple-600">
                         {currentPrice}
                         {!isEnterprise && currentPrice !== '€0' && (
@@ -351,10 +346,10 @@ export default function SubscriptionPage() {
                         </div>
                       )}
                     </div>
-                    <CardDescription className="text-center">{plan.description}</CardDescription>
-                  </CardHeader>
+                    <p className="text-sm text-muted-foreground mt-2 text-center">{plan.description}</p>
+                  </div>
 
-                  <CardContent className="flex-1">
+                  <div className="p-6 pt-0 flex-1">
                     <ul className="space-y-2">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm">
@@ -366,10 +361,10 @@ export default function SubscriptionPage() {
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
+                  </div>
 
-                  <CardFooter>
-                    <Button
+                  <div className="p-6 pt-0">
+                    <button
                       onClick={() => {
                         if (isEnterprise) {
                           window.open(
@@ -386,7 +381,7 @@ export default function SubscriptionPage() {
                         loadingKey === `sub-${plan.type}-${billingCycle}`
                       }
                       className={cn(
-                        'w-full text-white border-none',
+                        'w-full px-4 py-2 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                         'bg-purple-500 hover:bg-purple-600',
                         isCurrentPlan && 'bg-purple-600 hover:bg-purple-700'
                       )}
@@ -396,9 +391,9 @@ export default function SubscriptionPage() {
                         : isCurrentPlan
                         ? 'Current Plan'
                         : plan.buttonText}
-                    </Button>
-                  </CardFooter>
-                </Card>
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>

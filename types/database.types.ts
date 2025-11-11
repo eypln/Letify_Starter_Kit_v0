@@ -419,6 +419,41 @@ export interface Database {
             updated_at?: string;
           };
         };
+        push_subscriptions: {
+          Row: {
+            id: number;
+            user_id: string;
+            endpoint: string;
+            keys: {
+              p256dh: string;
+              auth: string;
+            };
+            created_at: string;
+            updated_at: string;
+          };
+          Insert: {
+            id?: number;
+            user_id: string;
+            endpoint: string;
+            keys: {
+              p256dh: string;
+              auth: string;
+            };
+            created_at?: string;
+            updated_at?: string;
+          };
+          Update: {
+            id?: number;
+            user_id?: string;
+            endpoint?: string;
+            keys?: {
+              p256dh: string;
+              auth: string;
+            };
+            created_at?: string;
+            updated_at?: string;
+          };
+        };
         viewings: {
           Row: {
             id: number;

@@ -7,11 +7,13 @@
 - **Language**: TypeScript 5.x
 - **UI Library**: React 19.1.1
 - **Styling**: Tailwind CSS 3.x + PostCSS
-- **Component Library**: Radix UI primitives
+- **Component Library**: Radix UI primitives (being migrated to native HTML for performance)
 - **Icons**: Lucide React
 - **Forms**: React Hook Form + Zod validation
 - **Charts**: Recharts
 - **Date Handling**: date-fns
+- **PWA**: next-pwa 5.6.0 (Service Worker, Offline Support, Push Notifications)
+- **Push Notifications**: web-push 3.6.7 (VAPID authentication, browser notifications)
 
 ### Backend & Database
 - **Backend-as-a-Service**: Supabase
@@ -66,6 +68,11 @@ N8N_STATUS_CALLBACK_SECRET=
 
 # App
 NEXT_PUBLIC_WEBAPP_URL=
+
+# Push Notifications (11.11.2025)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@letify.cloud
 ```
 
 ### Local Development
@@ -110,6 +117,9 @@ pnpm dev
 - @tanstack/react-query: Data fetching
 - react-hook-form: Form handling
 - zod: Schema validation
+- next-pwa: Progressive Web App support
+- web-push: Push notification server (VAPID)
+- @types/web-push: TypeScript types for web-push
 
 ### UI Dependencies
 - @radix-ui/*: Component primitives

@@ -15,6 +15,107 @@
 
 ## Son Değişiklikler (Tarih Sırası)
 
+### 11.11.2025 - Push Notifications Implementation ✅
+**Feature**: Web Push API integration for PWA
+**Solution**: Complete push notification infrastructure
+**Changes:**
+- Created `lib/notifications.ts` (249 lines): Web Push API utilities
+  - `subscribeToPush()`, `unsubscribeFromPush()`, `savePushSubscription()`
+  - Browser compatibility checks, VAPID key conversion
+  - Permission handling and test notifications
+- Created `supabase_migration_2025_12_push_notifications.sql`: Database schema
+  - `push_subscriptions` table with RLS policies
+  - Indexes on user_id and endpoint
+  - CASCADE delete on user removal
+- Created `components/system/NotificationSettings.tsx` (297 lines): UI component
+  - Permission status display, Enable/Disable buttons
+  - Browser compatibility check, benefits list
+  - Integrated in `/dashboard/profile` page
+  - Client-side only rendering (hydration safe)
+- Created `app/api/notifications/send/route.ts` (198 lines): Server endpoint
+  - POST endpoint for sending notifications
+  - Batch sending with Promise.allSettled
+  - Automatic cleanup of expired subscriptions
+  - VAPID authentication with web-push library
+- Created `public/sw-push.js`: Service worker push handlers
+- VAPID keys generated and configured in `.env.local`
+- TypeScript types: Added `push_subscriptions` to `types/supabase.ts`
+- Type alias: `DbPushSubscription` to avoid conflict with browser's PushSubscription API
+- PWA Install Prompt updated: "Push notifications (coming soon)" → "Push notifications"
+- All text in install prompt changed to English
+- **Testing**: Successfully tested notification flow (enable → send test → receive)
+- **PWA.md**: Updated with complete push notifications documentation
+
+**Type Conflicts Resolved:**
+- Browser's global `PushSubscription` interface vs custom type
+- Solution: Type alias `type DbPushSubscription = Database['public']['Tables']['push_subscriptions']['Row']`
+
+**Hydration Challenges:**
+- Browser APIs (ServiceWorker, PushManager, Notification) only available client-side
+- Solution: `mounted` state flag for client-only rendering
+- Early return with loading state if `!mounted`
+
+**Performance Impact:**
+- Bundle size: +~15KB (web-push library)
+- Client-side only component (no SSR overhead)
+- Indexed database queries for fast lookups
+
+### 11.11.2025 - Subscription Page Optimization ✅
+**Problem**: Subscription page using Radix UI Card/Button components (revenue-critical page)
+**Solution**: Replaced with native HTML + Tailwind
+**Changes:**
+- Removed imports: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`, `Button`
+- Replaced 9 Card components:
+  - 5 Credit Package cards (10, 20, 50, 100, 200 credits)
+  - 4 Subscription Plan cards (Free, Mini, Full, Enterprise)
+- All buttons converted to native `<button>` with Tailwind classes
+- Performance impact: ~150 KiB unused JavaScript eliminated
+- Bundle size: **343 kB First Load JS** (same as optimized Dashboard)
+
+**Native HTML Pattern Used:**
+```jsx
+// Credit Package Card
+<div className="rounded-lg border border-purple-200 bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow">
+  <div className="p-6 pb-4 text-center">
+    <h3 className="text-lg font-semibold leading-none tracking-tight">{amount} Credits</h3>
+    <p className="text-sm text-muted-foreground mt-2">{description}</p>
+  </div>
+  <div className="p-6 pt-0 text-center">
+    {/* Price display */}
+  </div>
+  <div className="p-6 pt-0">
+    <button className="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors disabled:opacity-50">
+      Buy Now
+    </button>
+  </div>
+</div>
+
+// Subscription Plan Card with flex-col for footer positioning
+<div className="relative rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-lg flex flex-col">
+  <div className="p-6 pb-4 text-center">{/* Header */}</div>
+  <div className="p-6 pt-0 flex-1">{/* Content (features list) */}</div>
+  <div className="p-6 pt-0">{/* Footer (button) */}</div>
+</div>
+```
+
+### 11.11.2025 - SEO URL Update ✅
+**Changes:**
+- `lib/seo.ts`: Updated domain from `letify.com` → `letify.cloud`
+  - `siteConfig.url`: Default URL changed for production deployment
+  - `authors[0].url`: Author URL updated for consistency
+- Environment variable `NEXT_PUBLIC_SITE_URL` will override if set
+
+### 11.11.2025 - Analytics Page Optimization ✅
+**Problem**: Analytics page using Radix UI Card/Button components
+**Solution**: Replaced with native HTML + Tailwind
+**Changes:**
+- Removed imports: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `Button`
+- Replaced 3 Card components:
+  - Date Range Filter
+  - Quick Filters (4 buttons)
+  - Export Options
+- Performance impact: ~90-150 KiB unused JavaScript eliminated
+
 ### 11.11.2025 - Dashboard Performance Optimization - MAJOR SUCCESS ✅
 **Problem**: Dashboard Lighthouse performance score 51, TBT 10,050ms
 **Hedef**: Performance score 75+, TBT < 1,000ms
@@ -186,10 +287,41 @@ alert('Logout failed: ' + (error.message || 'An error occurred during logout'))
 
 ### Technical Debt & Future Considerations
 - ✅ Dashboard optimized (Performance: 86)
-- ⚠️ Other pages still using Radix UI (consider migration if performance issues)
+- ✅ Analytics page optimized (11.11.2025) - Removed Card/Button, replaced with native HTML
+- ✅ Subscription page optimized (11.11.2025) - Removed Card/CardFooter/Button, 343 kB bundle (revenue-critical page secured)
+- ⚠️ **MEDIUM PRIORITY - Consider if performance issues arise**:
+  - `app/dashboard/viewings/ViewingsClient.tsx` - Card, Button (~90 KiB reduction potential)
+  - `app/dashboard/teamwork/TeamworkClient.tsx` - Card, Button (~90 KiB reduction potential)
+- ⚠️ **LOW PRIORITY - Auth/Error pages** (low traffic):
+  - `app/waiting-approval/page.tsx` - Card, Button
+  - `app/verify-email/page.tsx` - Card, Button
+  - `app/access-denied/page.tsx` - Card, Button
 - ⚠️ Toast notifications using alert (consider custom toast implementation)
 - ✅ Production build required for accurate performance testing
 - ✅ Server Components pattern established for future pages
+
+### Radix UI Removal Strategy (for Future Optimizations)
+**Pattern established on Dashboard & Analytics:**
+```jsx
+// Card → Native Div
+<div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+  <div className="p-6 pb-4">
+    <h3 className="text-2xl font-semibold leading-none tracking-tight">Title</h3>
+    <p className="text-sm text-muted-foreground mt-2">Description</p>
+  </div>
+  <div className="p-6 pt-0">{/* Content */}</div>
+</div>
+
+// Button (default variant) → Native Button
+<button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors">
+  Click me
+</button>
+
+// Button (outline variant) → Native Button
+<button className="px-4 py-2 border rounded-md hover:bg-accent hover:text-accent-foreground transition-colors">
+  Apply
+</button>
+```
 
 ### 10.11.2025 - Viewings Feature - Complete Implementation ✅
 **Yeni Features:**
