@@ -199,7 +199,7 @@ export default function DashboardClient({ user, profile }: { user: any; profile:
               Welcome, {profile.full_name || user.email?.split('@')[0]}!
             </h1>
             <p className="text-muted-foreground mt-2">
-              Ready to create content on Letify?
+              Ready to create posts, leads, viewing schedules and revenue!
             </p>
           </div>
         </div>

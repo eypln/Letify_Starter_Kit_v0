@@ -4,7 +4,8 @@ import { useEffect, type ReactNode } from "react";
 export default function ErrorShield({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onError = (e: ErrorEvent) => {
-      const src = e.filename || '';
+      // ErrorEvent doesn't have createFilename, only filename
+      const src = (e as any).filename || e.message || '';
       if (src.startsWith('chrome-extension://')) {
         // MetaMask vb. extension hatalarını dev overlay'e taşımayı engelle
         e.stopImmediatePropagation();

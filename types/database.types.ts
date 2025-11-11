@@ -471,10 +471,82 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_analytics_event: {
+        Args: {
+          p_event_type: string
+          p_event_category: string
+          p_event_data?: Record<string, any>
+        }
+        Returns: string
+      }
+      get_analytics_summary: {
+        Args: {
+          p_user_id: string
+          p_days_back?: number
+        }
+        Returns: {
+          total_events: number
+          unique_event_types: number
+          event_category_distribution: Record<string, any>
+          daily_breakdown: Record<string, any>
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
     }
   }
+}
+
+export interface AnalyticsEvent {
+  id: string
+  user_id: string
+  event_type: string
+  event_category: string
+  event_data: Record<string, any>
+  created_at: string
+}
+
+export interface DetailedMetrics {
+  id: string
+  user_id: string
+  metric_date: string
+  metric_type: string
+  metric_value: number
+  metric_data: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface ExportLog {
+  id: string
+  user_id: string
+  export_type: string
+  export_format: string
+  export_date_range: string
+  export_filters: Record<string, any>
+  file_name: string
+  file_size_bytes: number | null
+  row_count: number | null
+  export_duration_ms: number | null
+  exported_at: string
+}
+
+export interface MonthlySummary {
+  id: string
+  user_id: string
+  month: string
+  posts_created: number
+  posts_viewed: number
+  listings_created: number
+  clients_added: number
+  viewings_scheduled: number
+  viewings_completed: number
+  revenue_total: string
+  revenue_commission: string
+  teamwork_shares: number
+  active_clients: number
+  active_listings: number
+  created_at: string
+  updated_at: string
 }

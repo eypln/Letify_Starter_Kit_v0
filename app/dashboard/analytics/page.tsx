@@ -2,6 +2,12 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import dynamic from 'next/dynamic';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ExportButton } from '@/components/system/AnalyticsComponents'
+import { Calendar, Download } from 'lucide-react'
+
 const GroupedBarChart = dynamic(() => import('@/components/ui/grouped-bar-chart'), { ssr: false });
 const HistogramBarChart = dynamic(() => import('@/components/ui/histogram-bar-chart'), { ssr: false });
 
@@ -16,6 +22,11 @@ export default function AnalyticsPage() {
   const [monthlyClientsAdded, setMonthlyClientsAdded] = useState<any[]>([]);
   const [dailyViewings, setDailyViewings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [daysBack, setDaysBack] = useState(30);
+  const [startDate, setStartDate] = useState(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  )
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
     const supabase = createClient();
@@ -271,9 +282,14 @@ export default function AnalyticsPage() {
   const budgetHistogramData = budgetHistogramLabels.map(label => ({ range: label, count: budgetHistogram[label] || 0 }));
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Portfolio Analysis</h1>
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Analytics & Reports</h1>
+          <p className="text-muted-foreground mt-2">
+            Track your performance and export detailed reports
+          </p>
+        </div>
         <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
@@ -281,11 +297,117 @@ export default function AnalyticsPage() {
           Dashboard
         </a>
       </div>
+
+      {/* Date Range Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Date Range
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const days = Math.ceil(
+                  (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+                    (24 * 60 * 60 * 1000)
+                )
+                setDaysBack(days)
+              }}
+            >
+              Apply
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Filters */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: 'Last 7 Days', days: 7 },
+          { label: 'Last Month', days: 30 },
+          { label: 'Last 90 Days', days: 90 },
+          { label: 'Last Year', days: 365 },
+        ].map(({ label, days }) => (
+          <Button
+            key={days}
+            variant={daysBack === days ? 'default' : 'outline'}
+            onClick={() => {
+              setDaysBack(days)
+              const end = new Date()
+              const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000)
+              setStartDate(start.toISOString().split('T')[0])
+              setEndDate(end.toISOString().split('T')[0])
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
       {loading ? (
         <div className="text-gray-500">Loading…</div>
       ) : listings.length === 0 && clients.length === 0 ? (
         <div className="text-red-500">No data found from Supabase. Check your listings and clients tables and Supabase connection.</div>
       ) : (
+        <>
+          {/* Export Summary */}
+          <Card className="bg-muted">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                Advanced Export Options
+              </CardTitle>
+              <CardDescription>Export your data in multiple formats</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-3">Posts</h4>
+                  <ExportButton exportType="posts" startDate={startDate} endDate={endDate} />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-3">Clients</h4>
+                  <ExportButton exportType="clients" startDate={startDate} endDate={endDate} />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-3">Listings</h4>
+                  <ExportButton exportType="listings" startDate={startDate} endDate={endDate} />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-3">Viewings</h4>
+                  <ExportButton exportType="viewings" startDate={startDate} endDate={endDate} />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-3">Revenue</h4>
+                  <ExportButton exportType="revenue" startDate={startDate} endDate={endDate} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <h2 className="text-2xl font-bold">Portfolio Analysis</h2>
+        </>
+      )}
+      {!loading && (listings.length > 0 || clients.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-white rounded-lg shadow p-8">
             <h2 className="font-semibold mb-4">Listings by City</h2>

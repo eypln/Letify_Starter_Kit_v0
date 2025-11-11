@@ -48,22 +48,22 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
+    icon: '/icons/Logo/32.png',
+    shortcut: '/icons/Logo/16.png',
+    apple: '/icons/Logo/180.png',
   },
   manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" suppressHydrationWarning>
       <head>
         <OrganizationSchema />
         <WebSiteSchema />
         <WebApplicationSchema />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <WebVitals />
         <PWAInstallPrompt />
         <ToastRoot>
