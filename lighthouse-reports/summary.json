@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Home",
+    "url": "/",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Home.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nnpm warn exec The following package was not found and will be installed: lighthouse@12.8.2\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n"
+  },
+  {
+    "name": "SignIn",
+    "url": "/sign-in",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/sign-in\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\SignIn.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n"
+  },
+  {
+    "name": "SignUp",
+    "url": "/sign-up",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/sign-up\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\SignUp.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n"
+  },
+  {
+    "name": "Dashboard",
+    "url": "/dashboard",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Dashboard.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Analytics",
+    "url": "/dashboard/analytics",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/analytics\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Analytics.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Clients",
+    "url": "/dashboard/clients",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/clients\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Clients.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Listings",
+    "url": "/dashboard/listings",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/listings\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Listings.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Viewings",
+    "url": "/dashboard/viewings",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/viewings\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Viewings.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Revenue",
+    "url": "/dashboard/revenue",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/revenue\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Revenue.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Profile",
+    "url": "/dashboard/profile",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/profile\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Profile.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  },
+  {
+    "name": "Subscription",
+    "url": "/dashboard/subscription",
+    "error": "Command failed: npx lighthouse \"http://localhost:3000/dashboard/subscription\" --output=json --output-path=\"D:\\Letify_Fresh\\Letify_Starter_Kit_v0\\lighthouse-reports\\Subscription.json\" --only-categories=performance,accessibility,best-practices,seo --chrome-flags=\"--headless --disable-gpu\" --quiet\nRuntime error encountered: Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests.\n",
+    "requiresAuth": true
+  }
+]

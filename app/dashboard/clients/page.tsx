@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Select from "react-select";
+import dynamic from "next/dynamic";
 import { getNames } from "country-list";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,27 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { LayoutGrid } from "lucide-react";
+
+// Lazy load heavy components
+const Select = dynamic(() => import("react-select"), {
+  ssr: false,
+  loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
+});
+
+// Create a wrapper for DatePicker to avoid type issues
+const DatePickerWrapper = dynamic(
+  () => import("react-datepicker").then((mod) => {
+    const Component = mod.default;
+    return { default: Component as any };
+  }),
+  {
+    ssr: false,
+    loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
+  }
+);
+const DatePicker = DatePickerWrapper as any;
 
 // Client form interface
 interface ClientForm {
@@ -49,8 +69,6 @@ const columns = [
 ];
 
 const pageSize = 10;
-import Link from "next/link";
-import { LayoutGrid } from "lucide-react";
 
 function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; clientName: string }) {
   const { toast } = useToast();

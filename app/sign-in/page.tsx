@@ -1,15 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import ClientOnly from 'app/components/ClientOnly';
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 
 export default function SignInPage() {
   const { toast } = useToast()
@@ -45,55 +40,53 @@ export default function SignInPage() {
     }
   };
 
-    return (
-      <ClientOnly>
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-          <Card className="w-full max-w-md shadow-md">
-            <CardHeader>
-              <CardTitle className="text-center">Sign In</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    minLength={6}
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <span suppressHydrationWarning>
-                    {loading ? 'Checking...' : 'Sign In'}
-                  </span>
-                </Button>
-              </form>
-              <p className="mt-4 text-center text-sm">
-                Don&apos;t have an account?{' '}
-                <Link className="text-purple-700 underline" href="/sign-up">
-                  Sign Up
-                </Link>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </ClientOnly>
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
+        <h1 className="text-2xl font-bold text-center mb-6">Sign In</h1>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          >
+            {loading ? 'Checking...' : 'Sign In'}
+          </button>
+        </form>
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Don&apos;t have an account?{' '}
+          <Link className="text-purple-600 hover:text-purple-700 underline font-medium" href="/sign-up">
+            Sign Up
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

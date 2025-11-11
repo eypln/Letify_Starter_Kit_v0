@@ -2,6 +2,11 @@
   "name": "letify-nextjs",
   "version": "0.1.0",
   "private": true,
+  "sideEffects": [
+    "*.css",
+    "*.scss",
+    "app/globals.css"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,6 +15,7 @@
     "clean": "node -e \"require('fs').rmSync('.next', {recursive: true, force: true}); console.log('.next klasörü silindi')\"",
     "analyze": "ANALYZE=true npm run build",
     "analyze:browser": "ANALYZE=true npm run build && open .next/analyze/client.html",
+    "lighthouse:all": "node scripts/lighthouse-all.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

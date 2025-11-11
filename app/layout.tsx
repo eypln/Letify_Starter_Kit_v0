@@ -5,15 +5,15 @@ import "./globals.css";
 import ToastRoot from "@/components/system/ToastRoot";
 import ErrorShield from "./(app)/error-shield";
 import ErrorBoundary from "@/components/system/ErrorBoundary";
-import WebVitals from "@/components/system/WebVitals";
-import PWAInstallPrompt from "@/components/system/PWAInstallPrompt";
-import { OrganizationSchema, WebSiteSchema, WebApplicationSchema } from "@/components/system/StructuredData";
+import ClientProviders from "@/components/system/ClientProviders";
 import { siteConfig, generateOGMetadata } from "@/lib/seo";
 
 const inter = Inter({ 
   subsets: ["latin"],
-  display: 'swap', // Font display optimization
+  display: 'swap',
   preload: true,
+  fallback: ['system-ui', 'arial'],
+  adjustFontFallback: true,
 });
 
 export const viewport: Viewport = {
@@ -59,13 +59,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
-        <OrganizationSchema />
-        <WebSiteSchema />
-        <WebApplicationSchema />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <WebVitals />
-        <PWAInstallPrompt />
+        <ClientProviders />
         <ToastRoot>
           <ErrorBoundary>
             <ErrorShield>{children}</ErrorShield>

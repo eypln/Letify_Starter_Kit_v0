@@ -8,7 +8,8 @@
 - **Payments**: Stripe (Subscriptions + One-time payments)
 - **Automation**: N8N (Workflow orchestration)
 - **State Management**: Zustand + React Query
-- **Styling**: Tailwind CSS + Radix UI components
+- **Styling**: Tailwind CSS + Native HTML (Radix UI removed from Dashboard for performance)
+- **Performance**: Lighthouse-optimized (Dashboard: Performance 86, TBT 160ms)
 
 ### Component Architecture
 ```
@@ -38,10 +39,101 @@ App (Next.js)
 - RLS (Row Level Security) policies
 
 ### Data Flow Pattern
-- Server Components için server-side data fetching
-- Client Components için React Query + Supabase client
-- Optimistic updates ve error handling
-- Real-time subscriptions (Supabase realtime)
+- **Server Components**: Server-side data fetching with parallel queries (Promise.all)
+- **Client Components**: React Query + Supabase client for interactive features
+- **Optimistic updates** ve error handling
+- **Real-time subscriptions** (Supabase realtime)
+
+#### Server Component Data Fetching Pattern (RECOMMENDED for Performance)
+**Use Case**: Dashboard stats, initial page data, static content
+**Benefits**: Faster LCP, reduced JavaScript, better SEO
+
+```typescript
+// page.tsx (Server Component)
+import { createClient } from '@/lib/supabase/server'
+
+async function fetchDashboardStats(userId: string) {
+  const supabase = await createClient()
+  
+  // Parallel queries for best performance
+  const [listingsTotal, listingsMonth, clientsTotal, clientsMonth, 
+         viewingsTotal, viewingsMonth, activities] = await Promise.all([
+    supabase.from('listings').select('*', { count: 'exact', head: true }),
+    supabase.from('listings').select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDayISO),
+    supabase.from('clients').select('*', { count: 'exact', head: true }),
+    supabase.from('clients').select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDayISO),
+    supabase.from('viewings').select('*', { count: 'exact', head: true }),
+    supabase.from('viewings').select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDayISO),
+    supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(10)
+  ])
+  
+  return {
+    totalListings: listingsTotal.count || 0,
+    sharesThisMonth: listingsMonth.count || 0,
+    totalClients: clientsTotal.count || 0,
+    clientsThisMonth: clientsMonth.count || 0,
+    totalViewings: viewingsTotal.count || 0,
+    viewingsThisMonth: viewingsMonth.count || 0,
+    recentActivities: activities.data || []
+  }
+}
+
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) redirect('/sign-in')
+  
+  const stats = await fetchDashboardStats(user.id)
+  
+  return <DashboardClient user={user} profile={profile} stats={stats} />
+}
+```
+
+```typescript
+// DashboardClient.tsx (Client Component)
+'use client'
+
+interface DashboardStats {
+  totalListings: number
+  sharesThisMonth: number
+  totalClients: number
+  clientsThisMonth: number
+  totalViewings: number
+  viewingsThisMonth: number
+  recentActivities: any[]
+}
+
+export default function DashboardClient({ 
+  user, 
+  profile, 
+  stats 
+}: { 
+  user: any
+  profile: any
+  stats: DashboardStats 
+}) {
+  // No useEffect, no loading states, direct data usage
+  return (
+    <div>
+      <h2>This Month's Performance</h2>
+      <p>Posts: {stats.sharesThisMonth}</p>
+      <p>Clients: {stats.clientsThisMonth}</p>
+      <p>Viewings: {stats.viewingsThisMonth}</p>
+    </div>
+  )
+}
+```
+
+**Performance Impact**:
+- TBT: 10,050ms → 160ms (-98%)
+- LCP: 20.6s (dev) → 3.8s (production) (-81%)
+- No client-side loading states
+- Parallel queries ~300-500ms (vs sequential ~1.5-2s)
+- Better Core Web Vitals scores
 
 ### State Management
 - Global state: Zustand (user preferences, UI state)

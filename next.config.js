@@ -165,10 +165,18 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // Production optimizations
   productionBrowserSourceMaps: false,
+  
+  // Compression
+  compress: true,
+  
+  // Power optimizations
+  poweredByHeader: false,
   
   experimental: {
     serverActions: {
@@ -182,7 +190,14 @@ const nextConfig = {
       '@radix-ui/react-label',
       '@radix-ui/react-separator',
       '@radix-ui/react-slot',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-toast',
+      'date-fns',
+      'react-day-picker',
     ],
+    // Enhanced tree-shaking
+    webpackBuildWorker: true,
   },
   
   // Compiler optimizations
@@ -202,12 +217,80 @@ const nextConfig = {
 
     // Production optimizations
     if (!dev && !isServer) {
-      // Tree shaking optimization
+      // Enhanced tree shaking
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: true,
+        minimize: true,
+        concatenateModules: true,
+        providedExports: true,
+        innerGraph: true,
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000,
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // React framework chunk
+            framework: {
+              name: 'framework',
+              chunks: 'all',
+              test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            // Large libraries (>160KB)
+            lib: {
+              test(module) {
+                return module.size() > 160000 && /node_modules[/\\]/.test(module.identifier())
+              },
+              name(module) {
+                const hash = require('crypto').createHash('sha1')
+                hash.update(module.identifier())
+                return hash.digest('hex').substring(0, 8)
+              },
+              priority: 30,
+              minChunks: 1,
+              reuseExistingChunk: true,
+            },
+            // Supabase chunk
+            supabase: {
+              test: /[\\/]node_modules[\\/](@supabase)[\\/]/,
+              name: 'supabase',
+              priority: 25,
+              reuseExistingChunk: true,
+            },
+            // Radix UI chunk (if still used)
+            radix: {
+              test: /[\\/]node_modules[\\/](@radix-ui)[\\/]/,
+              name: 'radix-ui',
+              priority: 25,
+              reuseExistingChunk: true,
+            },
+            // Common dependencies
+            commons: {
+              name: 'commons',
+              minChunks: 2,
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            // Shared components
+            shared: {
+              name: 'shared',
+              test: /[\\/]components[\\/]/,
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true,
+            },
+          },
+        },
       }
+
+      // Module concatenation for smaller bundles
+      config.optimization.moduleIds = 'deterministic'
+      config.optimization.chunkIds = 'deterministic'
     }
 
     return config;

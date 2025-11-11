@@ -1,8 +1,8 @@
 "use client";
-"use client";
 
 import * as React from 'react';
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Card,
@@ -13,18 +13,43 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Plus, CheckCircle } from 'lucide-react'
-import StartContent from './_components/StartContent'
-import ContentDraftPanel from './_components/ContentDraftPanel'
-import Step2Upload from '@/components/wizard/step2-upload'
-import Step3Post from '@/components/wizard/step3-post'
-import Step4PrepareReels from '@/components/wizard/step4-prepare-reels'
-import Step5ShareReels from '@/components/wizard/step5-share-reels'
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
 import CreateHeader from '@/components/wizard/CreateHeader'
 import JobTimer from '@/components/wizard/JobTimer'
 import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
-import { useUploadStore } from '@/lib/uploads/store' // 👈 useUploadStore'u içe aktar
+import { useUploadStore } from '@/lib/uploads/store'
+
+// Lazy load wizard steps
+const StartContent = dynamic(() => import('./_components/StartContent'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
+
+const ContentDraftPanel = dynamic(() => import('./_components/ContentDraftPanel'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
+
+const Step2Upload = dynamic(() => import('@/components/wizard/step2-upload'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
+
+const Step3Post = dynamic(() => import('@/components/wizard/step3-post'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
+
+const Step4PrepareReels = dynamic(() => import('@/components/wizard/step4-prepare-reels'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
+
+const Step5ShareReels = dynamic(() => import('@/components/wizard/step5-share-reels'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-64">Loading...</div>,
+});
 
 function NewPostContent() {
   const searchParams = useSearchParams();

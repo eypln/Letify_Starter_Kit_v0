@@ -3,14 +3,193 @@
 ## Mevcut Çalışma Odağı
 
 ### Ana Odak Alanları
-1. **Viewings Feature**: Property viewing tracking, calendar view, team leader notifications
-2. **Teamwork Feature**: Listing ve client paylaşım sistemi, takım iş birliği
-3. **UI Consistency**: Dashboard butonları, pagination stilleri, tablo görünümleri
-4. **Post Limitleri & Subscription Control**: Free plan'daki post limitleri (30/ay) ve reels üretimi kontrolü
-5. **Analytics & Monthly Activity Tracking**: Aylık post, client ve viewing ekleme aktivitesi analizi
-6. **Kod Bütünlüğü ve Memory Bank**: Proje karmaşıklığı arttıkça, kod bütünlüğünü sağlamak için memory bank sistemi
+1. **Performance Optimization**: Dashboard performans optimizasyonu - Lighthouse score 51 → 86
+2. **Server Component Migration**: Client-side fetching'den server-side rendering'e geçiş
+3. **UI Component Optimization**: Radix UI'dan native HTML'e migration (205 KiB unused JS eliminated)
+4. **Viewings Feature**: Property viewing tracking, calendar view, team leader notifications
+5. **Teamwork Feature**: Listing ve client paylaşım sistemi, takım iş birliği
+6. **UI Consistency**: Dashboard butonları, pagination stilleri, tablo görünümleri
+7. **Post Limitleri & Subscription Control**: Free plan'daki post limitleri (30/ay) ve reels üretimi kontrolü
+8. **Analytics & Monthly Activity Tracking**: Aylık post, client ve viewing ekleme aktivitesi analizi
+9. **Kod Bütünlüğü ve Memory Bank**: Proje karmaşıklığını yönetmek için memory bank sistemi
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 11.11.2025 - Dashboard Performance Optimization - MAJOR SUCCESS ✅
+**Problem**: Dashboard Lighthouse performance score 51, TBT 10,050ms
+**Hedef**: Performance score 75+, TBT < 1,000ms
+**Sonuç**: Performance 86, TBT 160ms (-98% improvement!)
+
+#### 1. **Radix UI → Native HTML Migration** ✅
+**Kaldırılan Komponentler:**
+- `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogClose`
+- `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`
+- `Button` (tüm varyantlar)
+
+**Native Replacements:**
+```jsx
+// Dialog → Native Modal
+{showReminder && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full mx-4 p-6">
+      {/* Content */}
+    </div>
+  </div>
+)}
+
+// Card → Native Div
+<div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow">
+  <div className="p-6 pb-4">
+    <h3 className="text-2xl font-semibold leading-none tracking-tight">Title</h3>
+    <p className="text-sm text-muted-foreground mt-2">Description</p>
+  </div>
+  <div className="p-6 pt-0">{/* Content */}</div>
+</div>
+
+// Button → Native Button
+<button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors">
+  Click me
+</button>
+```
+
+**Results:**
+- Unused JavaScript: -205 KiB
+- Dialog component: 163.3 KiB (53.0 KiB unused) → 0
+- Button component: 50.6 KiB (49.9 KiB unused) → 0
+- Card component: 40.6 KiB (37.7 KiB unused) → 0
+- Performance: 51 → 57 (+6 points)
+
+#### 2. **Server Component Migration** ✅
+**Changes in `app/dashboard/page.tsx`:**
+```typescript
+// NEW: Server-side data fetching
+async function fetchDashboardStats(userId: string) {
+  const supabase = await createClient()
+  
+  // Parallel queries - all server-side
+  const [listingsTotal, listingsMonth, clientsTotal, clientsMonth, 
+         viewingsTotal, viewingsMonth, activities] = await Promise.all([
+    supabase.from('listings').select('*', { count: 'exact', head: true }),
+    supabase.from('listings').select('*', { count: 'exact', head: true }).gte('created_at', firstDayISO),
+    // ... 5 more parallel queries
+  ])
+  
+  return { totalListings, sharesThisMonth, totalClients, ... }
+}
+
+// Pass stats as prop
+<DashboardClient user={user} profile={profile} stats={stats} />
+```
+
+**Changes in `app/dashboard/DashboardClient.tsx`:**
+```typescript
+// REMOVED: All client-side useEffect data fetching
+// REMOVED: useState for data states
+// REMOVED: createClient import
+
+// NEW: Receive stats as prop
+interface DashboardStats {
+  totalListings: number;
+  sharesThisMonth: number;
+  totalClients: number;
+  clientsThisMonth: number;
+  totalViewings: number;
+  viewingsThisMonth: number;
+  recentActivities: any[];
+}
+
+export default function DashboardClient({ user, profile, stats }: { 
+  user: any; profile: any; stats: DashboardStats 
+})
+
+// Use stats directly (no loading states needed)
+<span>{stats.sharesThisMonth}</span>
+```
+
+**Benefits:**
+- No client-side data fetching
+- No loading states needed
+- Faster initial render
+- Better SEO (data in HTML)
+- Reduced JavaScript execution
+- Server-side caching possible
+
+**Results:**
+- Bundle size: 344 kB → 343 kB (-1 kB)
+- Component size: 4.17 kB → 3.67 kB (-0.5 kB)
+- TBT (dev mode): 10,240ms → 8,060ms
+- Dev mode performance: 57 → 41 (temporary regression due to dev overhead)
+
+#### 3. **Production Build Optimization** ✅
+**Command**: `pnpm run build && pnpm run start`
+
+**Production Results:**
+- **Performance: 86** 🟢 (+35 from initial 51, +45 from dev 41)
+- **FCP: 0.9s** ✅ (consistent)
+- **LCP: 3.8s** ✅ (was 20.6s in dev, -16.8s!)
+- **TBT: 160ms** ✅ (was 10,050ms initially, -98% reduction!)
+- **CLS: 0** 🟢 (perfect)
+- **Speed Index: ~2s** ✅
+- **Accessibility: 93** 🟢
+- **Best Practices: 100** 🟢
+- **SEO: 100** 🟢
+
+#### 4. **Config Cleanup** ✅
+**Removed deprecated `experimental.turbo`:**
+```javascript
+// REMOVED from next.config.js
+experimental: {
+  turbo: {
+    rules: {
+      '*.css': { loaders: ['css-loader'], as: '*.css' }
+    }
+  }
+}
+```
+**Reason**: Next.js 15 deprecation, no longer needed
+
+#### 5. **useToast Hook Replacement** ✅
+**Problem**: `useToast` required ToastProvider (Radix UI dependency)
+**Solution**: Replace with native `alert()`
+```typescript
+// BEFORE
+const { toast } = useToast()
+toast({ title: 'Error', description: error.message, variant: 'destructive' })
+
+// AFTER
+alert('Logout failed: ' + (error.message || 'An error occurred during logout'))
+```
+
+### Key Learnings
+
+#### Performance Optimization Strategy
+1. **Development vs Production**: Always test in production mode
+   - Dev mode: Performance 41 (hot reload, source maps, no minification)
+   - Production: Performance 86 (optimized, minified, cached)
+   
+2. **Component Library Trade-offs**:
+   - Radix UI: 205 KiB unused JavaScript for Dashboard
+   - Native HTML + Tailwind: 0 KiB overhead, better performance
+   - Choose native for performance-critical pages
+
+3. **Server Component Benefits**:
+   - Eliminates client-side data fetching
+   - Reduces JavaScript bundle size
+   - Improves LCP and TBT significantly
+   - Better for SEO and initial load
+
+4. **Metrics Hierarchy**:
+   - **TBT (Total Blocking Time)**: Most impactful for performance score
+   - **LCP (Largest Contentful Paint)**: Critical for user perception
+   - **FCP (First Contentful Paint)**: Important but less weighted
+   - **CLS (Cumulative Layout Shift)**: Easy to optimize
+
+### Technical Debt & Future Considerations
+- ✅ Dashboard optimized (Performance: 86)
+- ⚠️ Other pages still using Radix UI (consider migration if performance issues)
+- ⚠️ Toast notifications using alert (consider custom toast implementation)
+- ✅ Production build required for accurate performance testing
+- ✅ Server Components pattern established for future pages
 
 ### 10.11.2025 - Viewings Feature - Complete Implementation ✅
 **Yeni Features:**
