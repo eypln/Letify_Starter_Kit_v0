@@ -123,11 +123,62 @@ export default function SubscriptionPage() {
   } = useBillingController();
 
   return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto p-6">Loading...</div>}>
+      <SubscriptionContent
+        billingCycle={billingCycle}
+        setBillingCycle={setBillingCycle}
+        buySubscription={buySubscription}
+        buyCredit={buyCredit}
+        openPortal={openPortal}
+        refresh={refresh}
+        loadingKey={loadingKey}
+        errorMsg={errorMsg}
+        infoMsg={infoMsg}
+        testMode={testMode}
+        userId={userId}
+        credits={credits}
+        sub={sub}
+        monthlyPostUsage={monthlyPostUsage}
+      />
+    </Suspense>
+  );
+}
+
+function SubscriptionContent({
+  billingCycle,
+  setBillingCycle,
+  buySubscription,
+  buyCredit,
+  openPortal,
+  refresh,
+  loadingKey,
+  errorMsg,
+  infoMsg,
+  testMode,
+  userId,
+  credits,
+  sub,
+  monthlyPostUsage,
+}: {
+  billingCycle: 'monthly' | 'yearly';
+  setBillingCycle: (cycle: 'monthly' | 'yearly') => void;
+  buySubscription: any;
+  buyCredit: any;
+  openPortal: any;
+  refresh: any;
+  loadingKey: string | null;
+  errorMsg: string | null;
+  infoMsg: string | null;
+  testMode: boolean;
+  userId: string | null;
+  credits: number | null;
+  sub: BillingSubscription | null;
+  monthlyPostUsage: number | null;
+}) {
+  return (
     <>
       {/* görünmez, görseli bozmaz */}
-      <Suspense fallback={null}>
-        <RefreshOnSuccess />
-      </Suspense>
+      <RefreshOnSuccess />
 
       <div className="max-w-6xl mx-auto p-6 space-y-8 relative">
         <div className="absolute top-6 right-8 z-10">

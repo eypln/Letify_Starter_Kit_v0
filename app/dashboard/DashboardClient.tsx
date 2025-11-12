@@ -194,8 +194,8 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
               </div>
             </div>
           </Link>
-          <Link href="/dashboard/subscription" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
+          <div className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm opacity-50 cursor-not-allowed h-full">
               <div className="p-6 pb-4">
                 <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <BarChart3 className="h-6 w-6 text-purple-400" />
@@ -206,10 +206,10 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">Manage</button>
+                <button disabled className="w-full bg-gray-200 text-gray-500 px-4 py-2 rounded-md cursor-not-allowed">Manage</button>
               </div>
             </div>
-          </Link>
+          </div>
           <Link href="/dashboard/profile" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
