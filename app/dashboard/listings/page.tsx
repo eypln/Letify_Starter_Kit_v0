@@ -112,7 +112,7 @@ function ListingsContent() {
         {/* Listings title + Add */}
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Listings</h1>
-          <AddDialog />
+          <AddDialog listings={rows || []} />
         </div>
       </div>
       <div className="overflow-x-auto rounded-xl border">

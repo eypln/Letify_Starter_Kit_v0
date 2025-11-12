@@ -41,7 +41,17 @@
 - ✅ **Performance Optimizations**: Bundle analyzer, lazy loading, Web Vitals monitoring, image/font optimization, loading skeletons, **Dashboard: Performance 86 (11.11.2025)**
 - ✅ **SEO Optimization**: Meta tags, Open Graph, Twitter Cards, sitemap.xml, robots.txt, JSON-LD structured data, SEO.md documentation
 - ✅ **PWA Implementation**: Service worker with next-pwa, offline support, install prompt, manifest.json, cache strategies, PWA.md documentation
-- ✅ **Push Notifications**: Web Push API, VAPID authentication, browser permissions, Supabase storage, NotificationSettings UI, test endpoint **(11.11.2025)**
+- ✅ **Push Notifications - Basic**: Web Push API, VAPID authentication, browser permissions, Supabase storage, NotificationSettings UI, test endpoint **(11.11.2025)**
+- ✅ **Push Notifications - Advanced**: Comprehensive business notification system with 19 notification types across 6 categories **(12.11.2025)**
+  - Viewing reminders (3 types): 24h before, 2h before, 2h after result update
+  - System alerts (5 types): Subscription expiry (3,1,0 days), credits (5,0)
+  - Commission reminders (4 types): Date signed + date move-in (24h before + 8 AM)
+  - Facebook token expiry (4 types): 7,3,0 days + 1-7 days after
+  - Team leader notifications (2 types): New viewing + result change
+  - Boss & team leader notifications (1 type): Revenue both sides paid
+  - 4 Vercel cron jobs (hourly + daily 8 AM schedules)
+  - Smart filtering prevents spam (result change only, boss_notified flag)
+  - PUSH_NOTIFICATIONS_COMPLETE.md v1.6 documentation
 - ✅ **Advanced Analytics**: Event tracking, detailed metrics, multi-format export (CSV/JSON/Excel), analytics dashboard, ANALYTICS.md documentation
 
 ### Integrations

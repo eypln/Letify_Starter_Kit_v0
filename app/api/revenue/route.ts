@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import { sendEmail } from '@/lib/email';
+import webpush from 'web-push';
+
+// Configure VAPID keys
+if (
+  process.env.VAPID_SUBJECT &&
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
+  process.env.VAPID_PRIVATE_KEY
+) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 // GET - Fetch all revenue records for authenticated user
 export async function GET(req: Request) {
@@ -317,12 +331,25 @@ async function sendBossNotification(supabase: any, user_id: string, revenueData:
       .select('email, full_name')
       .eq('role', 'Boss');
 
-    if (bossUsers && bossUsers.length > 0) {
+    // Get team leader users
+    const { data: teamLeaderUsers } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('role', 'teamleader');
+
+    // Combine both Boss and Team Leader users
+    const allRecipients = [
+      ...(bossUsers || []),
+      ...(teamLeaderUsers || [])
+    ];
+
+    if (allRecipients && allRecipients.length > 0) {
       const agentName = userProfile?.full_name || 'Agent';
 
-      // Send email to each boss
-      for (const boss of bossUsers) {
-        if (boss.email) {
+      // Send email and push notification to each recipient (Boss + Team Leaders)
+      for (const recipient of allRecipients) {
+        // Send email
+        if (recipient.email) {
           const emailHtml = generateRevenueNotificationEmail({
             ref_no: revenueData.ref_no || '',
             client_name: revenueData.client_name || '',
@@ -331,14 +358,37 @@ async function sendBossNotification(supabase: any, user_id: string, revenueData:
             client_fee: revenueData.client_fee || 0,
             agent_income: revenueData.agent_income || 0,
             agentName,
-            bossName: boss.full_name || 'Boss',
+            bossName: recipient.full_name || 'Manager',
           });
 
           await sendEmail({
-            to: boss.email,
+            to: recipient.email,
             subject: `Revenue Completed: ${revenueData.ref_no} - ${revenueData.client_name}`,
             html: emailHtml,
           });
+
+          // Send push notification
+          const { data: recipientProfile } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('email', recipient.email)
+            .single();
+
+          if (recipientProfile?.user_id) {
+            await sendBossNotificationPush(recipientProfile.user_id, {
+              title: '💰 Revenue Completed',
+              body: `${agentName} completed revenue for ${revenueData.ref_no}. Both sides paid!`,
+              icon: '/icons/Logo/192.png',
+              badge: '/icons/Logo/96.png',
+              tag: 'boss-revenue-notification',
+              data: {
+                type: 'boss_revenue_completed',
+                ref_no: revenueData.ref_no,
+                agent_name: agentName,
+                url: '/dashboard/revenue',
+              },
+            });
+          }
         }
       }
 
@@ -431,4 +481,59 @@ function generateRevenueNotificationEmail(data: {
     </body>
     </html>
   `;
+}
+
+// Helper function to send push notification to boss
+async function sendBossNotificationPush(userId: string, payload: any) {
+  try {
+    const supabase = await createClient();
+    
+    // Get user's push subscriptions
+    const { data: subscriptions, error } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, keys')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching subscriptions:', error);
+      return;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No push subscriptions found for user ${userId}`);
+      return;
+    }
+
+    // Send notification to all user's devices
+    const notificationPromises = subscriptions.map(async (sub) => {
+      try {
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.keys.p256dh,
+            auth: sub.keys.auth,
+          },
+        };
+
+        await webpush.sendNotification(
+          pushSubscription,
+          JSON.stringify(payload)
+        );
+      } catch (err: any) {
+        // If subscription is invalid/expired, remove it
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('endpoint', sub.endpoint);
+        }
+        console.error('Error sending notification:', err);
+      }
+    });
+
+    await Promise.all(notificationPromises);
+  } catch (error) {
+    console.error('Error in sendBossNotificationPush:', error);
+  }
 }

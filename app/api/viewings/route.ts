@@ -3,6 +3,20 @@ import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import type { Database } from '@/types/supabase';
 import { sendEmail, generateViewingNotificationEmail } from '@/lib/email';
+import webpush from 'web-push';
+
+// Configure VAPID keys
+if (
+  process.env.VAPID_SUBJECT &&
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
+  process.env.VAPID_PRIVATE_KEY
+) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 // GET - Fetch all viewings for authenticated user
 export async function GET(req: Request) {
@@ -128,8 +142,9 @@ export async function POST(req: Request) {
           const agentName = userProfile?.full_name || 'Agent';
           const agentEmail = userProfile?.email || '';
 
-          // Send email to each team leader
+          // Send email and push notification to each team leader
           for (const leader of teamLeaders) {
+            // Send email
             if (leader.email) {
               const emailHtml = generateViewingNotificationEmail({
                 ref_no: ref_no || '',
@@ -148,6 +163,29 @@ export async function POST(req: Request) {
                 to: leader.email,
                 subject: `New Viewing: ${ref_no} - ${client_name}`,
                 html: emailHtml,
+              });
+            }
+
+            // Send push notification
+            const { data: leaderProfile } = await supabase
+              .from('profiles')
+              .select('user_id')
+              .eq('email', leader.email || '')
+              .single();
+
+            if (leaderProfile?.user_id) {
+              await sendTeamLeaderNotification(leaderProfile.user_id, {
+                title: '📅 New Viewing Scheduled',
+                body: `${agentName} scheduled a viewing for ${ref_no || 'property'} in ${city || 'unknown city'} on ${viewing_date}`,
+                icon: '/icons/Logo/192.png',
+                badge: '/icons/Logo/96.png',
+                tag: 'team-leader-viewing',
+                data: {
+                  type: 'team_leader_viewing',
+                  viewing_ref: ref_no,
+                  agent_name: agentName,
+                  url: '/dashboard/viewings',
+                },
               });
             }
           }
@@ -197,6 +235,15 @@ export async function PUT(req: Request) {
   if (userError || !user) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Get existing viewing to check if result changed
+  const { data: existingViewing } = await supabase
+    .from('viewings')
+    .select('result')
+    .eq('id', id)
+    .single();
+
+  const resultChanged = existingViewing && existingViewing.result !== result;
 
   const updateData = {
     ref_no: ref_no ?? null,
@@ -261,8 +308,10 @@ export async function PUT(req: Request) {
       }
     }
 
-    // Send email to team leader if inform_teamleader is true
-    if (inform_teamleader) {
+    // Send email and notification to team leader if:
+    // 1. inform_teamleader is true AND
+    // 2. result has changed (viewing outcome updated)
+    if (inform_teamleader && resultChanged) {
       try {
         // Get user profile for agent name and email
         const { data: userProfile } = await supabase
@@ -281,8 +330,9 @@ export async function PUT(req: Request) {
           const agentName = userProfile?.full_name || 'Agent';
           const agentEmail = userProfile?.email || '';
 
-          // Send email to each team leader
+          // Send email and push notification to each team leader
           for (const leader of teamLeaders) {
+            // Send email
             if (leader.email) {
               const emailHtml = generateViewingNotificationEmail({
                 ref_no: ref_no || '',
@@ -299,9 +349,33 @@ export async function PUT(req: Request) {
 
               await sendEmail({
                 to: leader.email,
-                subject: `Updated Viewing: ${ref_no} - ${client_name}`,
+                subject: `Viewing Result Updated: ${ref_no} - ${result}`,
                 html: emailHtml,
               });
+
+              // Send push notification
+              const { data: leaderProfile } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('email', leader.email)
+                .single();
+
+              if (leaderProfile?.user_id) {
+                await sendTeamLeaderNotification(leaderProfile.user_id, {
+                  title: '✅ Viewing Result Updated',
+                  body: `${agentName} updated viewing result for ${ref_no || 'property'} in ${city || 'unknown city'} - Result: ${result || 'N/A'}`,
+                  icon: '/icons/Logo/192.png',
+                  badge: '/icons/Logo/96.png',
+                  tag: 'team-leader-viewing-result',
+                  data: {
+                    type: 'team_leader_viewing_result',
+                    viewing_ref: ref_no,
+                    agent_name: agentName,
+                    result: result,
+                    url: '/dashboard/viewings',
+                  },
+                });
+              }
             }
           }
         }
@@ -349,4 +423,59 @@ export async function DELETE(req: Request) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+// Helper function to send push notification to team leader
+async function sendTeamLeaderNotification(userId: string, payload: any) {
+  try {
+    const supabase = await createClient();
+    
+    // Get user's push subscriptions
+    const { data: subscriptions, error } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, keys')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching subscriptions:', error);
+      return;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No push subscriptions found for user ${userId}`);
+      return;
+    }
+
+    // Send notification to all user's devices
+    const notificationPromises = subscriptions.map(async (sub) => {
+      try {
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.keys.p256dh,
+            auth: sub.keys.auth,
+          },
+        };
+
+        await webpush.sendNotification(
+          pushSubscription,
+          JSON.stringify(payload)
+        );
+      } catch (err: any) {
+        // If subscription is invalid/expired, remove it
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('endpoint', sub.endpoint);
+        }
+        console.error('Error sending notification:', err);
+      }
+    });
+
+    await Promise.all(notificationPromises);
+  } catch (error) {
+    console.error('Error in sendTeamLeaderNotification:', error);
+  }
 }

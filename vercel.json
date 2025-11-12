@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/viewings/check-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/system/check-alerts",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/revenue/check-commission-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/integrations/check-facebook-token",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

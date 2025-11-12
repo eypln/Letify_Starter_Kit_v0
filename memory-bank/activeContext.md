@@ -15,6 +15,136 @@
 
 ## Son Değişiklikler (Tarih Sırası)
 
+### 12.11.2025 - Advanced Push Notification System - COMPLETE ✅
+**Feature**: Comprehensive business notification system (19 notification types)
+**Solution**: Cron-based and real-time push notifications for all critical business events
+**Version**: 1.6
+
+#### Notification Categories Implemented:
+
+**1. Viewing Reminders (Cron - Hourly)**
+- Created `app/api/viewings/check-reminders/route.ts`
+- 24h before viewing reminder
+- 2h before viewing reminder
+- 2h after viewing result reminder (if still "Scheduled")
+- Vercel cron: `0 * * * *` (every hour)
+
+**2. Team Collaboration Notifications (Instant)**
+- Already implemented: Listing/Client sharing notifications
+
+**3. System Alerts (Cron - Daily 8 AM)**
+- Created `app/api/system/check-alerts/route.ts`
+- Subscription expiry alerts: 3 days, 1 day, expiry day
+- Credit alerts: 5 credits, 0 credits (optimized from 50,25,10,5,0)
+- Vercel cron: `0 8 * * *` (daily at 8 AM)
+
+**4. Commission Reminders (Cron - Hourly)**
+- Created `app/api/revenue/check-commission-reminders/route.ts`
+- Date signed: 24h before + 8 AM on day
+- Date move-in: 24h before + 8 AM on day
+- Uses correct revenue schema: `ref_no` (not property_ref), calculated commission from fees
+- Vercel cron: `0 * * * *` (every hour)
+
+**5. Facebook Token Expiry Alerts (Cron - Daily 8 AM)**
+- Created `app/api/integrations/check-facebook-token/route.ts`
+- Created `supabase_migration_fb_token_expiry.sql`
+- 60-day token expiry cycle tracking
+- Alerts: 7 days, 3 days, expiry day, 1-7 days after expiry
+- Auto-update trigger on `fb_access_token` change
+- Vercel cron: `0 8 * * *` (daily at 8 AM)
+- **Business Critical**: Prevents Facebook auto-posting failure
+
+**6. Team Leader & Boss Notifications (Instant - Real-Time)**
+
+**Team Leader Viewing Notifications:**
+- Modified `app/api/viewings/route.ts`
+- New viewing created (if "Inform Team Leader" checked)
+- Viewing result updated (ONLY if result field changed - smart filtering)
+- Valid result values: DEAL, NO DEAL, Negotiating, Scheduled
+- Added `sendTeamLeaderNotification()` helper function
+- Web-push integration with VAPID authentication
+
+**Boss & Team Leader Revenue Notifications:**
+- Modified `app/api/revenue/route.ts`
+- Trigger: Both `landlord_paid_date` + `client_paid_date` filled + "Inform Boss After Both Sides Paid" checkbox
+- Recipients: ALL users with `role = 'Boss'` OR `role = 'teamleader'`
+- Delivery: Both email AND push notification simultaneously
+- `boss_notified` flag prevents duplicate notifications
+- Added `sendBossNotificationPush()` helper function
+- Notification content: Agent name + property ref (no client name for privacy)
+
+#### Technical Implementation:
+
+**Files Created:**
+1. `app/api/viewings/check-reminders/route.ts` - Viewing reminder cron job
+2. `app/api/system/check-alerts/route.ts` - System health alerts cron job
+3. `app/api/revenue/check-commission-reminders/route.ts` - Commission reminder cron job
+4. `app/api/integrations/check-facebook-token/route.ts` - Facebook token expiry cron job
+5. `supabase_migration_fb_token_expiry.sql` - Database migration for token tracking
+6. `PUSH_NOTIFICATIONS_COMPLETE.md` - Comprehensive system documentation (v1.6)
+
+**Files Modified:**
+1. `app/api/viewings/route.ts` - Added team leader push notifications
+2. `app/api/revenue/route.ts` - Added boss & team leader push notifications
+3. `vercel.json` - Added 4 cron jobs configuration
+
+**Vercel Cron Jobs Configuration:**
+```json
+{
+  "crons": [
+    {"path": "/api/viewings/check-reminders", "schedule": "0 * * * *"},
+    {"path": "/api/system/check-alerts", "schedule": "0 8 * * *"},
+    {"path": "/api/revenue/check-commission-reminders", "schedule": "0 * * * *"},
+    {"path": "/api/integrations/check-facebook-token", "schedule": "0 8 * * *"}
+  ]
+}
+```
+
+**Database Changes:**
+- `users_integrations.fb_token_updated_at` column added (TIMESTAMPTZ)
+- Auto-update trigger: `trg_fb_token_updated` on `fb_access_token` change
+- Backfilled existing records with current timestamp
+
+**Anti-Spam Features:**
+- Team leader: Only notifies on result field change (not comment/time updates)
+- Boss: Single notification per revenue completion via `boss_notified` flag
+- Optimized thresholds: 3,1 day (not 7,3,1), credits 5,0 (not 50,25,10,5,0)
+- Smart filtering prevents constant notifications
+
+**Type Safety:**
+- Used type assertion for `fb_token_updated_at` (new column not in generated types yet)
+- Correct revenue field usage: `ref_no`, calculated commission from `landlord_fee + client_fee`
+
+**Documentation:**
+- `PUSH_NOTIFICATIONS_COMPLETE.md`: 19 notification types, all categories, test procedures
+- Valid viewing result values documented (from CHECK constraint)
+- Environment variables, cron schedules, database schema
+- Version history tracking
+
+**Performance Impact:**
+- 4 additional cron jobs (hourly + daily schedules)
+- Minimal database queries (indexed fields: user_id, viewing_date, date_signed, date_move_in)
+- Efficient parallel queries with Promise.all
+- Automatic cleanup of expired push subscriptions (410/404 errors)
+
+**Production Checklist:**
+- ✅ All TypeScript errors resolved
+- ✅ All cron jobs configured in vercel.json
+- ✅ Comprehensive documentation created
+- ⏳ Run `supabase_migration_fb_token_expiry.sql` in Supabase
+- ⏳ Add `CRON_SECRET` to Vercel environment variables
+- ⏳ Deploy to Vercel (cron jobs auto-activate)
+- ⏳ Test all notification types with real data
+
+**User Requirements Met:**
+- ✅ "benimle herzaman türkçe konuş" - Always communicate in Turkish
+- ✅ No spam - smart filtering on all notifications
+- ✅ Boss + Team Leader receive both email AND push
+- ✅ Team leader only on result changes (DEAL, NO DEAL, Negotiating, Scheduled)
+- ✅ Boss only when both sides paid (no additional spam)
+- ✅ Facebook token alerts prevent business interruption
+- ✅ "ilave başka yeni şeyler ekleme lütfen" - No extra features added
+
 ### 11.11.2025 - Push Notifications Implementation ✅
 **Feature**: Web Push API integration for PWA
 **Solution**: Complete push notification infrastructure

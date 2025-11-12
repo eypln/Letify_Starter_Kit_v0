@@ -198,6 +198,7 @@ export default function ClientsPage() {
   { label: "Paola", value: "Paola" },
   { label: "Pembroke", value: "Pembroke" },
   { label: "Pietà", value: "Pietà" },
+  { label: "Qawra", value: "Qawra" },
   { label: "Qormi", value: "Qormi" },
   { label: "Qrendi", value: "Qrendi" },
   { label: "Rabat", value: "Rabat" },
@@ -493,7 +494,10 @@ export default function ClientsPage() {
                         required
                       />
                     </div>
-                    <Input name="budget" value={form.budget} onChange={handleInputChange} placeholder="Budget" required />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Budget €</label>
+                      <Input name="budget" value={form.budget} onChange={handleInputChange} placeholder="Budget" required />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Move In</label>
                       <DatePicker

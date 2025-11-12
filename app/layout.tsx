@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     shortcut: '/icons/Logo/16.png',
     apple: '/icons/Logo/180.png',
   },
-  manifest: '/site.webmanifest',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

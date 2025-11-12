@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -40,10 +41,10 @@ export default function PWAInstallPrompt() {
       const promptEvent = e as BeforeInstallPromptEvent
       setDeferredPrompt(promptEvent)
       
-      // Show prompt after 30 seconds of usage
+      // Show prompt after 5 seconds of usage
       setTimeout(() => {
         setShowPrompt(true)
-      }, 30000)
+      }, 5000)
     }
 
     window.addEventListener('beforeinstallprompt', handler)
@@ -92,7 +93,7 @@ export default function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50 animate-slide-up">
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg shadow-2xl p-4 text-white">
+      <div className="bg-gradient-to-r from-purple-600/80 to-purple-700/80 backdrop-blur-sm rounded-lg shadow-2xl p-4 text-white">
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 p-1 hover:bg-white/20 rounded-full transition-colors"
@@ -102,13 +103,19 @@ export default function PWAInstallPrompt() {
         </button>
 
         <div className="flex items-start gap-3 mb-4">
-          <div className="flex-shrink-0 w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-2xl">🏠</span>
+          <div className="flex-shrink-0 w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1">
+            <Image 
+              src="/icons/Logo/96.png" 
+              alt="Letify" 
+              width={48} 
+              height={48}
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h3 className="font-bold text-lg mb-1">Install Letify</h3>
             <p className="text-sm text-purple-100">
-              Add to your phone screen for quick access
+              Add to your home screen for quick access
             </p>
           </div>
         </div>
@@ -116,11 +123,11 @@ export default function PWAInstallPrompt() {
         <ul className="space-y-2 mb-4 text-sm text-purple-100">
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>
-            Instant launch - app-like speed
+            Instant app launch
           </li>
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>
-            Offline support
+            Offline process
           </li>
           <li className="flex items-center gap-2">
             <span className="text-green-300">✓</span>

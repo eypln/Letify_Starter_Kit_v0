@@ -112,3 +112,77 @@ export async function sendTeamworkNotification(
     return { sent: 0, failed: 0 }
   }
 }
+
+/**
+ * Send viewing reminder notification to a specific user
+ * @param userId - User ID to send notification to
+ * @param payload - Notification content
+ * @returns Success status
+ */
+export async function sendViewingReminder(
+  userId: string,
+  payload: NotificationPayload
+): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+
+    // Get user's push subscriptions
+    const { data: subscriptions, error } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+
+    if (error) {
+      console.error('Error fetching push subscriptions:', error)
+      return false
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No push subscriptions found for user ${userId}`)
+      return false
+    }
+
+    console.log(`Sending viewing reminder to user ${userId}`)
+
+    // Send to all user's subscriptions
+    const results = await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        try {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.keys.p256dh,
+              auth: sub.keys.auth,
+            },
+          }
+
+          await webpush.sendNotification(
+            pushSubscription,
+            JSON.stringify(payload)
+          )
+
+          return { success: true }
+        } catch (error: any) {
+          console.error(`Failed to send reminder:`, error)
+
+          // Clean up expired/invalid subscriptions
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            console.log(`Removing expired subscription`)
+            await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('id', sub.id)
+          }
+
+          return { success: false, error }
+        }
+      })
+    )
+
+    const sent = results.filter((r) => r.status === 'fulfilled' && r.value.success).length
+    return sent > 0
+  } catch (error) {
+    console.error('Error in sendViewingReminder:', error)
+    return false
+  }
+}

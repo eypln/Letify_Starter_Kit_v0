@@ -136,10 +136,32 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
         <div className="mt-6 p-4 bg-purple-50 rounded-lg">
           <h4 className="font-medium text-purple-900 mb-2">How to get this information?</h4>
           <ul className="text-sm text-purple-800 space-y-1">
+            <li>• Build a Facebook Business Page for more stable GraphAPI</li>
             <li>• Create an app in Facebook Developer Console</li>
+            <li>
+              • Generate the specialized Privacy Policy with{' '}
+              <a 
+                href="https://www.termsfeed.com/privacy-policy-generator/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:text-purple-700 underline"
+              >
+                TermsFeed
+              </a>
+            </li>
             <li>• Get a Page Access Token for your page</li>
-            <li>• Copy the App Secret from your app settings</li>
             <li>• Get the Page ID from your page's "About" section</li>
+            <li>• For more details contact with support team for your facebook integration</li>
+            <li className="mt-2">
+              <a 
+                href="https://developers.facebook.com/docs/facebook-login/guides/access-tokens/#pagetokens" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:text-purple-700 underline"
+              >
+                Documentation: Access Tokens
+              </a>
+            </li>
           </ul>
         </div>
       </CardContent>

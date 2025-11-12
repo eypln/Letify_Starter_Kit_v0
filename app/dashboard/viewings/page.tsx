@@ -71,6 +71,7 @@ export default function ViewingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [currentMonthOffset, setCurrentMonthOffset] = useState(0); // For calendar slider
   const supabase = createClient();
 
   // Autocomplete suggestions
@@ -202,21 +203,22 @@ export default function ViewingsPage() {
     }
   };
 
-  // Generate calendar months (3 months: previous, current, next)
+  // Generate calendar months with slider (previous, current, next)
   const generateMonthsCalendar = () => {
     const today = new Date();
     const months = [];
     
-    // Generate 3 months: previous, current, next
+    // Generate 3 months: previous, current (main), next
     for (let i = -1; i <= 1; i++) {
-      const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      months.push(generateMonthCalendar(monthDate));
+      const monthDate = new Date(today.getFullYear(), today.getMonth() + currentMonthOffset + i, 1);
+      const isMainMonth = i === 0; // Middle month is the main one
+      months.push(generateMonthCalendar(monthDate, isMainMonth));
     }
     
     return months;
   };
 
-  const generateMonthCalendar = (monthDate: Date) => {
+  const generateMonthCalendar = (monthDate: Date, isMainMonth: boolean = false) => {
     const year = monthDate.getFullYear();
     const month = monthDate.getMonth();
     const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -230,7 +232,7 @@ export default function ViewingsPage() {
     
     // Empty cells for days before month starts
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 border border-gray-200"></div>);
+      days.push(<div key={`empty-${i}`} className={`border border-gray-200 ${isMainMonth ? 'h-24' : 'h-12'}`}></div>);
     }
     
     // Days of the month
@@ -246,10 +248,10 @@ export default function ViewingsPage() {
       days.push(
         <div 
           key={day} 
-          className={`h-24 border border-gray-200 p-1 overflow-y-auto ${isToday ? 'bg-purple-50 border-purple-400' : ''}`}
+          className={`border border-gray-200 p-1 overflow-y-auto ${isMainMonth ? 'h-24' : 'h-12'} ${isToday ? 'bg-purple-50 border-purple-400' : ''}`}
         >
-          <div className="font-semibold text-xs text-gray-600 mb-1">{day}</div>
-          {dayViewings.map((viewing: any) => (
+          <div className={`font-semibold text-gray-600 mb-1 ${isMainMonth ? 'text-xs' : 'text-[10px]'}`}>{day}</div>
+          {isMainMonth && dayViewings.map((viewing: any) => (
             <div
               key={viewing.id}
               className={`text-xs p-1 mb-1 rounded cursor-pointer ${
@@ -283,16 +285,21 @@ export default function ViewingsPage() {
               <div className="truncate">{viewing.ref_no}</div>
             </div>
           ))}
+          {!isMainMonth && dayViewings.length > 0 && (
+            <div className="text-[10px] text-center text-purple-600 font-semibold">
+              {dayViewings.length}
+            </div>
+          )}
         </div>
       );
     }
     
     return (
-      <div key={monthName} className="min-w-[300px] flex-shrink-0">
-        <h3 className="font-bold text-center mb-2">{monthName}</h3>
+      <div key={monthName} className={`${isMainMonth ? 'min-w-[600px]' : 'min-w-[250px] opacity-50'} flex-shrink-0 transition-all`}>
+        <h3 className={`font-bold text-center mb-2 ${isMainMonth ? 'text-xl' : 'text-sm'}`}>{monthName}</h3>
         <div className="grid grid-cols-7 gap-0 border border-gray-300">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center font-semibold text-xs p-1 bg-gray-100 border border-gray-200">
+            <div key={day} className={`text-center font-semibold p-1 bg-gray-100 border border-gray-200 ${isMainMonth ? 'text-xs' : 'text-[10px]'}`}>
               {day}
             </div>
           ))}
@@ -672,9 +679,46 @@ export default function ViewingsPage() {
             <CardTitle>Viewing Calendar</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <div className="flex gap-4 pb-4">
-                {generateMonthsCalendar()}
+            <div className="relative">
+              {/* Navigation Buttons */}
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentMonthOffset(prev => prev - 1)}
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentMonthOffset(0)}
+                  disabled={currentMonthOffset === 0}
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentMonthOffset(prev => prev + 1)}
+                  className="flex items-center gap-2"
+                >
+                  Next
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+              
+              {/* Calendar */}
+              <div className="overflow-hidden">
+                <div className="flex gap-4 items-center justify-center">
+                  {generateMonthsCalendar()}
+                </div>
               </div>
             </div>
           </CardContent>

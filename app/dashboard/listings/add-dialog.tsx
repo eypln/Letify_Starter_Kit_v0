@@ -2,12 +2,13 @@
 "use client";
 import ListingPostButton from '@/components/listing/listing-post-button';
 
-import { useState, useTransition, useRef, ChangeEvent } from 'react';
+import { useState, useTransition, useRef, ChangeEvent, useEffect } from 'react';
 import Select from 'react-select';
 import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
+import { Info } from 'lucide-react';
 
 // Malta cities options (Mainland Malta only)
 const maltaCitiesOptions = [
@@ -47,6 +48,7 @@ const maltaCitiesOptions = [
   { label: "Paola", value: "Paola" },
   { label: "Pembroke", value: "Pembroke" },
   { label: "Pietà", value: "Pietà" },
+  { label: "Qawra", value: "Qawra" },
   { label: "Qormi", value: "Qormi" },
   { label: "Qrendi", value: "Qrendi" },
   { label: "Rabat", value: "Rabat" },
@@ -91,7 +93,12 @@ const propertyTypeOptions = [
   { label: 'Block', value: 'Block' },
   { label: 'Rooms', value: 'Rooms' }
 ];
-export default function AddDialog() {
+
+interface AddDialogProps {
+  listings?: any[];
+}
+
+export default function AddDialog({ listings = [] }: AddDialogProps) {
   const { toast } = useToast();
   async function handleStart() {
     setLoading(true);
@@ -282,6 +289,7 @@ export default function AddDialog() {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [referenceNo, setReferenceNo] = useState("");
+  const [suggestedNextNumber, setSuggestedNextNumber] = useState<number | null>(null);
   const [city, setCity] = useState("");
   const [price, setPrice] = useState<string>("");
   const [bedroom, setBedroom] = useState<string>("");
@@ -297,6 +305,31 @@ export default function AddDialog() {
   const [listingId, setListingId] = useState<string>("");
   const [startDone, setStartDone] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
+
+  // Calculate suggested next reference number when dialog opens
+  useEffect(() => {
+    if (open && listings.length > 0) {
+      // Find manual reference numbers (starting with "L" followed by digits, e.g., L1, L2, L3)
+      const manualReferences = listings
+        .map(l => l.referenceNo || l.title)
+        .filter(ref => ref && /^L\d+$/i.test(ref.toString())) // Match L1, L2, L3, etc.
+        .map(ref => parseInt(ref.toString().substring(1))) // Extract number part after "L"
+        .filter(num => !isNaN(num));
+
+      if (manualReferences.length > 0) {
+        const maxNumber = Math.max(...manualReferences);
+        setSuggestedNextNumber(maxNumber + 1);
+      } else {
+        setSuggestedNextNumber(1);
+      }
+    }
+  }, [open, listings]);
+
+  const handleUseSuggested = () => {
+    if (suggestedNextNumber !== null) {
+      setReferenceNo(`L${suggestedNextNumber}`);
+    }
+  };
 
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []).slice(0, 15);
@@ -489,7 +522,24 @@ export default function AddDialog() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="text-xs text-gray-600">Reference No</label>
-                <input className="w-full border rounded-md px-3 py-2" value={referenceNo} onChange={e=>setReferenceNo(e.target.value)} required />
+                
+                <input className="w-full border rounded-md px-3 py-2 mb-2" value={referenceNo} onChange={e=>setReferenceNo(e.target.value)} required />
+                
+                {suggestedNextNumber !== null && (
+                  <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-md text-sm">
+                    <Info className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                    <span className="text-purple-700 text-xs">
+                      Last used manual reference no: L{suggestedNextNumber - 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleUseSuggested}
+                      className="ml-auto px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                    >
+                      Use L{suggestedNextNumber}
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs text-gray-600">City</label>

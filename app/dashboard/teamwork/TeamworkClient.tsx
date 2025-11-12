@@ -132,7 +132,7 @@ export default function TeamworkClient({ user, profile }: { user: any; profile: 
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Teamwork</h1>
           <p className="text-muted-foreground mt-2">
-            Collaborate with your teammates and manage shared listings and clients
+            Collaborate with your teammates and maximize your revenue
           </p>
         </div>
 

@@ -292,3 +292,195 @@ const subscriptions = await supabase
 2. Data processing → N8N workflow
 3. Result callback → Database update
 4. User notification → Email/in-app
+
+### Push Notification Architecture (Advanced - v1.6)
+
+#### System Overview
+19 notification types across 6 categories with cron-based and real-time triggers:
+
+**Cron-Based Notifications (Scheduled)**
+- Vercel cron jobs for time-based reminders
+- Hourly checks: Viewing reminders, commission reminders
+- Daily 8 AM: System alerts, Facebook token expiry
+
+**Real-Time Notifications (Instant)**
+- Triggered on data changes (POST/PUT operations)
+- Team leader viewing notifications
+- Boss & team leader revenue notifications
+
+#### Cron Job Pattern
+```typescript
+// app/api/[feature]/check-[type]/route.ts
+export async function GET(request: Request) {
+  try {
+    // 1. Authenticate cron request
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 2. Query database for pending notifications
+    const supabase = await createClient()
+    const { data: items } = await supabase
+      .from('table')
+      .select('*')
+      .gte('date_field', startDate)
+      .lte('date_field', endDate)
+
+    // 3. Send notifications in batch
+    const notificationPromises = items.map(async (item) => {
+      const { data: subscriptions } = await supabase
+        .from('push_subscriptions')
+        .select('endpoint, keys')
+        .eq('user_id', item.user_id)
+
+      for (const sub of subscriptions || []) {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: sub.keys },
+          JSON.stringify({ title: '...', body: '...', data: {...} })
+        )
+      }
+    })
+
+    await Promise.all(notificationPromises)
+
+    return NextResponse.json({ success: true, count: items.length })
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}
+```
+
+#### Real-Time Notification Pattern
+```typescript
+// app/api/[feature]/route.ts (POST/PUT)
+async function sendNotificationPush(userId: string, payload: any) {
+  try {
+    const supabase = await createClient()
+    
+    // Get user's push subscriptions
+    const { data: subscriptions } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, keys')
+      .eq('user_id', userId)
+
+    if (!subscriptions || subscriptions.length === 0) return
+
+    // Send to all user's devices
+    const notificationPromises = subscriptions.map(async (sub) => {
+      try {
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth }
+        }
+        await webpush.sendNotification(pushSubscription, JSON.stringify(payload))
+      } catch (err: any) {
+        // Clean up expired subscriptions
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await supabase.from('push_subscriptions')
+            .delete().eq('user_id', userId).eq('endpoint', sub.endpoint)
+        }
+      }
+    })
+
+    await Promise.all(notificationPromises)
+  } catch (error) {
+    console.error('Error in sendNotificationPush:', error)
+  }
+}
+```
+
+#### Smart Filtering Pattern (Anti-Spam)
+```typescript
+// Team Leader - Only notify on result change
+const resultChanged = existingViewing && existingViewing.result !== result
+if (inform_teamleader && resultChanged) {
+  await sendTeamLeaderNotification(...)
+}
+
+// Boss - Only notify once via flag
+if (shouldNotify && !existingRevenue.boss_notified) {
+  await sendBossNotification(...)
+  await supabase.from('revenue').update({ boss_notified: true }).eq('id', id)
+}
+```
+
+#### Multi-Recipient Pattern (Boss + Team Leader)
+```typescript
+// Get both Boss and Team Leader users
+const { data: bossUsers } = await supabase.from('profiles')
+  .select('email, full_name').eq('role', 'Boss')
+const { data: teamLeaderUsers } = await supabase.from('profiles')
+  .select('email, full_name').eq('role', 'teamleader')
+
+// Combine recipients
+const allRecipients = [...(bossUsers || []), ...(teamLeaderUsers || [])]
+
+// Send to all
+for (const recipient of allRecipients) {
+  await sendEmail({ to: recipient.email, ... })
+  await sendNotificationPush(recipient.user_id, { ... })
+}
+```
+
+#### Vercel Cron Configuration
+```json
+// vercel.json
+{
+  "crons": [
+    {
+      "path": "/api/viewings/check-reminders",
+      "schedule": "0 * * * *"  // Every hour
+    },
+    {
+      "path": "/api/system/check-alerts",
+      "schedule": "0 8 * * *"  // Daily at 8 AM
+    },
+    {
+      "path": "/api/revenue/check-commission-reminders",
+      "schedule": "0 * * * *"  // Every hour
+    },
+    {
+      "path": "/api/integrations/check-facebook-token",
+      "schedule": "0 8 * * *"  // Daily at 8 AM
+    }
+  ]
+}
+```
+
+#### Database Patterns
+
+**Auto-Update Trigger (Facebook Token)**
+```sql
+CREATE OR REPLACE FUNCTION update_fb_token_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.fb_access_token IS DISTINCT FROM OLD.fb_access_token THEN
+    NEW.fb_token_updated_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_fb_token_updated
+  BEFORE UPDATE ON users_integrations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_fb_token_timestamp();
+```
+
+**One-Time Notification Flag**
+```sql
+-- revenue table
+boss_notified BOOLEAN DEFAULT FALSE
+```
+
+#### Key Design Decisions
+
+1. **Cron vs Real-Time**: Time-based events use cron, data changes use real-time
+2. **Batch Processing**: Promise.all for parallel notification sending
+3. **Error Handling**: Automatic cleanup of expired subscriptions (410/404)
+4. **Smart Filtering**: Only notify on meaningful state changes
+5. **Multi-Recipient**: Single function handles Boss + Team Leader
+6. **Type Safety**: Type assertions for new DB columns not in generated types
+7. **Performance**: Indexed queries (user_id, viewing_date, date_signed, etc.)
