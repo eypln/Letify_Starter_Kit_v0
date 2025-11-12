@@ -101,11 +101,8 @@ export async function POST(req: Request) {
   // Listing fee is 5% of rent amount if has_listing_fee is true
   const listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
 
-  // Agent income: 40% if vatable, 32% if non-vatable
-  let agent_income = vatable ? rentAmountNum * 0.40 : rentAmountNum * 0.32;
-  
-  // Agent TAX: If non-vatable, the difference between 40% and 32% (8% of rent amount)
-  const agent_tax = vatable ? 0 : rentAmountNum * 0.08;
+  // Agent income calculation (always start from 40%)
+  let agent_income = rentAmountNum * 0.40;
   
   // Reduce agent income based on discounts
   // If landlord has 15% discount, reduce agent income by 7.5%
@@ -121,6 +118,16 @@ export async function POST(req: Request) {
   if (agent_income_reduction > 0) {
     agent_income = agent_income * (1 - agent_income_reduction);
   }
+
+  // Agent TAX calculation
+  let agent_tax = 0;
+  if (!vatable) {
+    // Non-vatable: Agent pays 20% tax on their income
+    agent_tax = agent_income * 0.20;
+    // Reduce agent income by the tax amount (net income)
+    agent_income = agent_income - agent_tax;
+  }
+  // If vatable, no tax deduction needed (already handled by company)
 
   const insertData = {
     user_id,
@@ -231,11 +238,8 @@ export async function PUT(req: Request) {
   // Listing fee is 5% of rent amount if has_listing_fee is true
   const listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
 
-  // Agent income: 40% if vatable, 32% if non-vatable
-  let agent_income = vatable ? rentAmountNum * 0.40 : rentAmountNum * 0.32;
-  
-  // Agent TAX: If non-vatable, the difference between 40% and 32% (8% of rent amount)
-  const agent_tax = vatable ? 0 : rentAmountNum * 0.08;
+  // Agent income calculation (always start from 40%)
+  let agent_income = rentAmountNum * 0.40;
   
   // Reduce agent income based on discounts
   // If landlord has 15% discount, reduce agent income by 7.5%
@@ -251,6 +255,16 @@ export async function PUT(req: Request) {
   if (agent_income_reduction > 0) {
     agent_income = agent_income * (1 - agent_income_reduction);
   }
+
+  // Agent TAX calculation
+  let agent_tax = 0;
+  if (!vatable) {
+    // Non-vatable: Agent pays 20% tax on their income
+    agent_tax = agent_income * 0.20;
+    // Reduce agent income by the tax amount (net income)
+    agent_income = agent_income - agent_tax;
+  }
+  // If vatable, no tax deduction needed (already handled by company)
 
   // Get previous record to check if boss notification is needed
   const { data: prevRecord } = await supabase

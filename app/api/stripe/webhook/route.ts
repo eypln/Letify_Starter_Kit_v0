@@ -477,6 +477,20 @@ export async function POST(req: Request) {
             { onConflict: "stripe_subscription_id" }
           );
         if (eSub) console.error("upsert billing_subscriptions error:", eSub);
+
+        // Profiles tablosunu da güncelle
+        const { error: eProfile } = await supa()
+          .from("profiles")
+          .update({
+            subscription_tier: plan,
+            subscription_status: sub.status === 'active' ? 'active' : 'inactive',
+          })
+          .eq("user_id", userId);
+        if (eProfile) {
+          console.error("update profiles subscription error:", eProfile);
+        } else {
+          console.log("Successfully updated profiles subscription_tier and subscription_status");
+        }
       }
 
       console.log("=== STRIPE WEBHOOK PROCESSING COMPLETED SUCCESSFULLY ===");
@@ -539,6 +553,9 @@ export async function POST(req: Request) {
         customer: sub.customer
       });
 
+      const plan: "mini" | "full" = inferPlanType(null, sub.items.data[0]?.price?.id ?? null);
+      const cycle: "monthly" | "yearly" = inferCycle(sub.items.data[0]?.price?.recurring?.interval ?? null);
+
       const { error: eUpd } = await supa()
         .from("billing_subscriptions")
         .upsert(
@@ -550,13 +567,37 @@ export async function POST(req: Request) {
             current_period_start: toIso((sub as any).current_period_start),
             current_period_end: toIso((sub as any).current_period_end),
             cancel_at_period_end: Boolean(sub.cancel_at_period_end),
-            // plan/cycle değişmezse tekrar yazmak şart değil, ama sorun olmaz:
-            plan_type: inferPlanType(null, sub.items.data[0]?.price?.id ?? null),
-            billing_cycle: inferCycle(sub.items.data[0]?.price?.recurring?.interval ?? null),
+            plan_type: plan,
+            billing_cycle: cycle,
           },
           { onConflict: "stripe_subscription_id" }
         );
       if (eUpd) console.error("update subscription error:", eUpd);
+
+      // user_id'yi bul ve profiles tablosunu güncelle
+      const { data: billingData } = await supa()
+        .from("billing_subscriptions")
+        .select("user_id, plan_type")
+        .eq("stripe_subscription_id", sub.id)
+        .maybeSingle();
+
+      if (billingData?.user_id) {
+        console.log("Updating profiles for user:", billingData.user_id);
+        const { error: eProfile } = await supa()
+          .from("profiles")
+          .update({
+            subscription_tier: billingData.plan_type,
+            subscription_status: sub.status === 'active' ? 'active' : 'inactive',
+          })
+          .eq("user_id", billingData.user_id);
+        if (eProfile) {
+          console.error("update profiles subscription error:", eProfile);
+        } else {
+          console.log("Successfully updated profiles subscription_tier and subscription_status");
+        }
+      } else {
+        console.log("No user_id found for subscription:", sub.id);
+      }
 
       console.log("Subscription update processing completed");
       return NextResponse.json({ received: true }, { status: 200 });

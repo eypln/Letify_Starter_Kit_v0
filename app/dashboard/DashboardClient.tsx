@@ -337,6 +337,8 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                         {activity.type === 'teamwork_client_shared' && `Client Shared to Teamwork: ${activity.data?.client_name || 'N/A'}`}
                         {activity.type === 'new_viewing_added' && `New Viewing Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
                         {activity.type === 'viewing_updated' && `Viewing Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
+                        {activity.type === 'new_revenue_added' && `New Revenue Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
+                        {activity.type === 'revenue_updated' && `Revenue Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(activity.created_at).toLocaleDateString('tr-TR', {
