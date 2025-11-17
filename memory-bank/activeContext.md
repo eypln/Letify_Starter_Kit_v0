@@ -3,81 +3,102 @@
 ## Mevcut Çalışma Odağı
 
 ### Ana Odak Alanları
-1. **Performance Optimization**: Dashboard performans optimizasyonu - Lighthouse score 51 → 86
-2. **Server Component Migration**: Client-side fetching'den server-side rendering'e geçiş
-3. **UI Component Optimization**: Radix UI'dan native HTML'e migration (205 KiB unused JS eliminated)
-4. **Viewings Feature**: Property viewing tracking, calendar view, team leader notifications
-5. **Teamwork Feature**: Listing ve client paylaşım sistemi, takım iş birliği
-6. **UI Consistency**: Dashboard butonları, pagination stilleri, tablo görünümleri
-7. **Post Limitleri & Subscription Control**: Free plan'daki post limitleri (30/ay) ve reels üretimi kontrolü
-8. **Analytics & Monthly Activity Tracking**: Aylık post, client ve viewing ekleme aktivitesi analizi
-9. **Kod Bütünlüğü ve Memory Bank**: Proje karmaşıklığını yönetmek için memory bank sistemi
+1. **BotID Security Integration**: Bot koruması ile API güvenliği sağlanması
+2. **PWA Enhancement**: Progressive Web App özelliklerinin geliştirilmesi
+3. **Production Deployment**: Vercel'de https://app.letify.cloud canlı yayında
+4. **Security & Optimization**: Sistem güvenliği ve performans optimizasyonu
 
 ## Son Değişiklikler (Tarih Sırası)
 
+### 17.11.2025 - BotID Security & PWA Optimization - COMPLETE ✅
+**Feature**: Bot protection ve PWA enhancements
+**Deployment**: Vercel canlı https://app.letify.cloud
+**Version**: 1.7
+
+#### BotID Security Implementation:
+
+**1. Package Installation**
+- `pnpm i botid` (v1.5.10) başarıyla kuruldu
+- Production ve development ortamlarında hazır
+
+**2. Next.js Configuration**
+- Modified: `next.config.js`
+- Added `withBotId()` wrapper
+- Proxy rewrites otomatik yapılandırıldı
+- Ad-blockers ve third-party scripts'ten korunma
+
+**3. Client-Side Protection**
+- Created: `instrumentation-client.ts`
+- `initBotId()` Next.js 15.3+ optimal setup
+- Korunan rotalar tanımlandı:
+  - `/api/sensitive` (POST)
+  - `/api/checkout` (POST)
+  - `/team/*/activate` (POST) - Wildcard support
+  - `/api/user/*` (POST) - Dynamic routes
+
+**4. Server-Side Verification**
+- Created: `app/api/sensitive/route.ts`
+- `checkBotId()` bot tespiti ve reddi
+- Bot detected: HTTP 403 Forbidden yanıt
+- Legitimate users: normal request processing
+
+#### PWA Install Prompt Fixes:
+
+**Problem**: Production ortamında PWA Install Prompt gösterilmiyordu
+**Root Cause**: Component sadece Dashboard'da yüklenmişti
+
+**Solutions Applied**:
+
+1. **Component Global Availability**
+   - Modified: `components/system/ClientProviders.tsx`
+   - PWAInstallPrompt dinamik loading ile ekli
+   - Tüm uygulama için erişilebilir
+
+2. **Hydration Bug Fix**
+   - Modified: `components/system/PWAInstallPrompt.tsx`
+   - Added `isClient` state
+   - Server-client mismatch giderildi
+   - Browser API'ler yalnızca client'te çalışıyor
+
+3. **Debug Logging**
+   - `console.log` statements eklendi
+   - `beforeinstallprompt` event tracking
+   - Production troubleshooting desteği
+
+4. **PWA Development Support**
+   - Modified: `next.config.js`
+   - Changed: `disable: false` (was `process.env.NODE_ENV === 'development'`)
+   - Local development'te PWA aktif
+   - Service worker kaydı: `/sw.js`, scope: `/`
+
+5. **Cleanup**
+   - Removed: `app/dashboard/DashboardClient.tsx` duplicate import
+   - Removed: PWAInstallPrompt from Dashboard component
+
+**Installation Requirements Met:**
+- ✓ HTTPS (Production: app.letify.cloud)
+- ✓ manifest.json (Valid, icons, display: standalone)
+- ✓ Service Worker (Active, precache strategy)
+- ✓ Minimum icons (192x192, 512x512 available)
+
+**Test Results:**
+- ✓ Local: `http://localhost:3001` - PWA aktif
+- ✓ Production: `https://app.letify.cloud` - Ready for install prompt
+- ✓ Chrome DevTools Application tab: Manifest verified
+- ✓ Service Workers: Registered and active
+
+#### Files Modified:
+1. `next.config.js` - BotID wrapper + PWA disable fix
+2. `instrumentation-client.ts` - Created (BotID client-side)
+3. `app/api/sensitive/route.ts` - Created (BotID server-side example)
+4. `components/system/PWAInstallPrompt.tsx` - Hydration fixes, debug logging
+5. `components/system/ClientProviders.tsx` - PWAInstallPrompt global mount
+6. `app/dashboard/DashboardClient.tsx` - Removed duplicate PWA import
+
+#### Documentation Created:
+- `PWA_INSTALL_PROMPT_DEBUG.md` - Troubleshooting guide for production environments
+
 ### 12.11.2025 - Advanced Push Notification System - COMPLETE ✅
-**Feature**: Comprehensive business notification system (19 notification types)
-**Solution**: Cron-based and real-time push notifications for all critical business events
-**Version**: 1.6
-
-#### Notification Categories Implemented:
-
-**1. Viewing Reminders (Cron - Hourly)**
-- Created `app/api/viewings/check-reminders/route.ts`
-- 24h before viewing reminder
-- 2h before viewing reminder
-- 2h after viewing result reminder (if still "Scheduled")
-- Vercel cron: `0 * * * *` (every hour)
-
-**2. Team Collaboration Notifications (Instant)**
-- Already implemented: Listing/Client sharing notifications
-
-**3. System Alerts (Cron - Daily 8 AM)**
-- Created `app/api/system/check-alerts/route.ts`
-- Subscription expiry alerts: 3 days, 1 day, expiry day
-- Credit alerts: 5 credits, 0 credits (optimized from 50,25,10,5,0)
-- Vercel cron: `0 8 * * *` (daily at 8 AM)
-
-**4. Commission Reminders (Cron - Hourly)**
-- Created `app/api/revenue/check-commission-reminders/route.ts`
-- Date signed: 24h before + 8 AM on day
-- Date move-in: 24h before + 8 AM on day
-- Uses correct revenue schema: `ref_no` (not property_ref), calculated commission from fees
-- Vercel cron: `0 * * * *` (every hour)
-
-**5. Facebook Token Expiry Alerts (Cron - Daily 8 AM)**
-- Created `app/api/integrations/check-facebook-token/route.ts`
-- Created `supabase_migration_fb_token_expiry.sql`
-- 60-day token expiry cycle tracking
-- Alerts: 7 days, 3 days, expiry day, 1-7 days after expiry
-- Auto-update trigger on `fb_access_token` change
-- Vercel cron: `0 8 * * *` (daily at 8 AM)
-- **Business Critical**: Prevents Facebook auto-posting failure
-
-**6. Team Leader & Boss Notifications (Instant - Real-Time)**
-
-**Team Leader Viewing Notifications:**
-- Modified `app/api/viewings/route.ts`
-- New viewing created (if "Inform Team Leader" checked)
-- Viewing result updated (ONLY if result field changed - smart filtering)
-- Valid result values: DEAL, NO DEAL, Negotiating, Scheduled
-- Added `sendTeamLeaderNotification()` helper function
-- Web-push integration with VAPID authentication
-
-**Boss & Team Leader Revenue Notifications:**
-- Modified `app/api/revenue/route.ts`
-- Trigger: Both `landlord_paid_date` + `client_paid_date` filled + "Inform Boss After Both Sides Paid" checkbox
-- Recipients: ALL users with `role = 'Boss'` OR `role = 'teamleader'`
-- Delivery: Both email AND push notification simultaneously
-- `boss_notified` flag prevents duplicate notifications
-- Added `sendBossNotificationPush()` helper function
-- Notification content: Agent name + property ref (no client name for privacy)
-
-#### Technical Implementation:
-
-**Files Created:**
-1. `app/api/viewings/check-reminders/route.ts` - Viewing reminder cron job
-2. `app/api/system/check-alerts/route.ts` - System health alerts cron job
 3. `app/api/revenue/check-commission-reminders/route.ts` - Commission reminder cron job
 4. `app/api/integrations/check-facebook-token/route.ts` - Facebook token expiry cron job
 5. `supabase_migration_fb_token_expiry.sql` - Database migration for token tracking

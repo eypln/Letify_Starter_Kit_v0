@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 
+// BotID configuration
+const { withBotId } = require('botid/next/config');
+
 // PWA configuration
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false, // Enable PWA in all environments for testing
   buildExcludes: [/middleware-manifest\.json$/],
   runtimeCaching: [
     {
@@ -298,4 +301,4 @@ const nextConfig = {
   },
 }
 
-module.exports = withPWA(withBundleAnalyzer(nextConfig))
+module.exports = withBotId(withPWA(withBundleAnalyzer(nextConfig)))

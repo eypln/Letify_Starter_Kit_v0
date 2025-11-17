@@ -6,7 +6,6 @@ import { useBillingController } from './subscription/useBillingController';
 import { useRouter } from 'next/navigation';
 import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner';
-import PWAInstallPrompt from '@/components/system/PWAInstallPrompt';
 
 interface DashboardStats {
   totalListings: number;
@@ -358,9 +357,6 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
         </div>
       </div>
     </div>
-    
-    {/* PWA Install Prompt - Only shown to authenticated users */}
-    <PWAInstallPrompt />
     </>
   );
 }

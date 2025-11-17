@@ -14,6 +14,7 @@
 - **Date Handling**: date-fns
 - **PWA**: next-pwa 5.6.0 (Service Worker, Offline Support, Push Notifications)
 - **Push Notifications**: web-push 3.6.7 (VAPID authentication, browser notifications)
+- **Security**: BotID 1.5.10 (Bot protection, API security)
 
 ### Backend & Database
 - **Backend-as-a-Service**: Supabase
@@ -158,7 +159,22 @@ pnpm dev
 - Manual testing for UI/UX
 
 ### Deployment
-- Vercel for frontend
-- Supabase for backend
-- Stripe for payments
+- **Frontend**: Vercel (Production: https://app.letify.cloud - LIVE 17.11.2025)
+- **Backend**: Supabase
+- **Payments**: Stripe
+- **Cron Jobs**: Vercel Cron (4 jobs configured)
+- **Monitoring**: Vercel Analytics, Web Vitals tracking
+
+### Deployment Status (17.11.2025)
+```
+✅ Frontend: Live on Vercel
+✅ Database: Supabase production
+✅ Authentication: Active
+✅ Payments: Stripe integrated
+✅ Push Notifications: All 6 categories active
+✅ BotID Security: API protection active
+✅ PWA: Service worker, offline support, install prompt
+✅ Cron Jobs: 4 scheduled jobs (viewing reminders, system alerts, commission, fb token)
+```
+
 - N8N for workflows
