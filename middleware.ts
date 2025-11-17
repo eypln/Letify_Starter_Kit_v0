@@ -72,7 +72,6 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const url = request.nextUrl.clone()
-  const pathname = url.pathname
 
   // n8n status callback endpoint'ini auth kontrollerinden muaf tut
   if (pathname === '/api/n8n/status-callback') {
