@@ -76,11 +76,9 @@ export default function PWAInstallPrompt() {
     // Fallback: Check for PWA installability after page load
     // This helps in cases where beforeinstallprompt doesn't fire immediately
     const checkInstallability = setTimeout(() => {
-      if (!deferredPrompt) {
-        console.log('PWA: beforeinstallprompt event not triggered, using fallback detection')
-        // Log for debugging - helps identify why prompt isn't showing
-        console.log('PWA Check - isInstalled:', isInstalled, 'deferredPrompt:', !!deferredPrompt)
-      }
+      console.log('PWA: beforeinstallprompt event not triggered, using fallback detection')
+      // Log for debugging
+      console.log('PWA Check - isInstalled:', false, 'deferredPrompt:', false)
     }, 10000)
 
     return () => {
@@ -89,7 +87,7 @@ export default function PWAInstallPrompt() {
       if (promptTimeout) clearTimeout(promptTimeout)
       if (checkInstallability) clearTimeout(checkInstallability)
     }
-  }, [isClient, deferredPrompt, isInstalled])
+  }, [isClient])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
@@ -115,16 +113,6 @@ export default function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowPrompt(false)
     localStorage.setItem('pwa-install-dismissed', new Date().toISOString())
-  }
-
-  // Debug: Log render conditions
-  if (typeof window !== 'undefined') {
-    console.log('PWA Render Check:', {
-      isClient,
-      isInstalled,
-      showPrompt,
-      hasDeferredPrompt: !!deferredPrompt
-    })
   }
 
   if (isInstalled || !showPrompt || !deferredPrompt) {
