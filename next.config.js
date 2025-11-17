@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-// BotID configuration
-const { withBotId } = require('botid/next/config');
-
 // PWA configuration
 const withPWA = require('next-pwa')({
   dest: 'public',
@@ -299,4 +296,4 @@ const nextConfig = {
   },
 }
 
-module.exports = withBotId(withPWA(withBundleAnalyzer(nextConfig)))
+module.exports = withPWA(withBundleAnalyzer(nextConfig))

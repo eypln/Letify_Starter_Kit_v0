@@ -2,19 +2,26 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Skip static assets and PWA files
   const pathname = request.nextUrl.pathname
-  if (
-    pathname.startsWith('/_next/') ||
-    pathname.startsWith('/api/') ||
+  
+  // CRITICAL: Return IMMEDIATELY for PWA files - before ANY Supabase operations
+  // This prevents 401 errors on manifest.json and service worker
+  const isPWAFile = 
     pathname === '/manifest.json' ||
     pathname === '/sw.js' ||
     pathname.startsWith('/workbox-') ||
+    pathname.startsWith('/_next/static') ||
+    pathname.startsWith('/_next/image') ||
+    pathname.startsWith('/icons/') ||
+    pathname === '/favicon.ico' ||
+    pathname.startsWith('/api/n8n/') || // n8n webhooks
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
-  ) {
+  
+  if (isPWAFile) {
     return NextResponse.next()
   }
   
+  // NOW create Supabase client - ONLY for non-PWA requests
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -72,11 +79,6 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const url = request.nextUrl.clone()
-
-  // n8n status callback endpoint'ini auth kontrollerinden muaf tut
-  if (pathname === '/api/n8n/status-callback') {
-    return NextResponse.next()
-  }
 
   // Dashboard rotaları koruması
   if (pathname.startsWith('/dashboard')) {
