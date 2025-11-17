@@ -158,11 +158,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files (icons, images)
      * - manifest.json (PWA manifest)
-     * - sw.js (service worker)
-     * - workbox files (PWA cache)
+     * - sw.js, workbox files (service worker)
+     * - public folder files (icons, images)
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|workbox-|icons/).*)',
   ],
 }
