@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import { seoPages, generateOGMetadata } from '@/lib/seo'
 
 export const metadata: Metadata = {
@@ -14,13 +13,13 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
-      <Image 
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img 
         src="/icons/Logo/180.png" 
         alt="Letify Logo" 
         width={180} 
         height={180}
         className="mb-6"
-        priority
       />
       <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Welcome to Letify</h1>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-center max-w-md">
