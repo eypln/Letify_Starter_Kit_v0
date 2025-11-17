@@ -4,20 +4,21 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
-  // CRITICAL: Return IMMEDIATELY for PWA files - before ANY Supabase operations
-  // This prevents 401 errors on manifest.json and service worker
-  const isPWAFile = 
+  // CRITICAL: Return IMMEDIATELY for static files - before ANY Supabase operations
+  // This prevents 401 errors on manifest.json, service worker, and Next.js build files
+  const isStaticFile = 
     pathname === '/manifest.json' ||
     pathname === '/sw.js' ||
     pathname.startsWith('/workbox-') ||
-    pathname.startsWith('/_next/static') ||
-    pathname.startsWith('/_next/image') ||
+    pathname.startsWith('/_next/') || // ALL Next.js internal files (static, image, data, etc)
     pathname.startsWith('/icons/') ||
     pathname === '/favicon.ico' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
     pathname.startsWith('/api/n8n/') || // n8n webhooks
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|json|js|css|woff|woff2|ttf|eot)$/)
   
-  if (isPWAFile) {
+  if (isStaticFile) {
     return NextResponse.next()
   }
   
@@ -157,13 +158,15 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
+     * - _next/ (all Next.js internal files: static, image, data, webpack-hmr, etc)
      * - favicon.ico (favicon file)
      * - manifest.json (PWA manifest)
      * - sw.js, workbox files (service worker)
-     * - public folder files (icons, images)
+     * - icons/ (PWA icons)
+     * - robots.txt, sitemap.xml (SEO files)
+     * - api/n8n/ (webhook endpoints)
+     * - Static file extensions (.js, .css, .json, .png, .jpg, .svg, etc)
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|workbox-|icons/).*)',
+    '/((?!_next|favicon\\.ico|manifest\\.json|sw\\.js|workbox-|icons|robots\\.txt|sitemap\\.xml|api/n8n).*)',
   ],
 }
