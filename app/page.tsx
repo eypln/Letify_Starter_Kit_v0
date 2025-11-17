@@ -21,7 +21,6 @@ export default function HomePage() {
         height={180}
         className="mb-6"
         priority
-        quality={85}
       />
       <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Welcome to Letify</h1>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-center max-w-md">
