@@ -31,13 +31,16 @@ export default function PWAInstallPrompt() {
 
     // Check if user dismissed the prompt before
     const dismissed = localStorage.getItem('pwa-install-dismissed')
+    console.log('PWA: Checking dismissed status:', dismissed)
     if (dismissed) {
       const dismissedDate = new Date(dismissed)
       const now = new Date()
       const daysSinceDismissed = Math.floor((now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24))
+      console.log('PWA: Days since dismissed:', daysSinceDismissed)
       
       // Show again after 7 days
       if (daysSinceDismissed < 7) {
+        console.log('❌ PWA: Too soon to show again (< 7 days)')
         return
       }
     }
@@ -46,12 +49,15 @@ export default function PWAInstallPrompt() {
 
     // Listen for the beforeinstallprompt event
     const handler = (e: Event) => {
+      console.log('🎉 PWA: beforeinstallprompt event received!', e)
       e.preventDefault()
       const promptEvent = e as BeforeInstallPromptEvent
       setDeferredPrompt(promptEvent)
+      console.log('✅ PWA: Deferred prompt saved, will show in 5 seconds...')
       
       // Show prompt after 5 seconds of usage
       promptTimeout = setTimeout(() => {
+        console.log('✅ PWA: Showing install prompt now!')
         setShowPrompt(true)
       }, 5000)
     }
@@ -109,6 +115,16 @@ export default function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowPrompt(false)
     localStorage.setItem('pwa-install-dismissed', new Date().toISOString())
+  }
+
+  // Debug: Log render conditions
+  if (typeof window !== 'undefined') {
+    console.log('PWA Render Check:', {
+      isClient,
+      isInstalled,
+      showPrompt,
+      hasDeferredPrompt: !!deferredPrompt
+    })
   }
 
   if (isInstalled || !showPrompt || !deferredPrompt) {
