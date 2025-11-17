@@ -61,6 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#9333ea" />
+        <link rel="apple-touch-icon" href="/icons/Logo/180.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <ClientProviders />

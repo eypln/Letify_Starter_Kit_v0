@@ -15,10 +15,10 @@ export default function HomePage() {
     <main className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img 
-        src="/icons/Logo/180.png" 
+        src="/icons/Logo/96.png" 
         alt="Letify Logo" 
-        width={180} 
-        height={180}
+        width={96} 
+        height={96}
         className="mb-6"
       />
       <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Welcome to Letify</h1>

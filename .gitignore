@@ -140,7 +140,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public klasörü Next.js'te gerekli - ignore edilmemeli
+# public
 
 # Storybook build outputs
 .out
