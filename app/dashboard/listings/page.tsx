@@ -2,12 +2,13 @@
 export const dynamic = 'force-dynamic';
 import React, { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getListings } from './actions';
+import { getListings, updateListingAvailability, getAllAvailableAndSoonListings } from './actions';
 import Link from 'next/link';
 import AddDialog from './add-dialog';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, CheckCircle, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import MaltaMap from '@/components/listing/malta-map';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 import { useSearchParams } from 'next/navigation';
@@ -65,15 +66,82 @@ function TeamworkShareButton({ listingId, title }: { listingId: string; title: s
   );
 }
 
+function AvailabilitySelector({ 
+  listingId, 
+  currentValue, 
+  onUpdate 
+}: { 
+  listingId: string; 
+  currentValue: 'Available' | 'Rented' | 'Soon'; 
+  onUpdate: () => void;
+}) {
+  const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
+
+  async function handleChange(newValue: 'Available' | 'Rented' | 'Soon') {
+    if (newValue === currentValue) return;
+    
+    setLoading(true);
+    try {
+      await updateListingAvailability(listingId, newValue);
+      toast({
+        title: 'Success',
+        description: `Availability updated to ${newValue}`,
+      });
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update availability',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Available': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Rented': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Soon': return 'bg-blue-100 text-blue-700 border-blue-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  return (
+    <select
+      value={currentValue}
+      onChange={(e) => handleChange(e.target.value as 'Available' | 'Rented' | 'Soon')}
+      disabled={loading}
+      className={`px-2 py-1 rounded-md text-xs font-medium border ${getStatusColor(currentValue)} disabled:opacity-50 cursor-pointer`}
+    >
+      <option value="Available">Available</option>
+      <option value="Rented">Rented</option>
+      <option value="Soon">Soon</option>
+    </select>
+  );
+}
+
 function ListingsContent() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
   const [listingsData, setListingsData] = React.useState<any>(null);
+  const [mapListings, setMapListings] = React.useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = React.useState(0);
   const searchParams = useSearchParams();
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
 
   React.useEffect(() => {
     getListings({ page }).then(setListingsData);
-  }, [page]);
+  }, [page, refreshKey]);
+
+  // Fetch all Available and Soon listings for the map
+  React.useEffect(() => {
+    getAllAvailableAndSoonListings().then(setMapListings);
+  }, [refreshKey]);
+
+  const handleRefresh = () => setRefreshKey(prev => prev + 1);
 
   if (!listingsData) {
     return <div className="max-w-6xl mx-auto p-6">Loading…</div>;
@@ -129,6 +197,7 @@ function ListingsContent() {
               <th>Bathroom</th>
               <th>Property type</th>
               <th>Description</th>
+              <th>Availability</th>
               <th>FB post</th>
               <th>FB reels</th>
               <th>Teamwork</th>
@@ -154,6 +223,13 @@ function ListingsContent() {
                   title="Click to view full description"
                 >
                   {r.description ?? '—'}
+                </td>
+                <td className="whitespace-nowrap">
+                  <AvailabilitySelector 
+                    listingId={r.id} 
+                    currentValue={r.availability || 'Available'} 
+                    onUpdate={handleRefresh}
+                  />
                 </td>
                 <td className="max-w-[220px] truncate">
                   {r.fbPostUrl
@@ -217,6 +293,34 @@ function ListingsContent() {
           </div>
         </div>
       )}
+
+      {/* Malta Map */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Malta Listings Map
+          <span className="text-sm font-normal text-gray-500">
+            (Showing Available & Soon properties)
+          </span>
+        </h2>
+        <div className="mb-4 flex gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow"></div>
+            <span className="text-gray-600">Available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></div>
+            <span className="text-gray-600">Soon / Mixed</span>
+          </div>
+          <div className="text-gray-500 ml-auto">
+            {mapListings.length} properties on map
+          </div>
+        </div>
+        <MaltaMap listings={mapListings} />
+      </div>
       </div>
     </QueryClientProvider>
   );

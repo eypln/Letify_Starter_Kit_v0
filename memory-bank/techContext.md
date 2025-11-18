@@ -74,6 +74,9 @@ NEXT_PUBLIC_WEBAPP_URL=
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@letify.cloud
+
+# Google Maps (18.01.2025)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
 ### Local Development
@@ -130,6 +133,10 @@ pnpm dev
 - react-select: Select components
 - react-datepicker: Date picker
 
+### Maps & Geospatial (v1.9 - 18.01.2025)
+- @types/google.maps: TypeScript definitions for Google Maps JavaScript API
+- Google Maps JavaScript API: Interactive map visualization (client-side, script tag loaded)
+
 ### Utility Dependencies
 - browser-image-compression: Image processing
 - react-dropzone: File uploads
@@ -177,4 +184,53 @@ pnpm dev
 ✅ Cron Jobs: 4 scheduled jobs (viewing reminders, system alerts, commission, fb token)
 ```
 
-- N8N for workflows
+
+## External API Integrations
+
+### Google Maps JavaScript API (v1.9 - 18.01.2025)
+**Purpose**: Geospatial visualization of property listings on Malta map
+
+**Setup Process**:
+1. Create Google Cloud Console project
+2. Enable Maps JavaScript API
+3. Create API key with restrictions
+4. Set HTTP referrer restrictions (app.letify.cloud, localhost:3000)
+5. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local
+
+**Usage Pattern**:
+```typescript
+// Dynamic script loading with singleton pattern
+const script = document.createElement('script')
+script.src = `$https://maps.googleapis.com/maps/api/js?key=`${GOOGLE_MAPS_API_KEY}&libraries=marker`$
+script.async = true
+document.head.appendChild(script)
+```
+
+**Features Used**:
+- Advanced Marker Element (new marker API)
+- InfoWindow for listing details
+- Custom marker clustering by city
+- 62 Malta city coordinates (hardcoded, no Geocoding API needed)
+
+**Performance Considerations**:
+- Script loaded once per page (singleton pattern)
+- Markers clustered by city (not per listing)
+- Static coordinates (no API calls for geocoding)
+- Client-side only (no server-side rendering)
+
+**Documentation**: See MALTA_MAP_SETUP.md for complete Google Cloud Console setup guide
+
+### N8N Workflow Automation
+**Purpose**: Job processing, data extraction, content creation
+**Integration**: Webhook-based communication
+**Environment**: N8N_WEBHOOK_BASE, N8N_STATUS_CALLBACK_SECRET
+
+### Stripe Payment Processing
+**Purpose**: Subscription billing, credit purchases
+**Integration**: Stripe.js, Stripe Checkout, Webhooks
+**Environment**: STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
+### Supabase Platform
+**Purpose**: Database, authentication, storage, real-time
+**Integration**: @supabase/supabase-js, @supabase/ssr
+**Environment**: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE

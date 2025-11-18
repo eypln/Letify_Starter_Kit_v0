@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       listingId = existing.id;
     } else {
       // Yeni kayıt oluştur
-      const insertFields: Record<string, any> = { user_id: user.id };
+      const insertFields: Record<string, any> = { user_id: user.id, availability: 'Available' };
       if (sourceUrl) insertFields.property_url = sourceUrl;
       if (title) insertFields.title = title;
       const { data: newListing, error: listingErr } = await supabase

@@ -2,13 +2,147 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları
-1. **BotID Security Integration**: Bot koruması ile API güvenliği sağlanması
-2. **PWA Enhancement**: Progressive Web App özelliklerinin geliştirilmesi
-3. **Production Deployment**: Vercel'de https://app.letify.cloud canlı yayında
-4. **Security & Optimization**: Sistem güvenliği ve performans optimizasyonu
+### Ana Odak Alanları (v1.9 - 18.01.2025)
+1. **Availability Tracking**: Listing durumu takibi (Available, Rented, Soon)
+2. **Geospatial Visualization**: Malta haritası ile listelerin görselleştirilmesi
+3. **Mobile Responsive Design**: Viewings calendar mobil uyumluluğu
+4. **Teamwork Integration**: Availability durumuna göre teamwork temizliği
+5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler
+
+### Son Odak (Önceki)
+1. **BotID Security Integration**: Bot koruması ile API güvenliği sağlanması ✅
+2. **PWA Enhancement**: Progressive Web App özelliklerinin geliştirilmesi ✅
+3. **Production Deployment**: Vercel'de https://app.letify.cloud canlı yayında ✅
+4. **Security & Optimization**: Sistem güvenliği ve performans optimizasyonu ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 18.01.2025 - Availability Tracking & Malta Map - COMPLETE ✅
+**Feature**: Listing availability status + geospatial map visualization
+**Deployment**: Vercel canlı https://app.letify.cloud
+**Version**: 1.9
+
+#### Availability Tracking System:
+
+**1. Database Schema**
+- Created: `supabase/migrations/20250118_add_availability_to_listings.sql`
+- Enum type: `availability_status` ('Available', 'Rented', 'Soon')
+- Column: `listings.availability` with default 'Available'
+- Index: `idx_listings_availability` for query performance
+- All listings automatically set to 'Available' on creation
+
+**2. TypeScript Integration**
+- Modified: `types/supabase.ts`
+- Added availability to Row, Insert, Update interfaces
+- Union type: `'Available' | 'Rented' | 'Soon' | null`
+- Full type safety across application
+
+**3. PostgreSQL Enum Handling**
+- Pattern discovered: `::text` casting required
+- Modified: `app/dashboard/listings/actions.ts`
+- `getListings()`: `select('availability::text')` for Supabase client compatibility
+- Direct values for INSERT/UPDATE operations (no casting)
+
+**4. UI Components**
+- Created: AvailabilitySelector dropdown component
+- Color-coded badges: Green (Available), Red (Rented), Blue (Soon)
+- Soft colors: `bg-{color}-100 text-{color}-800 border-{color}-200`
+- Real-time updates with optimistic UI
+
+**5. Business Logic Integration**
+- Modified: `updateListingAvailability()` action
+- Auto-delete from `teamwork_listings` when status changes to 'Rented'
+- Maintains teamwork table integrity
+- User requirement: "eğer kullanıcı listingini share ile daha önce teamwork tablosuna gönderdiyse, o kayıtta available iken rented guncellemesi yaparsa teamwork sayfasındaki Teamwork Listings tablosunda UI da kayıt kalkacak"
+
+**6. Auto-Assignment**
+- Modified: `app/api/jobs/start/route.ts` (job creation)
+- Modified: `app/dashboard/listings/add-dialog.tsx` (manual creation)
+- All new listings automatically get `availability='Available'`
+
+#### Malta Map Geospatial Visualization:
+
+**1. Google Maps Integration**
+- Created: `components/listing/malta-map.tsx` (new component)
+- Google Maps JavaScript API with Advanced Marker Element
+- 62 Malta city coordinates hardcoded (no geocoding API calls)
+- InfoWindow with listing details
+
+**2. Script Loading Pattern**
+- Singleton pattern: Check for existing script before loading
+- Prevents "multiple times" console error
+- Dynamic loading with `document.createElement('script')`
+- Environment variable: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+
+**3. Marker Clustering**
+- Group listings by city (not individual markers per listing)
+- Color-coded by availability mix (green for Available, blue for Soon)
+- Performance optimization: ~62 markers instead of potential hundreds
+- InfoWindow shows all listings in clicked city
+
+**4. Dual-State Data Architecture**
+- Problem: Pagination shows 10 rows, but map needs ALL listings
+- Solution: Separate data flows
+  - `rows` state: Paginated table data (10 per page)
+  - `mapListings` state: Full dataset (all Available + Soon)
+- Created: `getAllAvailableAndSoonListings()` action (no pagination)
+- Two independent useEffect hooks for optimal performance
+
+**5. Environment Setup**
+- Modified: `.env.local.example` - Added NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+- Created: `MALTA_MAP_SETUP.md` - Complete Google Cloud Console guide
+- Dependencies: Added `@types/google.maps` to package.json
+
+#### Viewings Mobile Responsive:
+
+**1. Table Responsiveness**
+- Modified: `app/dashboard/viewings/page.tsx`
+- Tailwind breakpoints: `sm:` (640px), `md:` (768px)
+- Responsive padding: `px-2 sm:px-3 md:px-4`
+- Responsive fonts: `text-xs sm:text-sm`
+
+**2. Calendar Responsiveness**
+- Calendar grid heights: `h-16 sm:h-20 md:h-24`
+- Event font sizes: `text-[10px] sm:text-xs`
+- Truncate long text on mobile
+- Touch-friendly targets (minimum 44×44px)
+
+**3. Navigation Optimization**
+- Condensed text on mobile: "Prev" vs "Previous"
+- Hidden classes: `hidden md:table-cell` for non-critical columns
+- Progressive enhancement: Mobile-first approach
+
+#### Files Modified:
+1. `supabase/migrations/20250118_add_availability_to_listings.sql` - Database schema
+2. `types/supabase.ts` - TypeScript types
+3. `app/api/jobs/start/route.ts` - Auto-assign availability
+4. `app/dashboard/listings/actions.ts` - Enum casting, teamwork cleanup, map data
+5. `app/dashboard/listings/page.tsx` - Dual-state architecture, AvailabilitySelector
+6. `app/dashboard/listings/add-dialog.tsx` - Manual creation with availability
+7. `app/dashboard/viewings/page.tsx` - Full responsive overhaul
+8. `components/listing/malta-map.tsx` - Created (new component)
+9. `package.json` - Added @types/google.maps
+10. `.env.local.example` - Google Maps API key placeholder
+
+#### Documentation Created:
+- `MALTA_MAP_SETUP.md` - Google Cloud Console setup guide (8 steps)
+
+#### Key Technical Decisions:
+1. **Enum Casting**: `::text` for SELECT, raw values for INSERT/UPDATE
+2. **Dual-State**: Separate pagination from full-dataset visualization
+3. **Map Clustering**: City-level markers instead of listing-level
+4. **Hardcoded Coords**: 62 Malta cities (alternative to geocoding API)
+5. **Singleton Script**: Prevent duplicate Google Maps script loads
+6. **Mobile-First**: Progressive enhancement with Tailwind breakpoints
+
+#### User Requirements Met:
+- ✅ "availability sütunu ekle" - Available (yeşil), Rented (kırmızı), Soon (mavi)
+- ✅ "create post ile otomatik Available" - Auto-assignment on creation
+- ✅ "Available→Rented ise teamwork'ten sil" - Teamwork cleanup logic
+- ✅ "viewings sayfası mobil responsive değil" - Full responsive implementation
+- ✅ "malta haritası + available/soon listeler" - Google Maps with filtering
+- ✅ "tüm sayfalardaki kayıtlar haritada" - Dual-state architecture
+- ✅ "memory bank güncelle" - progress.md, systemPatterns.md, techContext.md, activeContext.md
 
 ### 17.11.2025 - BotID Security & PWA Optimization - COMPLETE ✅
 **Feature**: Bot protection ve PWA enhancements

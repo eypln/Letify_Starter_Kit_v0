@@ -232,7 +232,7 @@ export default function ViewingsPage() {
     
     // Empty cells for days before month starts
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className={`border border-gray-200 ${isMainMonth ? 'h-24' : 'h-12'}`}></div>);
+      days.push(<div key={`empty-${i}`} className={`border border-gray-200 ${isMainMonth ? 'h-16 sm:h-20 md:h-24' : 'h-8 sm:h-10 md:h-12'}`}></div>);
     }
     
     // Days of the month
@@ -248,13 +248,13 @@ export default function ViewingsPage() {
       days.push(
         <div 
           key={day} 
-          className={`border border-gray-200 p-1 overflow-y-auto ${isMainMonth ? 'h-24' : 'h-12'} ${isToday ? 'bg-purple-50 border-purple-400' : ''}`}
+          className={`border border-gray-200 p-0.5 sm:p-1 overflow-y-auto ${isMainMonth ? 'h-16 sm:h-20 md:h-24' : 'h-8 sm:h-10 md:h-12'} ${isToday ? 'bg-purple-50 border-purple-400' : ''}`}
         >
-          <div className={`font-semibold text-gray-600 mb-1 ${isMainMonth ? 'text-xs' : 'text-[10px]'}`}>{day}</div>
+          <div className={`font-semibold text-gray-600 mb-0.5 sm:mb-1 ${isMainMonth ? 'text-[10px] sm:text-xs' : 'text-[8px] sm:text-[10px]'}`}>{day}</div>
           {isMainMonth && dayViewings.map((viewing: any) => (
             <div
               key={viewing.id}
-              className={`text-xs p-1 mb-1 rounded cursor-pointer ${
+              className={`text-[10px] sm:text-xs p-0.5 sm:p-1 mb-0.5 sm:mb-1 rounded cursor-pointer ${
                 viewing.result === 'DEAL' ? 'bg-green-100 text-green-800' :
                 viewing.result === 'NO DEAL' ? 'bg-red-100 text-red-800' :
                 viewing.result === 'Negotiating' ? 'bg-blue-100 text-blue-800' :
@@ -280,13 +280,13 @@ export default function ViewingsPage() {
                 setShowModal(true);
               }}
             >
-              <div className="font-bold">#{viewing.id}</div>
-              <div>{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</div>
-              <div className="truncate">{viewing.ref_no}</div>
+              <div className="font-bold text-[9px] sm:text-[10px]">#{viewing.id}</div>
+              <div className="text-[9px] sm:text-[10px]">{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</div>
+              <div className="truncate text-[9px] sm:text-[10px]">{viewing.ref_no}</div>
             </div>
           ))}
           {!isMainMonth && dayViewings.length > 0 && (
-            <div className="text-[10px] text-center text-purple-600 font-semibold">
+            <div className="text-[8px] sm:text-[10px] text-center text-purple-600 font-semibold">
               {dayViewings.length}
             </div>
           )}
@@ -295,11 +295,11 @@ export default function ViewingsPage() {
     }
     
     return (
-      <div key={monthName} className={`${isMainMonth ? 'min-w-[600px]' : 'min-w-[250px] opacity-50'} flex-shrink-0 transition-all`}>
-        <h3 className={`font-bold text-center mb-2 ${isMainMonth ? 'text-xl' : 'text-sm'}`}>{monthName}</h3>
+      <div key={monthName} className={`${isMainMonth ? 'min-w-[320px] sm:min-w-[480px] md:min-w-[600px]' : 'min-w-[200px] sm:min-w-[250px] opacity-50'} flex-shrink-0 transition-all`}>
+        <h3 className={`font-bold text-center mb-2 ${isMainMonth ? 'text-base sm:text-lg md:text-xl' : 'text-xs sm:text-sm'}`}>{monthName}</h3>
         <div className="grid grid-cols-7 gap-0 border border-gray-300">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className={`text-center font-semibold p-1 bg-gray-100 border border-gray-200 ${isMainMonth ? 'text-xs' : 'text-[10px]'}`}>
+            <div key={day} className={`text-center font-semibold p-0.5 sm:p-1 bg-gray-100 border border-gray-200 ${isMainMonth ? 'text-[10px] sm:text-xs' : 'text-[8px] sm:text-[10px]'}`}>
               {day}
             </div>
           ))}
@@ -558,12 +558,12 @@ export default function ViewingsPage() {
               </div>
             )}
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full border rounded-lg">
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="min-w-full">
                 <thead>
                   <tr className="bg-purple-50">
                     {columns.map((col) => (
-                      <th key={col} className="px-3 py-2 text-left font-semibold text-purple-700 border-b">
+                      <th key={col} className="px-2 sm:px-3 py-2 text-left font-semibold text-purple-700 border-b text-xs sm:text-sm whitespace-nowrap">
                         {col}
                       </th>
                     ))}
@@ -607,19 +607,19 @@ export default function ViewingsPage() {
                           setShowModal(true);
                         }}
                       >
-                        <td className="px-3 py-2">{(page - 1) * pageSize + idx + 1}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm">{(page - 1) * pageSize + idx + 1}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
                           {viewing.created_at ? new Date(viewing.created_at).toLocaleDateString('en-GB') : ''}
                         </td>
-                        <td className="px-3 py-2">{viewing.ref_no}</td>
-                        <td className="px-3 py-2">{viewing.city}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">{viewing.ref_no}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">{viewing.city}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
                           {viewing.viewing_date ? new Date(viewing.viewing_date).toLocaleDateString('en-GB') : ''}
                         </td>
-                        <td className="px-3 py-2">{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</td>
-                        <td className="px-3 py-2">{viewing.client_name}</td>
-                        <td className="px-3 py-2">{viewing.client_mobile_no}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">{viewing.client_name}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">{viewing.client_mobile_no}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm">
                           <span 
                             className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
                               viewing.result === 'DEAL' ? 'bg-green-100 text-green-800' :
@@ -632,10 +632,10 @@ export default function ViewingsPage() {
                             {viewing.result}
                           </span>
                         </td>
-                        <td className="px-3 py-2 max-w-[150px] truncate" title={viewing.comments}>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm max-w-[100px] sm:max-w-[150px] truncate" title={viewing.comments}>
                           {viewing.comments}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-center">
                           {viewing.inform_teamleader ? '✓' : ''}
                         </td>
                       </tr>
@@ -646,11 +646,11 @@ export default function ViewingsPage() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-center items-center space-x-2 mt-4">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(1)}>
+            <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-2 mt-4">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(1)} className="text-xs sm:text-sm px-2 sm:px-3">
                 First
               </Button>
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Prev
               </Button>
               {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
@@ -659,14 +659,15 @@ export default function ViewingsPage() {
                   variant={page === pageNum ? "default" : "outline"}
                   size="sm"
                   onClick={() => setPage(pageNum)}
+                  className="text-xs sm:text-sm px-2 sm:px-3"
                 >
                   {pageNum}
                 </Button>
               ))}
-              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(page + 1)}>
+              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(page + 1)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Next
               </Button>
-              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(pageCount)}>
+              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(pageCount)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Last
               </Button>
             </div>
@@ -681,23 +682,25 @@ export default function ViewingsPage() {
           <CardContent>
             <div className="relative">
               {/* Navigation Buttons */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentMonthOffset(prev => prev - 1)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">Prev</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentMonthOffset(0)}
                   disabled={currentMonthOffset === 0}
+                  className="text-xs sm:text-sm px-2 sm:px-3"
                 >
                   Today
                 </Button>
@@ -705,18 +708,19 @@ export default function ViewingsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentMonthOffset(prev => prev + 1)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Next
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">Next</span>
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </Button>
               </div>
               
               {/* Calendar */}
-              <div className="overflow-hidden">
-                <div className="flex gap-4 items-center justify-center">
+              <div className="overflow-x-auto">
+                <div className="flex gap-2 md:gap-4 items-center justify-start md:justify-center">
                   {generateMonthsCalendar()}
                 </div>
               </div>

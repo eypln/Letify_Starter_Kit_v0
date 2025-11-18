@@ -163,10 +163,10 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
               variant: 'default',
             });
       } else {
-        // Yeni listing oluştur (user_id, title, property_url)
+        // Yeni listing oluştur (user_id, title, property_url, availability)
         const { data: newListing, error: createError } = await supabase
           .from('listings')
-          .insert({ user_id: userId, title: referenceNo, property_url: 'manual' })
+          .insert({ user_id: userId, title: referenceNo, property_url: 'manual', availability: 'Available' })
           .select('id')
           .single();
         if (createError || !newListing) {

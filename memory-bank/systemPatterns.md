@@ -484,3 +484,475 @@ boss_notified BOOLEAN DEFAULT FALSE
 5. **Multi-Recipient**: Single function handles Boss + Team Leader
 6. **Type Safety**: Type assertions for new DB columns not in generated types
 7. **Performance**: Indexed queries (user_id, viewing_date, date_signed, etc.)
+
+### Dual-State Data Architecture Pattern (v1.9)
+**Use Case**: When you need both paginated table display AND full-dataset visualization (e.g., maps, charts)
+
+**Problem**: Maps should show ALL available properties, but tables need pagination for performance
+
+**Solution**: Separate data flows with independent state management
+
+```typescript
+// page.tsx (Server Component wrapper)
+export default function ListingsPage({ searchParams }: { searchParams: any }) {
+  return <Suspense fallback={<div>Loading...</div>}>
+    <ListingsClient searchParams={searchParams} />
+  </Suspense>
+}
+
+// ListingsClient.tsx (Client Component)
+'use client'
+export default function ListingsClient({ searchParams }: { searchParams: any }) {
+  const [rows, setRows] = useState([])           // Paginated data for table
+  const [mapListings, setMapListings] = useState([]) // Full dataset for map
+  
+  // Effect 1: Fetch paginated data for table
+  useEffect(() => {
+    const fetchPaginatedData = async () => {
+      const data = await getListings({ page: currentPage, limit: 10 })
+      setRows(data.listings)
+      setTotalPages(data.totalPages)
+    }
+    fetchPaginatedData()
+  }, [currentPage]) // Re-fetch on page change
+  
+  // Effect 2: Fetch ALL data for map (runs once)
+  useEffect(() => {
+    const fetchAllMapData = async () => {
+      const allData = await getAllAvailableAndSoonListings()
+      setMapListings(allData)
+    }
+    fetchAllMapData()
+  }, []) // No dependencies - fetch once on mount
+  
+  return (
+    <>
+      <Table data={rows} /> {/* Shows 10 rows */}
+      <Pagination current={currentPage} total={totalPages} />
+      <MaltaMap listings={mapListings} /> {/* Shows ALL listings */}
+    </>
+  )
+}
+```
+
+**Server Actions Pattern**:
+```typescript
+// actions.ts
+export async function getListings({ page, limit }: { page: number, limit: number }) {
+  const start = (page - 1) * limit
+  const end = start + limit - 1
+  
+  const { data, count } = await supabase
+    .from('listings')
+    .select('*', { count: 'exact' })
+    .range(start, end)
+  
+  return { 
+    listings: data || [], 
+    totalPages: Math.ceil((count || 0) / limit) 
+  }
+}
+
+export async function getAllAvailableAndSoonListings() {
+  const { data } = await supabase
+    .from('listings')
+    .select('*')
+    .in('availability', ['Available', 'Soon'])
+    // No range() - fetch ALL records
+  
+  return data || []
+}
+```
+
+**Benefits**:
+- Table: Fast pagination, no memory issues with large datasets
+- Map: Complete visualization without missing data
+- Performance: Table queries ~100-200ms, map query runs once
+- UX: Users see all properties on map regardless of current page
+
+**When to Use**:
+- Maps/Charts requiring complete dataset
+- Dashboard widgets needing total counts
+- Analytics requiring full data aggregation
+- Any scenario where pagination would hide critical information
+
+### PostgreSQL Enum Handling Pattern (v1.9)
+**Problem**: PostgreSQL enum types don't directly map to TypeScript union types in Supabase client
+
+**Error Example**:
+```typescript
+const { data } = await supabase.from('listings').select('availability')
+// data.availability is enum type, causes type mismatch in TypeScript
+```
+
+**Solution**: Explicit text casting with `::text`
+
+```typescript
+// Server Actions (app/dashboard/listings/actions.ts)
+export async function getListings() {
+  const { data } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      availability::text  // Cast enum to text for JavaScript consumption
+    `)
+  
+  return data
+}
+
+export async function updateListingAvailability(
+  listingId: number, 
+  newAvailability: 'Available' | 'Rented' | 'Soon'
+) {
+  const { error } = await supabase
+    .from('listings')
+    .update({ availability: newAvailability }) // Direct enum value, no casting needed
+    .eq('id', listingId)
+  
+  return { error }
+}
+```
+
+**Database Setup**:
+```sql
+-- Migration file
+CREATE TYPE availability_status AS ENUM ('Available', 'Rented', 'Soon');
+
+ALTER TABLE listings 
+  ADD COLUMN availability availability_status DEFAULT 'Available' NOT NULL;
+
+CREATE INDEX idx_listings_availability ON listings(availability);
+```
+
+**TypeScript Types**:
+```typescript
+// types/supabase.ts
+export interface ListingsRow {
+  id: number
+  title: string
+  availability: 'Available' | 'Rented' | 'Soon' | null
+  // ... other fields
+}
+
+export interface ListingsInsert {
+  availability?: 'Available' | 'Rented' | 'Soon'
+  // ... other fields
+}
+```
+
+**Key Rules**:
+1. **SELECT queries**: Use `::text` when selecting enum columns
+2. **INSERT/UPDATE queries**: Use raw enum values (no casting needed)
+3. **TypeScript types**: Define as union types matching enum values
+4. **Default values**: Set in database migration for consistency
+
+**Benefits**:
+- Type safety maintained
+- No runtime type conversion errors
+- Database enforces valid values
+- Indexed for query performance
+
+### Google Maps Integration Pattern (v1.9)
+**Problem**: Google Maps script should load only once, even with React re-renders
+
+**Error Example**:
+```
+You have included the Google Maps JavaScript API multiple times on this page.
+This may cause unexpected errors.
+```
+
+**Solution**: Singleton pattern with script existence check
+
+```typescript
+// components/listing/malta-map.tsx
+'use client'
+
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+export default function MaltaMap({ listings }: { listings: Listing[] }) {
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+
+  useEffect(() => {
+    // Check if script already exists
+    const existingScript = document.querySelector(
+      'script[src*="maps.googleapis.com"]'
+    )
+
+    if (existingScript) {
+      // Script already loaded, just initialize map
+      if (window.google?.maps) {
+        setMapLoaded(true)
+      } else {
+        existingScript.addEventListener('load', () => setMapLoaded(true))
+      }
+      return
+    }
+
+    // Script doesn't exist, create it
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=marker`
+    script.async = true
+    script.defer = true
+    script.addEventListener('load', () => setMapLoaded(true))
+    document.head.appendChild(script)
+
+    return () => {
+      // Cleanup on unmount
+      script.removeEventListener('load', () => setMapLoaded(true))
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return
+
+    // Initialize map once
+    const map = new google.maps.Map(mapRef.current, {
+      center: { lat: 35.8989, lng: 14.5146 }, // Malta center
+      zoom: 10
+    })
+    
+    mapInstanceRef.current = map
+    
+    // Add markers...
+  }, [mapLoaded, listings])
+
+  return <div ref={mapRef} className="w-full h-[600px]" />
+}
+```
+
+**Marker Clustering by City**:
+```typescript
+// Group listings by city
+const cityGroups = listings.reduce((acc, listing) => {
+  if (!listing.city) return acc
+  if (!acc[listing.city]) acc[listing.city] = []
+  acc[listing.city].push(listing)
+  return acc
+}, {} as Record<string, Listing[]>)
+
+// Create one marker per city
+Object.entries(cityGroups).forEach(([city, cityListings]) => {
+  const coords = MALTA_CITIES[city]
+  if (!coords) return
+
+  const hasAvailable = cityListings.some(l => l.availability === 'Available')
+  const hasSoon = cityListings.some(l => l.availability === 'Soon')
+  
+  // Color-code marker based on listing types
+  const markerColor = hasAvailable ? '#22c55e' : '#3b82f6' // green or blue
+
+  const marker = new google.maps.marker.AdvancedMarkerElement({
+    map,
+    position: coords,
+    title: `${city} (${cityListings.length} properties)`
+  })
+
+  // Info window with all listings in city
+  const infoContent = `
+    <div class="p-2">
+      <h3 class="font-bold mb-2">${city}</h3>
+      ${cityListings.map(l => `
+        <div class="mb-1 p-1 ${l.availability === 'Available' ? 'bg-green-50' : 'bg-blue-50'}">
+          <p class="text-sm font-semibold">${l.title}</p>
+          <p class="text-xs text-gray-600">${l.availability}</p>
+        </div>
+      `).join('')}
+    </div>
+  `
+
+  const infoWindow = new google.maps.InfoWindow({ content: infoContent })
+  marker.addListener('click', () => infoWindow.open(map, marker))
+})
+```
+
+**Malta City Coordinates (62 cities)**:
+```typescript
+const MALTA_CITIES: Record<string, { lat: number; lng: number }> = {
+  'Valletta': { lat: 35.8989, lng: 14.5146 },
+  'Sliema': { lat: 35.9122, lng: 14.5019 },
+  'Gzira': { lat: 35.9058, lng: 14.4914 },
+  // ... 59 more cities
+}
+```
+
+**Environment Setup**:
+```bash
+# .env.local
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...your_key_here
+```
+
+**Key Design Decisions**:
+1. **Script Loading**: Singleton check prevents duplicate loads
+2. **Marker Strategy**: One marker per city (not per listing) for performance
+3. **Color Coding**: Green for Available, Blue for Soon
+4. **InfoWindow**: Shows all listings in clicked city
+5. **Hardcoded Coords**: 62 Malta cities pre-mapped (alternative to geocoding API calls)
+
+### Color-Coded Status UI Pattern (v1.9)
+**Use Case**: Visual differentiation of availability states with soft, accessible colors
+
+```typescript
+// AvailabilitySelector component
+const AVAILABILITY_OPTIONS = [
+  { 
+    value: 'Available', 
+    label: 'Available', 
+    color: 'bg-green-100 text-green-800 border-green-200'  // Soft green
+  },
+  { 
+    value: 'Rented', 
+    label: 'Rented', 
+    color: 'bg-red-100 text-red-800 border-red-200'  // Soft red
+  },
+  { 
+    value: 'Soon', 
+    label: 'Soon', 
+    color: 'bg-blue-100 text-blue-800 border-blue-200'  // Soft blue
+  }
+]
+
+function AvailabilitySelector({ 
+  currentValue, 
+  listingId, 
+  onUpdate 
+}: { 
+  currentValue: string
+  listingId: number
+  onUpdate: (id: number, newValue: string) => void 
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  
+  const handleSelect = async (newValue: string) => {
+    setIsOpen(false)
+    await onUpdate(listingId, newValue)
+  }
+
+  const currentOption = AVAILABILITY_OPTIONS.find(opt => opt.value === currentValue)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`px-3 py-1 rounded-md text-sm font-medium border ${currentOption?.color}`}
+      >
+        {currentOption?.label || 'Select'}
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-10 mt-1 bg-white shadow-lg rounded-md">
+          {AVAILABILITY_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={`block w-full text-left px-3 py-2 text-sm ${option.color}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+**Integration with Teamwork System**:
+```typescript
+// actions.ts
+export async function updateListingAvailability(
+  listingId: number,
+  newAvailability: 'Available' | 'Rented' | 'Soon'
+) {
+  const supabase = await createClient()
+  
+  // Update availability
+  const { error } = await supabase
+    .from('listings')
+    .update({ availability: newAvailability })
+    .eq('id', listingId)
+  
+  if (error) return { error }
+  
+  // Business logic: Remove from teamwork when marked as Rented
+  if (newAvailability === 'Rented') {
+    await supabase
+      .from('teamwork_listings')
+      .delete()
+      .eq('listing_id', listingId)
+  }
+  
+  return { error: null }
+}
+```
+
+**Benefits**:
+- Accessible color contrast (WCAG AA compliant)
+- Consistent color language across application
+- Business logic integration (teamwork cleanup)
+- Soft colors reduce visual fatigue
+- Clear state communication
+
+### Mobile Responsive Table Pattern (v1.9)
+**Use Case**: Complex data tables that need to work on screens from 320px to 1920px
+
+**Breakpoint Strategy**:
+```typescript
+// Tailwind breakpoints
+sm: 640px   // Small phones → tablets
+md: 768px   // Tablets → small laptops
+lg: 1024px  // Laptops → desktops
+```
+
+**Implementation Example (Viewings Calendar)**:
+```typescript
+// Table cells with responsive padding & font sizes
+<td className="px-2 sm:px-3 md:px-4 py-2 text-xs sm:text-sm">
+  {content}
+</td>
+
+// Calendar grid with responsive heights
+<div className="grid grid-cols-7 gap-1">
+  {days.map(day => (
+    <div className="h-16 sm:h-20 md:h-24 border rounded p-1">
+      <div className="text-[10px] sm:text-xs font-semibold">
+        {day.date}
+      </div>
+      <div className="text-[10px] sm:text-xs text-gray-600 mt-1">
+        {day.events.map(event => (
+          <div className="truncate">{event.title}</div>
+        ))}
+      </div>
+    </div>
+  ))}
+</div>
+
+// Navigation buttons with conditional text
+<button className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+  <span className="hidden sm:inline">Previous</span>
+  <span className="sm:hidden">Prev</span>
+</button>
+
+// Responsive table headers (hide on mobile)
+<th className="hidden md:table-cell">Desktop-Only Column</th>
+```
+
+**Pattern Principles**:
+1. **Progressive Enhancement**: Start mobile-first, add features for larger screens
+2. **Consistent Spacing**: Use same breakpoint prefixes (sm:, md:) across components
+3. **Font Scaling**: `text-[10px] → text-xs → text-sm → text-base`
+4. **Padding Scaling**: `px-2 → px-3 → px-4`
+5. **Conditional Rendering**: Hide non-critical columns/text on mobile
+6. **Touch Targets**: Minimum 44×44px clickable areas on mobile
+
+**Testing Checklist**:
+- [ ] 320px (iPhone SE)
+- [ ] 375px (iPhone 12/13)
+- [ ] 390px (iPhone 14)
+- [ ] 640px (Small tablet)
+- [ ] 768px (iPad)
+- [ ] 1024px (iPad Pro landscape)
+- [ ] 1920px (Desktop)
+
+

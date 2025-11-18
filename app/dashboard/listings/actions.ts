@@ -45,7 +45,8 @@ export async function getListings({ page }: { page: number }) {
         fb_reels_url,
         facebook_post_url,
         facebook_reel_url,
-        title
+        title,
+        availability::text
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -69,6 +70,7 @@ export async function getListings({ page }: { page: number }) {
       fbPostUrl: d?.facebook_post_url ?? d?.fb_post_url ?? null,
       fbReelsUrl: d?.facebook_reel_url ?? d?.fb_reels_url ?? null,
       title: d?.title ?? '',
+      availability: d?.availability ?? 'Available',
     }));
 
     return {
@@ -128,4 +130,70 @@ export async function createListing(input: {
     });
   } catch {}
   return { id: jobId };
+}
+
+
+export async function updateListingAvailability(listingId: string, availability: 'Available' | 'Rented' | 'Soon') {
+  const supabase = await createClient();
+  
+  // Get old availability status
+  const { data: oldListing } = await supabase
+    .from('listings')
+    .select('availability::text')
+    .eq('id', listingId)
+    .single();
+
+  const oldAvailability = oldListing?.availability;
+
+  // Update listing availability
+  const { error } = await supabase
+    .from('listings')
+    .update({ availability })
+    .eq('id', listingId);
+
+  if (error) throw new Error(error.message);
+
+  // If changed from Available to Rented, remove from teamwork_listings
+  if (oldAvailability === 'Available' && availability === 'Rented') {
+    await supabase
+      .from('teamwork_listings')
+      .delete()
+      .eq('listing_id', listingId);
+  }
+
+  return { success: true };
+}
+
+
+export async function getAllAvailableAndSoonListings() {
+  const supabase = await createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from('listings')
+      .select(`
+        id,
+        city,
+        title,
+        availability::text
+      `)
+      .in('availability', ['Available', 'Soon'])
+      .not('city', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase map listings fetch error:', error);
+      throw new Error(error.message || 'Failed to fetch map listings');
+    }
+
+    return (Array.isArray(data) ? data : []).map((d: any) => ({
+      id: d?.id ?? '',
+      city: d?.city ?? '',
+      title: d?.title ?? '',
+      availability: d?.availability ?? 'Available',
+    }));
+  } catch (err: any) {
+    console.error('getAllAvailableAndSoonListings error:', err);
+    return [];
+  }
 }
