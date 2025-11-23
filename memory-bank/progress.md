@@ -1,6 +1,17 @@
+
 # Progress: Letify
 
 ## Ne Çalışıyor ✅
+
+### 20.06.2024 - SMTP, Supabase Auth, Admin, Analytics, City Select, Memory Bank Güncellemeleri
+**Yapılanlar:**
+- SMTP yapılandırması local (Gmail) ve prod (Hostinger) ortamları için ayrıldı, environment variable yönetimi netleştirildi.
+- Supabase Auth için local/prod redirect URL yönetimi ve environment'a göre dinamik yönlendirme sağlandı.
+- admin@letify.cloud için SQL ile email_verified ve role güncellemesi, approval_queue unique constraint fix'i ve manuel admin ekleme pattern'i uygulandı.
+- Analytics sayfasında hata/uyarı yerine nötr, gri ve kullanıcı dostu mesaj gösterimi sağlandı.
+- Viewings formunda şehir alanı Malta city select olarak değiştirildi, Ref No seçilince city auto-fill logic'i korundu.
+- Tüm bu değişiklikler ve yeni pattern'ler memory-bank/activeContext.md'ye ve gerekirse diğer context dosyalarına Türkçe olarak işlendi.
+- "Yaptığımız değişiklikleri unutmamak için memory bank güncelle. Ve benimle herzaman Türkçe konuş." prensibi uygulanıyor.
 
 ### Core Features
 - ✅ **Authentication System**: Supabase Auth ile giriş/çıkış, middleware koruması

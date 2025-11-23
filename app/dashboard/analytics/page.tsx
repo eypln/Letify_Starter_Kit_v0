@@ -368,7 +368,7 @@ export default function AnalyticsPage() {
       {loading ? (
         <div className="text-gray-500">Loading…</div>
       ) : listings.length === 0 && clients.length === 0 ? (
-        <div className="text-red-500">No data found from Supabase. Check your listings and clients tables and Supabase connection.</div>
+        <div className="text-gray-400">No listings or clients record yet.</div>
       ) : (
         <>
           {/* Export Summary */}

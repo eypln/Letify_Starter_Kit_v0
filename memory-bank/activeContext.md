@@ -936,6 +936,49 @@ CREATE TABLE viewings (
 
 ## Sonraki Adımlar
 
+### 20.06.2024 - SMTP, Supabase Auth, Admin, Analytics, City Select, Memory Bank Güncellemeleri ✅
+**Önemli Değişiklikler ve Pattern'ler:**
+
+#### 1. SMTP ve Ortam Yönetimi
+- **Yerel (local) ortamda Gmail SMTP**, prod ortamında **Hostinger SMTP** kullanımı sağlandı.
+- `.env.local` ve prod ortamı için SMTP ayarları ayrıldı. Gerekli environment variable'lar belirlendi:
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `NEXT_PUBLIC_SITE_URL`
+- **Hostinger SMTP** prod için, **Gmail SMTP** local için kullanılıyor. Kodda ortam kontrolü ile doğru SMTP seçiliyor.
+- **SMTP_CONFIG.txt** ve `.env.local.example` dosyaları güncellendi.
+
+#### 2. Supabase Auth ve Redirect URL Yönetimi
+- **Supabase Auth** için local ve prod ortamlarında doğru redirect URL'leri ayarlandı.
+- `NEXT_PUBLIC_SITE_URL` ile environment'a göre dinamik yönlendirme sağlandı.
+- Supabase panelinde hem local hem prod URL'leri tanımlandı.
+
+#### 3. Admin Kullanıcı Yönetimi (SQL ile)
+- `admin@letify.cloud` kullanıcısı için doğrudan SQL ile email_verified ve role güncellemesi yapıldı.
+- `approval_queue` tablosunda unique constraint hatası SQL ile düzeltildi.
+- Yeni admin eklemek için manuel insert ve güncelleme pattern'i belirlendi.
+
+#### 4. Analytics Sayfası Mesajı
+- `app/dashboard/analytics/page.tsx` dosyasında hata/uyarı mesajı yerine **nötr, gri ve kullanıcı dostu** bir mesaj gösteriliyor: "Henüz kayıtlı ilan veya müşteri yok."
+
+#### 5. Viewings - City Select ve Auto-Fill
+- `app/dashboard/viewings/page.tsx` dosyasında **şehir alanı Malta şehirleri select** olarak değiştirildi.
+- Ref No seçildiğinde city alanı otomatik doldurulmaya devam ediyor (auto-fill logic korunuyor).
+- Kullanıcı isterse city select ile manuel seçim yapabiliyor.
+
+#### 6. Memory Bank ve Content Engineering
+- Yapılan tüm değişiklikler ve yeni pattern'ler **memory-bank/activeContext.md** ve gerekirse diğer context dosyalarına Türkçe olarak eklendi.
+- "Yaptığımız değişiklikleri unutmamak için memory bank güncelle. Ve benimle herzaman Türkçe konuş." prensibi uygulanıyor.
+
+**Dosyalar:**
+- `.env.local`, `SMTP_CONFIG.txt`, `app/dashboard/analytics/page.tsx`, `app/dashboard/viewings/page.tsx`, `supabase_migration_auth.sql`, `supabase_migration_admin_setup.sql`, `memory-bank/activeContext.md`
+
+**Pattern'ler:**
+- Ortam bazlı SMTP seçimi (local/prod)
+- Supabase Auth redirect URL yönetimi
+- Admin kullanıcı SQL ile yönetim
+- UI'da nötr ve kullanıcı dostu mesajlar
+- City select + auto-fill kombinasyonu
+- Tüm önemli değişikliklerin memory bank'e Türkçe olarak işlenmesi
+
 ### Kısa Vadeli (1-2 hafta)
 1. **Error Boundaries**: Comprehensive error handling implement et
 2. **Testing Setup**: Unit ve integration test'leri kur

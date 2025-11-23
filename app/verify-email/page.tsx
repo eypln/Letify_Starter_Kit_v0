@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
         type: 'signup',
         email: user.email,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/dashboard`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/auth/callback`,
         },
       })
 

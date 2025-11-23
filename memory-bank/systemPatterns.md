@@ -32,6 +32,33 @@ App (Next.js)
 
 ## Ana Teknik Kararlar
 
+### SMTP, Auth, Admin, UI ve Memory Bank Pattern'leri (20.06.2024)
+
+- **Ortam Bazlı SMTP Seçimi:**
+  - Local ortamda Gmail SMTP, prod ortamda Hostinger SMTP kullanılır.
+  - Environment variable ile otomatik seçim yapılır.
+  - `.env.local` ve prod ortamı için SMTP ayarları ayrıdır.
+
+- **Supabase Auth Redirect Yönetimi:**
+  - `NEXT_PUBLIC_SITE_URL` ile local/prod ortamına göre dinamik redirect sağlanır.
+  - Supabase panelinde her iki ortamın URL'leri tanımlanır.
+
+- **Admin Kullanıcı SQL Pattern'i:**
+  - admin@letify.cloud gibi özel kullanıcılar için doğrudan SQL ile email_verified ve role güncellemesi yapılır.
+  - approval_queue unique constraint hatası SQL ile düzeltilir.
+  - Manuel admin ekleme için insert + update pattern'i kullanılır.
+
+- **UI'da Nötr Mesaj Pattern'i:**
+  - Analytics gibi sayfalarda hata/uyarı yerine nötr, gri ve kullanıcı dostu mesajlar gösterilir.
+
+- **City Select + Auto-Fill Pattern'i:**
+  - Viewings formunda şehir alanı Malta city select ile sunulur.
+  - Ref No seçilince city alanı otomatik doldurulur, kullanıcı isterse manuel seçim yapabilir.
+
+- **Memory Bank Güncelleme Disiplini:**
+  - Tüm önemli değişiklikler ve yeni pattern'ler memory-bank/activeContext.md ve ilgili context dosyalarına Türkçe olarak işlenir.
+  - "Yaptığımız değişiklikleri unutmamak için memory bank güncelle. Ve benimle herzaman Türkçe konuş." prensibi uygulanır.
+
 ### Authentication Pattern
 - Supabase Auth kullan, JWT token'ları
 - Server-side user validation (middleware.ts)

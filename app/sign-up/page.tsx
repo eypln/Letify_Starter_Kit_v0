@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
+import { UserRole } from '@/lib/validation'
 
 export default function SignUpPage() {
   const { toast } = useToast()
@@ -13,6 +14,7 @@ export default function SignUpPage() {
   const [password2, setPassword2] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [role, setRole] = useState<string>(UserRole.AGENT)
   const [loading, setLoading] = useState(false)
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -33,10 +35,28 @@ export default function SignUpPage() {
           data: {
             full_name: fullName,
             phone: phone,
+            role: role,
           },
         },
       })
       if (error) throw error
+
+      // Send admin approval notification email
+      try {
+        await fetch('/api/auth/send-admin-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName,
+            email,
+            phone,
+          }),
+        })
+      } catch (emailError) {
+        console.error('Failed to send admin approval email:', emailError)
+        // Don't fail signup if admin email fails to send
+      }
+
       toast({ title: 'Registration successful', description: 'A verification link has been sent to your email.' })
     } catch (err: any) {
       console.error('signUp error:', err)
@@ -93,6 +113,23 @@ export default function SignUpPage() {
               suppressHydrationWarning
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
+          </div>
+          <div>
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              suppressHydrationWarning
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value={UserRole.AGENT}>Agent</option>
+              <option value={UserRole.TEAMLEADER}>Team Leader</option>
+              <option value={UserRole.MANAGER}>Manager</option>
+              <option value={UserRole.BOSS}>Boss</option>
+            </select>
           </div>
           <div>
             <label htmlFor="pw" className="block text-sm font-medium text-gray-700 mb-1">

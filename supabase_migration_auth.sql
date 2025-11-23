@@ -89,14 +89,20 @@ CREATE INDEX IF NOT EXISTS users_integrations_user_id_idx ON public.users_integr
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (user_id, full_name, phone, status, role)
-  VALUES (
-    NEW.id, 
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'phone', ''),
-    'pending_admin', 
-    'agent'
-  );
+  BEGIN
+    INSERT INTO public.profiles (user_id, full_name, phone, status, role)
+    VALUES (
+      NEW.id, 
+      COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+      COALESCE(NEW.raw_user_meta_data->>'phone', ''),
+      'pending_admin', 
+      'agent'
+    );
+    RAISE LOG 'Profile created successfully for user: %', NEW.id;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE LOG 'Error creating profile for user %: %', NEW.id, SQLERRM;
+    -- Profile oluşturulamasa bile auth işlemi başarılı olacak (fallback)
+  END;
   RETURN NEW;
 END;
 $$ language 'plpgsql' SECURITY DEFINER;

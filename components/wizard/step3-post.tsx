@@ -20,13 +20,15 @@ function Spinner() {
 
 export default function Step3Post() {
   useJobGuard(3);
-  const { postStatus, postUrl, postError, setStep, clear } = useWizardStore(); // 👈 clear fonksiyonunu içe aktar
+  const { postStatus, postUrl, postError, setStep, clear } = useWizardStore();
   const router = useRouter();
   const [userEmail, setUserEmail] = React.useState<string | null>(null);
-  const [userPlan, setUserPlan] = React.useState<string | null>(null);
+  const [userCredits, setUserCredits] = React.useState<number>(0);
+  const [userSubscriptionStatus, setUserSubscriptionStatus] = React.useState<string | null>(null);
+  const [userRole, setUserRole] = React.useState<string | null>(null);
   const [limitReachedWarning, setLimitReachedWarning] = React.useState<boolean>(false);
 
-  // Kullanıcı emailini ve plan bilgisini al
+  // Kullanıcı emailini, credits'ini ve subscription bilgisini al
   React.useEffect(() => {
     async function fetchUser() {
       try {
@@ -34,15 +36,33 @@ export default function Step3Post() {
         const { data: { user } } = await supabase.auth.getUser();
         setUserEmail(user?.email || null);
         
-        // Kullanıcının plan bilgisini al
         if (user?.id) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('plan')
-            .eq('id', user.id)
+          // Credits bilgisini al
+          const { data: billingCustomer } = await supabase
+            .from('billing_customers')
+            .select('credits')
+            .eq('user_id', user.id)
             .maybeSingle();
           
-          setUserPlan(profile?.plan || 'free');
+          setUserCredits(billingCustomer?.credits || 0);
+
+          // Subscription status'unu al
+          const { data: subscriptions } = await supabase
+            .from('billing_subscriptions')
+            .select('status')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          setUserSubscriptionStatus(subscriptions?.status || null);
+
+          // Rol bilgisini al
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+
+          setUserRole(profileData?.role || 'agent');
         }
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -185,8 +205,15 @@ export default function Step3Post() {
     }
   }, [postStatus, postUrl]);
 
-  // Free plan kullanıcıları reels üretemez - Next butonu sadece paid plan için aktif
-  const isNextButtonEnabled = postStatus === 'done' && userPlan !== 'free';
+  // Next buton şu koşullarla aktif:
+  // 1. Post başarıyla tamamlandı
+  // 2. Kullanıcının credits > 0 VEYA aktif subscription var
+  // 3. Rol = admin VEYA teamleader
+  const hasPaidAccess = userCredits > 0 || userSubscriptionStatus === 'active';
+  const isNextButtonEnabled = 
+    postStatus === 'done' && 
+    hasPaidAccess &&
+    (userRole === 'admin' || userRole === 'teamleader');
 
   return (
     <section className="space-y-4">
@@ -277,7 +304,11 @@ export default function Step3Post() {
                   });
                 }
               }}
-              title={userPlan === 'free' ? 'Upgrade to a paid plan to create reels' : ''}
+              title={
+                !hasPaidAccess 
+                  ? 'You need an active subscription or credits to create reels' 
+                  : ''
+              }
             >
               Next
             </button>

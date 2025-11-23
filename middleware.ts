@@ -81,6 +81,40 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone()
 
+  // Admin rotaları koruması
+  if (pathname.startsWith('/admin')) {
+    // Kullanıcı giriş yapmamışsa sign-in'e yönlendir
+    if (!user) {
+      url.pathname = '/sign-in'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    // E-posta doğrulanmamışsa verify-email sayfasına yönlendir
+    if (!user.email_confirmed_at) {
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+
+    // Admin rolü kontrolü
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+
+    // Admin bile olsa reddedilmişse erişim engelle
+    if (profile?.status === 'denied') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Dashboard rotaları koruması
   if (pathname.startsWith('/dashboard')) {
     // Kullanıcı giriş yapmamışsa sign-in'e yönlendir
@@ -103,17 +137,10 @@ export async function middleware(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    // Profil yoksa oluştur (fallback)
+    // Profil yoksa (trigger başarısız olduysa) waiting-approval'a yönlendir
     if (!profile) {
-      await supabase
-        .from('profiles')
-        .insert({ user_id: user.id, status: 'pending_admin', role: 'agent' })
-      
-      // Yeni oluşturulan profil pending_admin durumunda olacak
-      if (pathname !== '/dashboard/profile' && pathname !== '/waiting-approval') {
-        url.pathname = '/waiting-approval'
-        return NextResponse.redirect(url)
-      }
+      url.pathname = '/waiting-approval'
+      return NextResponse.redirect(url)
     }
 
     // Admin onayı bekleyen kullanıcılar
@@ -145,9 +172,31 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Auth sayfalarına giriş yapmış kullanıcı erişmeye çalışırsa dashboard'a yönlendir
+  // Auth sayfalarına giriş yapmış kullanıcı erişmeye çalışırsa uygun sayfaya yönlendir
   if ((pathname === '/sign-in' || pathname === '/sign-up') && user) {
-    url.pathname = '/dashboard'
+    // Get user's role to redirect to appropriate dashboard
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    const redirectPath = (() => {
+      switch (profile?.role) {
+        case 'admin':
+          return '/admin'
+        case 'teamleader':
+          return '/teamleader'
+        case 'manager':
+          return '/manager'
+        case 'boss':
+          return '/boss'
+        default:
+          return '/dashboard'
+      }
+    })()
+
+    url.pathname = redirectPath
     return NextResponse.redirect(url)
   }
 

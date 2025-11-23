@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+// System Constants
+export const ADMIN_EMAIL = 'admin@letify.cloud'
+
 // Facebook Integration Form Schema
 export const IntegrationFormSchema = z.object({
   fb_page_id: z
@@ -114,6 +117,34 @@ export type FbPostInput = z.infer<typeof FbPostSchema>
 export type VideoCreateInput = z.infer<typeof VideoCreateSchema>
 export type FbReelsInput = z.infer<typeof FbReelsSchema>
 export type StatusCallbackInput = z.infer<typeof StatusCallbackSchema>
+
+// User Roles
+export const UserRole = {
+  AGENT: 'agent',
+  TEAMLEADER: 'teamleader',
+  MANAGER: 'manager',
+  BOSS: 'boss',
+  ADMIN: 'admin',
+} as const
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole]
+
+export const getRoleLabel = (role: UserRoleType): string => {
+  switch (role) {
+    case UserRole.AGENT:
+      return 'Agent'
+    case UserRole.TEAMLEADER:
+      return 'Team Leader'
+    case UserRole.MANAGER:
+      return 'Manager'
+    case UserRole.BOSS:
+      return 'Boss'
+    case UserRole.ADMIN:
+      return 'Admin'
+    default:
+      return 'Unknown'
+  }
+}
 
 // Profile Status Types
 export const ProfileStatus = {

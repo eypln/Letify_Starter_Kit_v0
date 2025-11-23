@@ -62,6 +62,71 @@ for (let hour = 7; hour <= 21; hour++) {
   }
 }
 
+// Malta cities options (Mainland Malta only)
+const maltaCitiesOptions = [
+  { label: "Attard", value: "Attard" },
+  { label: "Balzan", value: "Balzan" },
+  { label: "Birgu", value: "Birgu" },
+  { label: "Birkirkara", value: "Birkirkara" },
+  { label: "Birżebbuġa", value: "Birżebbuġa" },
+  { label: "Bormla", value: "Bormla" },
+  { label: "Dingli", value: "Dingli" },
+  { label: "Fgura", value: "Fgura" },
+  { label: "Floriana", value: "Floriana" },
+  { label: "Għargħur", value: "Għargħur" },
+  { label: "Għaxaq", value: "Għaxaq" },
+  { label: "Gudja", value: "Gudja" },
+  { label: "Gżira", value: "Gżira" },
+  { label: "Ħamrun", value: "Ħamrun" },
+  { label: "Iklin", value: "Iklin" },
+  { label: "Isla", value: "Isla" },
+  { label: "Kalkara", value: "Kalkara" },
+  { label: "Kerċem", value: "Kerċem" },
+  { label: "Kirkop", value: "Kirkop" },
+  { label: "Lija", value: "Lija" },
+  { label: "Luqa", value: "Luqa" },
+  { label: "Marsa", value: "Marsa" },
+  { label: "Marsaskala", value: "Marsaskala" },
+  { label: "Marsaxlokk", value: "Marsaxlokk" },
+  { label: "Mdina", value: "Mdina" },
+  { label: "Mellieħa", value: "Mellieħa" },
+  { label: "Mġarr", value: "Mġarr" },
+  { label: "Mosta", value: "Mosta" },
+  { label: "Mqabba", value: "Mqabba" },
+  { label: "Msida", value: "Msida" },
+  { label: "Mtarfa", value: "Mtarfa" },
+  { label: "Munxar", value: "Munxar" },
+  { label: "Nadur", value: "Nadur" },
+  { label: "Naxxar", value: "Naxxar" },
+  { label: "Paola", value: "Paola" },
+  { label: "Pembroke", value: "Pembroke" },
+  { label: "Pietà", value: "Pietà" },
+  { label: "Qormi", value: "Qormi" },
+  { label: "Qrendi", value: "Qrendi" },
+  { label: "Rabat", value: "Rabat" },
+  { label: "Safi", value: "Safi" },
+  { label: "San Ġiljan", value: "San Ġiljan" },
+  { label: "San Ġwann", value: "San Ġwann" },
+  { label: "San Lawrenz", value: "San Lawrenz" },
+  { label: "San Pawl il-Baħar", value: "San Pawl il-Baħar" },
+  { label: "Sannat", value: "Sannat" },
+  { label: "Santa Luċija", value: "Santa Luċija" },
+  { label: "Santa Venera", value: "Santa Venera" },
+  { label: "Siġġiewi", value: "Siġġiewi" },
+  { label: "Sliema", value: "Sliema" },
+  { label: "Swieqi", value: "Swieqi" },
+  { label: "Ta' Xbiex", value: "Ta' Xbiex" },
+  { label: "Tarxien", value: "Tarxien" },
+  { label: "Valletta", value: "Valletta" },
+  { label: "Xagħra", value: "Xagħra" },
+  { label: "Xewkija", value: "Xewkija" },
+  { label: "Xgħajra", value: "Xgħajra" },
+  { label: "Żabbar", value: "Żabbar" },
+  { label: "Żebbuġ", value: "Żebbuġ" },
+  { label: "Żejtun", value: "Żejtun" },
+  { label: "Żurrieq", value: "Żurrieq" },
+];
+
 export default function ViewingsPage() {
   const { toast } = useToast();
   const [viewings, setViewings] = useState<any[]>([]);
@@ -387,19 +452,14 @@ export default function ViewingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">City</label>
-                      <Input 
-                        name="city" 
-                        value={form.city} 
-                        onChange={handleInputChange} 
-                        placeholder="City" 
-                        required 
-                        onInvalid={(e) => {
-                          e.preventDefault();
-                          (e.target as HTMLInputElement).setCustomValidity('Please fill in this field');
-                        }}
-                        onInput={(e) => {
-                          (e.target as HTMLInputElement).setCustomValidity('');
-                        }}
+                      <Select
+                        options={maltaCitiesOptions}
+                        value={maltaCitiesOptions.find(opt => opt.value === form.city) || null}
+                        onChange={option => setForm({ ...form, city: option ? option.value : "" })}
+                        placeholder="Select city"
+                        isClearable
+                        classNamePrefix="react-select"
+                        required
                       />
                     </div>
 
