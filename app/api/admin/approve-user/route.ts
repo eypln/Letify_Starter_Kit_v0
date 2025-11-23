@@ -60,12 +60,14 @@ export async function PUT(request: NextRequest) {
 
     // Log activity
     try {
-      await logActivity({
+      await logActivity(supabase, {
         user_id: adminUser.id,
-        action: `User ${action === 'approve' ? 'approved' : 'denied'}`,
-        resource_type: 'user_approval',
-        resource_id: userId,
-        description: `Admin ${action === 'approve' ? 'approved' : 'denied'} user ${userId}`,
+        type: `user_${action === 'approve' ? 'approved' : 'denied'}`,
+        data: {
+          resource_type: 'user_approval',
+          resource_id: userId,
+          action: action === 'approve' ? 'approved' : 'denied'
+        }
       })
     } catch (logError) {
       console.error('Failed to log activity:', logError)

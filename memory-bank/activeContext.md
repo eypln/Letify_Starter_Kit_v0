@@ -2,20 +2,140 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (v1.9 - 18.01.2025)
-1. **Availability Tracking**: Listing durumu takibi (Available, Rented, Soon)
-2. **Geospatial Visualization**: Malta haritası ile listelerin görselleştirilmesi
-3. **Mobile Responsive Design**: Viewings calendar mobil uyumluluğu
-4. **Teamwork Integration**: Availability durumuna göre teamwork temizliği
-5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler
+### Ana Odak Alanları (23.11.2025)
+1. **Build Stabilizasyonu**: Production deployment için build hatalarının çözülmesi
+2. **SSL Güvenlik**: Vercel deployment için TLS certificate validation
+3. **Package Management**: pnpm standardizasyonu ve lockfile yönetimi
+4. **TypeScript Best Practices**: Import paths ve cache management
+5. **Next.js App Router**: Suspense boundaries ve route organization
 
-### Son Odak (Önceki)
-1. **BotID Security Integration**: Bot koruması ile API güvenliği sağlanması ✅
-2. **PWA Enhancement**: Progressive Web App özelliklerinin geliştirilmesi ✅
-3. **Production Deployment**: Vercel'de https://app.letify.cloud canlı yayında ✅
-4. **Security & Optimization**: Sistem güvenliği ve performans optimizasyonu ✅
+### Önceki Odak (v1.9 - 18.01.2025)
+1. **Availability Tracking**: Listing durumu takibi (Available, Rented, Soon) ✅
+2. **Geospatial Visualization**: Malta haritası ile listelerin görselleştirilmesi ✅
+3. **Mobile Responsive Design**: Viewings calendar mobil uyumluluğu ✅
+4. **Teamwork Integration**: Availability durumuna göre teamwork temizliği ✅
+5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 23.11.2025 - Build Optimization & SSL Security - COMPLETE ✅
+**Feature**: Production deployment için build hatalarının sistematik çözümü
+**Deployment**: Hazır - Vercel'e deploy edilebilir
+**Status**: Build successful (87 pages), SSL secure, 0 errors
+
+#### Build Hatalarının Çözümü:
+
+**1. Package Manager Conflict**
+- Problem: `package-lock.json` ve `pnpm-lock.yaml` çakışması
+- Çözüm: `package-lock.json` silindi
+- Created: `.npmrc` dosyası (`package-manager=pnpm`, `engine-strict=true`)
+- Result: IDE ve tooling pnpm'yi zorunlu kullanıyor
+
+**2. Route Conflict (/auth/callback)**
+- Problem: Aynı path'te hem `page.tsx` hem `route.ts` var
+- Hata: "You cannot have two parallel pages that resolve to the same path"
+- Çözüm: `route.ts` silindi (daha basit implementasyon)
+- Kept: `page.tsx` (daha gelişmiş auth flow kontrolü)
+
+**3. logActivity Function Signature**
+- Problem: `approve-user/route.ts`'de supabase parametresi eksik
+- Pattern: `logActivity(supabase, { user_id, type, data })`
+- Fixed: Tüm route'larda tutarlı kullanım sağlandı
+- Example: 
+  ```typescript
+  await logActivity(supabase, {
+    user_id: adminUser.id,
+    type: 'user_approved',
+    data: { resource_id: userId }
+  })
+  ```
+
+**4. Missing userPlan State (step3-post.tsx)**
+- Problem: `userPlan` tanımlı değil ama kullanılıyor
+- Solution: State eklendi + subscription'dan plan çekme
+- Changes:
+  ```typescript
+  const [userPlan, setUserPlan] = useState<string>('free')
+  const { data: subscriptions } = await supabase
+    .from('billing_subscriptions')
+    .select('status, plan')
+  setUserPlan(subscriptions?.plan || 'free')
+  ```
+
+**5. useSearchParams Suspense Boundary**
+- Problem: `/auth/callback` SSR sırasında useSearchParams hatası
+- Next.js 15 requirement: useSearchParams Suspense içinde olmalı
+- Solution: Component ayrımı
+  - `page.tsx`: Suspense wrapper (server component)
+  - `AuthCallbackContent.tsx`: useSearchParams logic (client component)
+- Pattern:
+  ```tsx
+  // page.tsx
+  export default function AuthCallbackPage() {
+    return (
+      <Suspense fallback={<LoadingUI />}>
+        <AuthCallbackContent />
+      </Suspense>
+    )
+  }
+  ```
+
+**6. TypeScript Import Path Resolution**
+- Problem: IDE "Cannot find module './AuthCallbackContent'" hatası
+- Root cause: TypeScript cache issue
+- Solutions tried:
+  - `.tsx` extension → Hata (allowImportingTsExtensions gerekli)
+  - Relative path (`./`) → Cache hatası devam
+  - ✅ Absolute path (`@/app/auth/callback/AuthCallbackContent`) → Çözüldü
+- Lesson: Cache sorunlarında absolute imports daha güvenilir
+
+**7. SSL Certificate Validation**
+- Problem: `.env.local`'da `NODE_TLS_REJECT_UNAUTHORIZED=0`
+- Security Risk: TLS doğrulaması devre dışı (production'da tehlikeli)
+- Solution: Environment variable silindi
+- Build output: ✅ SSL uyarıları kayboldu
+- Updated: `.env.local.example` → Development-only warning eklendi
+
+#### Build Statistics:
+- ✅ **87 sayfa** başarıyla oluşturuldu
+- ✅ **0 TypeScript error**
+- ✅ **0 SSL warning**
+- ✅ Linting ve type checking geçti
+- ✅ Static pages generation complete
+- ✅ Production-ready build
+
+#### Files Modified:
+1. `.npmrc` - Created (package manager enforcement)
+2. `package-lock.json` - Deleted (pnpm conflict)
+3. `app/auth/callback/route.ts` - Deleted (route conflict)
+4. `app/auth/callback/page.tsx` - Suspense wrapper
+5. `app/auth/callback/AuthCallbackContent.tsx` - Created (client logic)
+6. `app/api/admin/approve-user/route.ts` - logActivity signature fix
+7. `components/wizard/step3-post.tsx` - userPlan state added
+8. `.env.local` - Removed NODE_TLS_REJECT_UNAUTHORIZED
+9. `.env.local.example` - Added SSL warning comment
+
+#### Key Technical Decisions:
+1. **Package Manager**: pnpm enforced via .npmrc
+2. **Route Organization**: page.tsx > route.ts (richer auth flow)
+3. **Import Strategy**: Absolute paths for cache stability
+4. **SSL Security**: TLS validation enabled (production requirement)
+5. **Suspense Pattern**: Wrapper + Content separation
+
+#### Development vs Production Learnings:
+1. **next-pwa Logs**: Dev mode tekrarlar normal (webpack watch, Workbox GenerateSW)
+   - [PWA] Compile server/client: Her rebuild'de tekrarlar
+   - GenerateSW multiple times: Workbox plugin webpack watch behavior
+   - Auto register messages: next-pwa her derlemede rapor eder
+2. **Build Process**: Clean build after cache/lockfile changes
+3. **SSL in Dev**: Local development NODE_TLS_REJECT_UNAUTHORIZED=0 kabul edilebilir
+4. **SSL in Prod**: Vercel'de asla NODE_TLS_REJECT_UNAUTHORIZED kullanılmamalı
+
+#### User Requirements Met:
+- ✅ "pnpm install ile build alalım" - Successful build
+- ✅ "SSL istesin çünkü deploy edeceğim vercel'e" - TLS validation enabled
+- ✅ "memory bank güncelle" - progress.md, activeContext.md updated
+- ✅ "benimle herzaman Türkçe konuş" - All communication in Turkish
 
 ### 18.01.2025 - Availability Tracking & Malta Map - COMPLETE ✅
 **Feature**: Listing availability status + geospatial map visualization

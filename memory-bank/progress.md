@@ -3,6 +3,31 @@
 
 ## Ne Çalışıyor ✅
 
+### 23.11.2025 - Build Optimizasyonu ve SSL Güvenlik Düzeltmeleri
+**Yapılanlar:**
+- Build hatalarının düzeltilmesi: `package-lock.json` silindi, `.npmrc` ile pnpm zorunlu hale getirildi
+- `/auth/callback` route çakışması giderildi: `route.ts` silindi, sadece `page.tsx` kaldı
+- `logActivity` fonksiyon imzası düzeltildi: Tüm API route'larında supabase parametresi eklendi (`approve-user/route.ts`)
+- `step3-post.tsx` userPlan state'i eklendi, subscription plan bilgisi çekildi
+- Suspense boundary eklendi: `useSearchParams()` hatası için `AuthCallbackContent.tsx` component'i ayrıldı
+- Absolute import path kullanıldı: `@/app/auth/callback/AuthCallbackContent` (TypeScript cache sorununu çözdü)
+- **SSL Güvenlik**: `.env.local`'dan `NODE_TLS_REJECT_UNAUTHORIZED=0` kaldırıldı (Vercel deployment için)
+- Build başarılı: 87 sayfa, 0 hata, SSL uyarıları gitti
+- `.env.local.example`'a NODE_TLS_REJECT_UNAUTHORIZED için development-only uyarı eklendi
+
+**Teknik Detaylar:**
+- Package manager standardizasyonu: pnpm lock file conflict çözüldü
+- Next.js App Router best practices: Suspense boundaries, page/route separation
+- TypeScript import resolution: Absolute paths vs relative paths
+- SSL certificate validation: Production'da TLS doğrulaması zorunlu
+- Build process: Clean build after cache cleanup
+
+**Öğrenilenler:**
+- Build hatalarının sistematik çözümü: Lockfile → Route conflicts → TypeScript → SSL
+- Production deployment için SSL güvenliği kritik
+- next-pwa dev mode tekrarlayan logları normal (Workbox GenerateSW, webpack watch mode)
+- TypeScript cache sorunları absolute import paths ile çözülebilir
+
 ### 20.06.2024 - SMTP, Supabase Auth, Admin, Analytics, City Select, Memory Bank Güncellemeleri
 **Yapılanlar:**
 - SMTP yapılandırması local (Gmail) ve prod (Hostinger) ortamları için ayrıldı, environment variable yönetimi netleştirildi.

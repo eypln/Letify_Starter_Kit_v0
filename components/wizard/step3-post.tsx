@@ -26,6 +26,7 @@ export default function Step3Post() {
   const [userCredits, setUserCredits] = React.useState<number>(0);
   const [userSubscriptionStatus, setUserSubscriptionStatus] = React.useState<string | null>(null);
   const [userRole, setUserRole] = React.useState<string | null>(null);
+  const [userPlan, setUserPlan] = React.useState<string>('free');
   const [limitReachedWarning, setLimitReachedWarning] = React.useState<boolean>(false);
 
   // Kullanıcı emailini, credits'ini ve subscription bilgisini al
@@ -46,14 +47,15 @@ export default function Step3Post() {
           
           setUserCredits(billingCustomer?.credits || 0);
 
-          // Subscription status'unu al
+          // Subscription status ve plan'ını al
           const { data: subscriptions } = await supabase
             .from('billing_subscriptions')
-            .select('status')
+            .select('status, plan')
             .eq('user_id', user.id)
             .maybeSingle();
 
           setUserSubscriptionStatus(subscriptions?.status || null);
+          setUserPlan(subscriptions?.plan || 'free');
 
           // Rol bilgisini al
           const { data: profileData } = await supabase
