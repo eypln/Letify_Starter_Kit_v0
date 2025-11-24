@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, LogOut } from 'lucide-react'
 
 interface PendingUser {
   user_id: string
@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     checkAdminAccess()
@@ -147,6 +148,32 @@ export default function AdminPage() {
     }
   }
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'An error occurred during logout')
+      }
+
+      router.push('/sign-in')
+      router.refresh()
+    } catch (error) {
+      const err = error as Error
+      console.error('Logout error:', error)
+      alert('Logout failed: ' + (err.message || 'An error occurred during logout'))
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -158,6 +185,18 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Logout Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut className="h-4 w-4" />
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
+          </button>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>

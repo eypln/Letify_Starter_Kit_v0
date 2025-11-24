@@ -173,32 +173,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Auth sayfalarına giriş yapmış kullanıcı erişmeye çalışırsa uygun sayfaya yönlendir
-  if ((pathname === '/sign-in' || pathname === '/sign-up') && user) {
-    // Get user's role to redirect to appropriate dashboard
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-
-    const redirectPath = (() => {
-      switch (profile?.role) {
-        case 'admin':
-          return '/admin'
-        case 'teamleader':
-          return '/teamleader'
-        case 'manager':
-          return '/manager'
-        case 'boss':
-          return '/boss'
-        default:
-          return '/dashboard'
-      }
-    })()
-
-    url.pathname = redirectPath
-    return NextResponse.redirect(url)
-  }
+  // REMOVED: Automatic redirect is now handled client-side to allow users to sign out/switch accounts
+  // Users can now access sign-in page even when authenticated
 
   return response
 }

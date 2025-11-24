@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { UserRole } from '@/lib/validation'
 
 export default function SignUpPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,6 +18,79 @@ export default function SignUpPage() {
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<string>(UserRole.AGENT)
   const [loading, setLoading] = useState(false)
+  const [existingUser, setExistingUser] = useState<{ email: string; role: string } | null>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkExistingSession = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          // Get user's role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single()
+          
+          setExistingUser({
+            email: user.email || '',
+            role: profile?.role || 'user'
+          })
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+    
+    checkExistingSession()
+  }, [])
+
+  const handleSignOut = async () => {
+    setLoading(true)
+    try {
+      await supabase.auth.signOut()
+      setExistingUser(null)
+      toast({
+        title: 'Signed out',
+        description: 'You have been signed out successfully.',
+      })
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to sign out. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleContinueToDashboard = () => {
+    if (!existingUser) return
+    
+    const redirectPath = (() => {
+      switch (existingUser.role) {
+        case 'admin':
+          return '/admin'
+        case 'teamleader':
+          return '/teamleader'
+        case 'manager':
+          return '/manager'
+        case 'boss':
+          return '/boss'
+        default:
+          return '/dashboard'
+      }
+    })()
+    
+    router.push(redirectPath)
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,6 +140,60 @@ export default function SignUpPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If user is already logged in, show options
+  if (existingUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
+          <h1 className="text-2xl font-bold text-center mb-6">Already Signed In</h1>
+          
+          <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <p className="text-sm text-gray-700 mb-2">
+              You are currently signed in as:
+            </p>
+            <p className="font-semibold text-purple-900">{existingUser.email}</p>
+            <p className="text-xs text-gray-600 mt-1 capitalize">Role: {existingUser.role}</p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={handleContinueToDashboard}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Continue to Dashboard
+            </button>
+            
+            <button
+              onClick={handleSignOut}
+              disabled={loading}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Signing out...' : 'Sign Out & Create New Account'}
+            </button>
+          </div>
+
+          <p className="mt-4 text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link className="text-purple-600 hover:text-purple-700 underline font-medium" href="/sign-in">
+              Sign In
+            </Link>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
