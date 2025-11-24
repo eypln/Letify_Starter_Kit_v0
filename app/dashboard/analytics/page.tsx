@@ -13,18 +13,32 @@ const BarChart = dynamic(() => import('@/components/ui/bar-chart'), { ssr: false
 const LineChart = dynamic(() => import('@/components/ui/line-chart'), { ssr: false });
 const PieChart = dynamic(() => import('@/components/ui/pie-chart'), { ssr: false });
 
+interface Listing {
+  city?: string;
+  price?: number;
+  bedrooms?: number;
+}
+
+interface Client {
+  cities?: string;
+  budget?: number;
+  created_at?: string;
+}
+
 export default function AnalyticsPage() {
-  const [listings, setListings] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [monthlyPostUsage, setMonthlyPostUsage] = useState<any[]>([]);
-  const [monthlyClientsAdded, setMonthlyClientsAdded] = useState<any[]>([]);
-  const [dailyViewings, setDailyViewings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [monthlyPostUsage, setMonthlyPostUsage] = useState<Array<{ month: string; count: number }>>([]);
+  const [monthlyClientsAdded, setMonthlyClientsAdded] = useState<Array<{ month: string; count: number }>>([]);
+  const [dailyViewings, setDailyViewings] = useState<Array<{ day: string; count: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [daysBack, setDaysBack] = useState(30);
-  const [startDate, setStartDate] = useState(
+  
+  // Stable initial values - computed once outside of render
+  const [startDate, setStartDate] = useState(() => 
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  )
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
+  );
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -67,7 +81,7 @@ export default function AnalyticsPage() {
           if (!error && data) {
             // Group listings by creation month
             const grouped: Record<string, number> = {};
-            data.forEach((listing: any) => {
+            data.forEach((listing: { created_at?: string }) => {
               if (listing.created_at) {
                 const date = new Date(listing.created_at);
                 const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -91,7 +105,7 @@ export default function AnalyticsPage() {
           if (!error && data) {
             // Group clients by month
             const grouped: Record<string, number> = {};
-            data.forEach((client: any) => {
+            data.forEach((client: { created_at?: string }) => {
               if (client.created_at) {
                 const date = new Date(client.created_at);
                 const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -122,7 +136,7 @@ export default function AnalyticsPage() {
             
             // Filter viewings for current month and group by day
             const grouped: Record<string, number> = {};
-            data.forEach((viewing: any) => {
+            data.forEach((viewing: { created_at?: string }) => {
               if (viewing.created_at) {
                 const createdDate = new Date(viewing.created_at);
                 if (createdDate >= firstDay && createdDate <= lastDay) {
@@ -207,6 +221,7 @@ export default function AnalyticsPage() {
   });
   // Her şehir için tüm oda sayıları barı (eksik olanlar 0)
   const groupedBarData: (Record<string, number> & { city: string })[] = Object.entries(groupedCityBedroom).map(([city, bedroomsObj]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entry: Record<string, number> & { city: string } = { city } as any;
     allBedrooms.forEach(bedroom => {
       entry[bedroom] = typeof bedroomsObj[bedroom] === 'number' ? bedroomsObj[bedroom] : 0;
@@ -241,7 +256,7 @@ export default function AnalyticsPage() {
   // Clients analytics
   // Şehirlere göre client dağılımı (Pie Chart)
   const clientCityCounts: Record<string, number> = {};
-  clients.forEach((client: any) => {
+  clients.forEach((client: Client) => {
     if (client.cities) {
       // Client'ın şehirleri virgülle ayrılmış olabilir
       const cities = client.cities.split(',');
@@ -257,7 +272,7 @@ export default function AnalyticsPage() {
   // Budget aralıklarına göre dağılım histogramı
   const budgetRanges = [0, 1000, 2000, 3000, 4000, 5000];
   const budgetHistogram: Record<string, number> = {};
-  clients.forEach((client: any) => {
+  clients.forEach((client: Client) => {
     if (client.budget) {
       const budget = Number(client.budget);
       let rangeLabel = '';

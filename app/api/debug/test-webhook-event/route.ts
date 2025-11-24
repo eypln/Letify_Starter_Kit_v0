@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import type Stripe from "stripe";
 
 // Mock the webhook handler function
-async function handleCheckoutSessionCompleted(session: any) {
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   console.log("=== MOCK WEBHOOK HANDLER ===");
   console.log("Session data:", session);
   

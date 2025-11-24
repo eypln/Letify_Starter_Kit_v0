@@ -11,7 +11,7 @@ export interface NotificationPayload {
   icon?: string
   badge?: string
   tag?: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   actions?: Array<{
     action: string
     title: string
@@ -175,7 +175,7 @@ export async function sendLocalNotification(
     return
   }
 
-  const { title, body, icon, badge, tag, data, actions } = payload
+  const { title, body, icon, badge, tag, data } = payload
 
   const notification = new Notification(title, {
     body,
@@ -193,7 +193,7 @@ export async function sendLocalNotification(
     notification.close()
 
     // Navigate to relevant page if data contains URL
-    if (data?.url) {
+    if (data?.url && typeof data.url === 'string') {
       window.location.href = data.url
     }
   }

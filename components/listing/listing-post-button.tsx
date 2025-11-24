@@ -21,7 +21,6 @@ interface ListingPostButtonProps {
 
 export default function ListingPostButton({ listingId, jobId, formData, onSuccess }: ListingPostButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [localJobId, setLocalJobId] = useState(jobId);
   const [localListingId, setLocalListingId] = useState(listingId);
   const [localFormData, setLocalFormData] = useState(formData);
@@ -48,7 +47,6 @@ export default function ListingPostButton({ listingId, jobId, formData, onSucces
 
   const postToFacebook = async () => {
     setLoading(true);
-    setError(null);
     // Check for missing data
     if (!localJobId || !localListingId || !localFormData || !localFormData.referenceNo) {
       toast({

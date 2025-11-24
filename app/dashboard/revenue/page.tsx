@@ -13,5 +13,5 @@ export default async function Page() {
 		redirect('/sign-in')
 	}
 
-	return <RevenueClient user={user} profile={profile} />
+	return <RevenueClient user={user} />
 }

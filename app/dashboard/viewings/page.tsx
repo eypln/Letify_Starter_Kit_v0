@@ -54,7 +54,7 @@ const resultOptions = [
 // Generate time options (07:00 to 21:00 in 15-minute intervals)
 const timeOptions: { label: string; value: string }[] = [];
 for (let hour = 7; hour <= 21; hour++) {
-  for (let minute of [0, 15, 30, 45]) {
+  for (const minute of [0, 15, 30, 45]) {
     const hourStr = hour.toString().padStart(2, '0');
     const minuteStr = minute.toString().padStart(2, '0');
     const timeValue = `${hourStr}:${minuteStr}`;
@@ -127,21 +127,53 @@ const maltaCitiesOptions = [
   { label: "Żurrieq", value: "Żurrieq" },
 ];
 
+interface Viewing {
+  id: number;
+  user_id: string;
+  ref_no: string;
+  city: string;
+  viewing_date: string;
+  viewing_time: string;
+  client_name: string;
+  client_mobile_no: string;
+  result: string;
+  comments: string;
+  inform_teamleader: boolean;
+  created_at: string;
+}
+
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface ListingSuggestion {
+  label: string;
+  value: string;
+  city?: string;
+}
+
+interface ClientSuggestion {
+  label: string;
+  value: string;
+  phone?: string;
+}
+
 export default function ViewingsPage() {
   const { toast } = useToast();
-  const [viewings, setViewings] = useState<any[]>([]);
+  const [viewings, setViewings] = useState<Viewing[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [currentMonthOffset, setCurrentMonthOffset] = useState(0); // For calendar slider
   const supabase = createClient();
 
   // Autocomplete suggestions
-  const [listingsSuggestions, setListingsSuggestions] = useState<any[]>([]);
-  const [clientsSuggestions, setClientsSuggestions] = useState<any[]>([]);
+  const [listingsSuggestions, setListingsSuggestions] = useState<ListingSuggestion[]>([]);
+  const [clientsSuggestions, setClientsSuggestions] = useState<ClientSuggestion[]>([]);
 
   const [form, setForm] = useState<ViewingForm>({
     id: undefined,
@@ -218,7 +250,6 @@ export default function ViewingsPage() {
     if (!user?.id) return;
     setSubmitting(true);
     
-    let error;
     const method = form.id ? 'PUT' : 'POST';
     const payload = form.id ? form : { ...form, user_id: user.id };
     
@@ -232,7 +263,7 @@ export default function ViewingsPage() {
     });
 
     const result = await response.json();
-    error = result.success ? null : { message: result.error };
+    const error = result.success ? null : { message: result.error };
     
     setSubmitting(false);
     
@@ -303,7 +334,7 @@ export default function ViewingsPage() {
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayViewings = viewings.filter((v: any) => v.viewing_date === dateStr);
+      const dayViewings = viewings.filter((v) => v.viewing_date === dateStr);
       
       const isToday = 
         day === new Date().getDate() && 
@@ -316,7 +347,7 @@ export default function ViewingsPage() {
           className={`border border-gray-200 p-0.5 sm:p-1 overflow-y-auto ${isMainMonth ? 'h-16 sm:h-20 md:h-24' : 'h-8 sm:h-10 md:h-12'} ${isToday ? 'bg-purple-50 border-purple-400' : ''}`}
         >
           <div className={`font-semibold text-gray-600 mb-0.5 sm:mb-1 ${isMainMonth ? 'text-[10px] sm:text-xs' : 'text-[8px] sm:text-[10px]'}`}>{day}</div>
-          {isMainMonth && dayViewings.map((viewing: any) => (
+          {isMainMonth && dayViewings.map((viewing) => (
             <div
               key={viewing.id}
               className={`text-[10px] sm:text-xs p-0.5 sm:p-1 mb-0.5 sm:mb-1 rounded cursor-pointer ${
@@ -459,7 +490,17 @@ export default function ViewingsPage() {
                         placeholder="Select city"
                         isClearable
                         classNamePrefix="react-select"
+                      />
+                      <input
+                        type="text"
+                        value={form.city}
                         required
+                        style={{ opacity: 0, height: 0, position: 'absolute' }}
+                        onInvalid={(e) => {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).setCustomValidity('Please select a city.');
+                        }}
+                        onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                       />
                     </div>
 
@@ -541,7 +582,7 @@ export default function ViewingsPage() {
                         required 
                         onInvalid={(e) => {
                           e.preventDefault();
-                          (e.target as HTMLInputElement).setCustomValidity('Please fill in this field');
+                          (e.target as HTMLInputElement).setCustomValidity('Please enter the client mobile number.');
                         }}
                         onInput={(e) => {
                           (e.target as HTMLInputElement).setCustomValidity('');
@@ -643,7 +684,7 @@ export default function ViewingsPage() {
                       </td>
                     </tr>
                   ) : (
-                    viewings.map((viewing: any, idx: number) => (
+                    viewings.map((viewing, idx: number) => (
                       <tr 
                         key={viewing.id} 
                         className="border-b hover:bg-purple-50 cursor-pointer" 

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           eventType: event.type, 
           eventId: event.id
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to parse test event:", err);
         return NextResponse.json({ error: "Failed to parse test event" }, { status: 400 });
       }
@@ -75,13 +75,14 @@ export async function POST(req: Request) {
           eventId: event.id,
           apiVersion: event.api_version
         });
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error
         console.error("Webhook signature verification failed:", {
-          message: err.message,
-          name: err.name,
-          stack: err.stack
+          message: error.message,
+          name: error.name,
+          stack: error.stack
         });
-        return NextResponse.json({ error: `Webhook signature verification failed: ${err.message}` }, { status: 400 });
+        return NextResponse.json({ error: `Webhook signature verification failed: ${error.message}` }, { status: 400 });
       }
     }
 
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
       const customerId = (s.customer as string) || null;
 
       // user_id tespiti: metadata -> client_reference_id -> map lookup -> extended search
-      let userId =
+      const userId =
         (s.metadata?.user_id as string) ||
         (s.client_reference_id as string) ||
         null;

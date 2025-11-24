@@ -93,9 +93,10 @@ export async function POST(req: Request) {
   await logActivity(svc, { user_id: user.id, type: 'subscription' });
 
     return NextResponse.json({ url: session.url }, { status: 200 });
-  } catch (e: any) {
-    console.error("checkout/subscription error:", e?.message || e);
+  } catch (e) {
+    const error = e as Error;
+    console.error("checkout/subscription error:", error?.message || e);
     // Hata mesajını UI'a net döndür (debug kolay olsun)
-    return NextResponse.json({ error: String(e?.message || "server error") }, { status: 500 });
+    return NextResponse.json({ error: String(error?.message || "server error") }, { status: 500 });
   }
 }

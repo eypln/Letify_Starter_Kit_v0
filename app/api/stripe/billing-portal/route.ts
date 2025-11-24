@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const { returnUrl } = validation.data;
 
     // Get or create Stripe customer
-    const { data: profile } = await supabase
+    await supabase
       .from('profiles')
       .select('email')
       .eq('id', user.id)

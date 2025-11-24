@@ -5,16 +5,16 @@ export default function ErrorShield({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onError = (e: ErrorEvent) => {
       // ErrorEvent doesn't have createFilename, only filename
-      const src = (e as any).filename || e.message || '';
+      const src = (e as ErrorEvent & { filename?: string }).filename || e.message || '';
       if (src.startsWith('chrome-extension://')) {
         // MetaMask vb. extension hatalarını dev overlay'e taşımayı engelle
         e.stopImmediatePropagation();
       }
     };
     const onRejection = (e: PromiseRejectionEvent) => {
-      const reason: any = e.reason;
-      const msg = typeof reason === 'string' ? reason : reason?.message || '';
-      const stack = reason?.stack || '';
+      const reason: unknown = e.reason;
+      const msg = typeof reason === 'string' ? reason : (reason as Error)?.message || '';
+      const stack = (reason as Error)?.stack || '';
       if (msg.includes('MetaMask') || stack.includes('chrome-extension://')) {
         e.preventDefault(); // dev overlay'e düşmesin
       }

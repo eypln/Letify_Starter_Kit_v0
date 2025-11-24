@@ -48,7 +48,10 @@ async function fetchDashboardStats(userId: string) {
     clientsThisMonth: clientsMonth.count ?? 0,
     totalViewings: viewingsTotal.count ?? 0,
     viewingsThisMonth: viewingsMonth.count ?? 0,
-    recentActivities: activities.data ?? []
+    recentActivities: (activities.data ?? []).map(activity => ({
+      ...activity,
+      data: activity.data as Record<string, unknown> | null | undefined
+    }))
   }
 }
 

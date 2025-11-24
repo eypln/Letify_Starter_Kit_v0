@@ -64,6 +64,10 @@ export async function POST(req: Request) {
 
     if (createError) {
       console.error('Error creating teamwork listing:', createError);
+      // Check if it's a duplicate listing error (unique constraint violation)
+      if (createError.code === '23505') {
+        return NextResponse.json({ error: 'Property already shared with team' }, { status: 409 });
+      }
       return NextResponse.json({ error: 'Failed to share listing' }, { status: 500 });
     }
 

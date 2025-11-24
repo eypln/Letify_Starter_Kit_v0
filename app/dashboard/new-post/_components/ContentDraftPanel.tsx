@@ -14,8 +14,8 @@ type JobRow = {
   id: string;
   status: string | null;
   progress_int: number | null;
-  result: any | null;   // { generatedDescription?: string, generatedTitle?: string, ... }
-  payload: any | null;  // { sourceUrl?: string, ... }
+  result: Record<string, unknown> | null;   // { generatedDescription?: string, generatedTitle?: string, ... }
+  payload: Record<string, unknown> | null;  // { sourceUrl?: string, ... }
   updated_at?: string;  // optional timestamp
 };
 
@@ -54,6 +54,9 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
     });
   }, [jobId, sp]);
 
+  // Hook'u component seviyesinde çağır
+  useWizardJobSync(jobId);
+  
   // Polling effect - job status kontrolü
   React.useEffect(() => {
     if (!jobId) return;
@@ -67,6 +70,7 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
     let initialContentShown = false;
 
     const tick = async () => {
+      
       try {
         console.log('📡 Fetching job status for:', jobId);
         const res = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
@@ -74,8 +78,6 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
         if (!res.ok) {
           console.error('❌ Failed to fetch job:', res.status, res.statusText);
           return;
-          // jobId'yi store'a yazmak için hook'u en üstte çağır
-          useWizardJobSync(jobId);
         }
 
         const response = await res.json();
@@ -86,14 +88,18 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
         setJobData(job);
         
         // Çoklu kaynak okuma - payload'dan veri al
-        const desc = job?.payload?.result?.generatedDescription ??
-                    job?.payload?.generatedDescription ??
-                    job?.result?.generatedDescription ?? "";
+        const payloadData = job?.payload as Record<string, unknown> | null;
+        const resultData = payloadData?.result as Record<string, unknown> | undefined;
+        const jobResult = job?.result as Record<string, unknown> | null;
+        
+        const desc = (resultData?.generatedDescription ??
+                    payloadData?.generatedDescription ??
+                    jobResult?.generatedDescription ?? "") as string;
         
         console.log('📝 Content found:', { desc: desc.slice(0, 50), status: job.status });
         
         // Content var mı kontrolü
-        const contentReady = job?.status === "done" && desc;
+        const contentReady = Boolean(job?.status === "done" && desc);
         setHasContent(contentReady);
         
         // Sadece ilk kez content geldiyse draft'ı set et
@@ -144,7 +150,7 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
       clearInterval(intervalId);
       console.log('🛑 Stopping polling for job:', jobId);
     };
-  }, [jobId, toast, stepParam]);
+  }, [jobId, toast, stepParam, draft]);
 
   const onSave = async () => {
     console.log('[onSave] called', jobId);
@@ -182,8 +188,9 @@ export default function ContentDraftPanel({ jobId }: ContentDraftPanelProps) {
           document.getElementById('step-2')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Unknown error", variant: "destructive" });
+    } catch (e) {
+      const error = e as Error;
+      toast({ title: "Error", description: error?.message ?? "Unknown error", variant: "destructive" });
     } finally {
       setLoading(false);
     }

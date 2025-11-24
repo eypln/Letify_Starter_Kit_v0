@@ -25,7 +25,7 @@ interface NotificationPayload {
   icon?: string
   badge?: string
   tag?: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 }
 
 /**
@@ -79,14 +79,15 @@ export async function sendTeamworkNotification(
           )
 
           return { success: true, userId: sub.user_id }
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as { statusCode?: number; message?: string }
           console.error(
             `Failed to send notification to user ${sub.user_id}:`,
             error
           )
 
           // Clean up expired/invalid subscriptions
-          if (error.statusCode === 410 || error.statusCode === 404) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
             console.log(`Removing expired subscription for user ${sub.user_id}`)
             await supabase
               .from('push_subscriptions')
@@ -162,11 +163,12 @@ export async function sendViewingReminder(
           )
 
           return { success: true }
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as { statusCode?: number; message?: string }
           console.error(`Failed to send reminder:`, error)
 
           // Clean up expired/invalid subscriptions
-          if (error.statusCode === 410 || error.statusCode === 404) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
             console.log(`Removing expired subscription`)
             await supabase
               .from('push_subscriptions')

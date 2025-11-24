@@ -10,7 +10,7 @@ import {
   savePushSubscription,
   sendTestNotification,
 } from '@/lib/notifications'
-import { Bell, BellOff, Check, X } from 'lucide-react'
+import { Bell, BellOff, Check } from 'lucide-react'
 
 interface NotificationSettingsProps {
   userId: string
@@ -112,9 +112,10 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
       } else {
         setMessage({ type: 'error', text: 'Failed to enable notifications. Permission may be blocked.' })
       }
-    } catch (error: any) {
-      console.error('Error enabling notifications:', error)
-      setMessage({ type: 'error', text: error.message || 'Failed to enable notifications' })
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error enabling notifications:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to enable notifications' });
     } finally {
       setLoading(false)
     }
@@ -139,8 +140,8 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
       } else {
         setMessage({ type: 'error', text: 'Failed to disable notifications' })
       }
-    } catch (error) {
-      console.error('Error disabling notifications:', error)
+    } catch {
+      console.error('Error disabling notifications:')
       setMessage({ type: 'error', text: 'Failed to disable notifications' })
     } finally {
       setLoading(false)
@@ -151,7 +152,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
     try {
       await sendTestNotification()
       setMessage({ type: 'success', text: 'Test notification sent!' })
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to send test notification' })
     }
   }
@@ -167,7 +168,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
           <div>
             <h3 className="font-semibold text-gray-900">Push Notifications Not Supported</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Your browser doesn't support push notifications. Please use a modern browser like Chrome, Firefox, or Edge.
+              Your browser doesn&apos;t support push notifications. Please use a modern browser like Chrome, Firefox, or Edge.
             </p>
           </div>
         </div>
@@ -213,7 +214,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
 
         {/* Benefits */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">You'll receive notifications for:</p>
+          <p className="text-sm font-medium">You&apos;ll receive notifications for:</p>
           <ul className="space-y-1 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4 text-green-500" />
@@ -284,9 +285,9 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
               <strong>Permission blocked:</strong> To enable notifications, please:
             </p>
             <ol className="text-sm text-yellow-700 mt-2 ml-4 list-decimal space-y-1">
-              <li>Click the lock icon in your browser's address bar</li>
-              <li>Find "Notifications" in the permissions list</li>
-              <li>Change it to "Allow"</li>
+              <li>Click the lock icon in your browser&apos;s address bar</li>
+              <li>Find &quot;Notifications&quot; in the permissions list</li>
+              <li>Change it to &quot;Allow&quot;</li>
               <li>Refresh this page</li>
             </ol>
           </div>

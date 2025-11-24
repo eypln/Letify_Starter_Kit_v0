@@ -13,5 +13,5 @@ export default async function Page() {
 		redirect('/sign-in')
 	}
 
-	return <TeamworkClient user={user} profile={profile} />
+	return <TeamworkClient />
 }

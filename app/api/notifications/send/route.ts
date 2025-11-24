@@ -22,7 +22,7 @@ interface NotificationPayload {
   icon?: string
   badge?: string
   tag?: string
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   userId?: string // If provided, send to specific user, otherwise send to all
 }
 
@@ -111,18 +111,19 @@ export async function POST(req: NextRequest) {
 
           await webpush.sendNotification(pushSubscription, notificationPayload)
           return { success: true, endpoint: sub.endpoint }
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as { statusCode?: number; message?: string }
           console.error('Error sending to subscription:', error)
 
           // If subscription is expired/invalid, remove it
-          if (error.statusCode === 410 || error.statusCode === 404) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
             await supabase
               .from('push_subscriptions')
               .delete()
               .eq('endpoint', sub.endpoint)
           }
 
-          return { success: false, endpoint: sub.endpoint, error: error.message }
+          return { success: false, endpoint: sub.endpoint, error: err.message || 'Unknown error' }
         }
       })
     )
@@ -138,10 +139,11 @@ export async function POST(req: NextRequest) {
       sent: successful,
       failed: subscriptions.length - successful,
     })
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     console.error('Error in /api/notifications/send:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
@@ -187,10 +189,11 @@ export async function GET(req: NextRequest) {
 
     const result = await response.json()
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     console.error('Error in GET /api/notifications/send:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

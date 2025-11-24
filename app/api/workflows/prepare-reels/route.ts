@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 600; // 10 dk - render süresi
@@ -10,11 +11,10 @@ export async function POST(req: Request) {
   const url = process.env.N8N_WEBHOOK_URL || FALLBACK_N8N;
 
   // Eksikse Supabase'den tamamla
-  let patchedPayload = { ...payload };
+  const patchedPayload = { ...payload };
   try {
     // Supabase client
-    const { createClient } = require('@/lib/supabase/server');
-  const supabase = await createClient();
+    const supabase = await createClient();
     // User (id ve email zorunlu)
     if (!patchedPayload.user || !patchedPayload.user.id || !patchedPayload.user.email) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -57,7 +57,8 @@ export async function POST(req: Request) {
   });
 
   const ct = n8nRes.headers.get('content-type') || '';
-  let data: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: any = {};
 
   try {
     if (ct.includes('application/json')) {
@@ -91,8 +92,7 @@ export async function POST(req: Request) {
   try {
     const reelsUrl = videoUrl;
     let listingId = patchedPayload?.listing?.id || patchedPayload?.listingId;
-    const { createClient } = require('@/lib/supabase/server');
-  const supabase = await createClient();
+    const supabase = await createClient();
     // Eğer listingId yoksa, jobId üzerinden eşle
     if (!listingId && patchedPayload?.job?.id) {
       const { data: listingRow } = await supabase

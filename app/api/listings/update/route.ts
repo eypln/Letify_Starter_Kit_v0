@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Güncellenecek alanları hazırla
-    const updateFields: Record<string, any> = {};
+    const updateFields: Record<string, unknown> = {};
     if (images !== undefined) updateFields.images = images;
     if (facebook_post_url !== undefined) updateFields.facebook_post_url = facebook_post_url;
     if (fb_post_url !== undefined) updateFields.fb_post_url = fb_post_url;
@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Unknown error' }, { status: 500 });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

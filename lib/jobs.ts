@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/supabase'
 
 interface CreateJobArgs {
   userId: string
   listingId?: string | null
   kind: 'content' | 'post' | 'video' | 'reels_post'
-  payload?: any
+  payload?: Json
 }
 
 interface UpdateJobStatusArgs {
   jobId: string
   status: 'queued' | 'running' | 'done' | 'error'
   progress_int?: number
-  result?: any
+  result?: Json
   error_msg?: string
 }
 
@@ -46,7 +47,7 @@ export async function createJob(args: CreateJobArgs): Promise<{ id: string }> {
 export async function updateJobStatus(args: UpdateJobStatusArgs): Promise<void> {
   const supabase = await createClient()
   
-  const updateData: any = {
+  const updateData: Record<string, Json | string | number> = {
     status: args.status,
   }
 

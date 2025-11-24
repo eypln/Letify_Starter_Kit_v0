@@ -155,8 +155,9 @@ export function useBillingController() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || 'Failed to start checkout process');
       if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Checkout could not be started.');
+    } catch (err) {
+      const error = err as Error;
+      setErrorMsg(error?.message || 'Checkout could not be started.');
     } finally {
       setLoadingKey(null);
     }
@@ -245,9 +246,10 @@ export function useBillingController() {
         console.log("Redirecting to Stripe checkout:", json.url);
         window.location.href = json.url;
       }
-    } catch (e: any) {
-      console.error("BUY CREDIT GENERAL ERROR:", e);
-      setErrorMsg(e?.message || 'Credit purchase could not be started.');
+    } catch (err) {
+      const error = err as Error;
+      console.error("BUY CREDIT GENERAL ERROR:", error);
+      setErrorMsg(error?.message || 'Credit purchase could not be started.');
     } finally {
       console.log("=== Credit Purchase Process Ended ===");
       setLoadingKey(null);
@@ -265,8 +267,9 @@ export function useBillingController() {
       const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json?.error || 'Portal could not be opened.');
       if (json?.url && typeof window !== 'undefined') window.location.href = json.url;
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Portal could not be opened.');
+    } catch (err) {
+      const error = err as Error;
+      setErrorMsg(error?.message || 'Portal could not be opened.');
     } finally {
       setLoadingKey(null);
     }

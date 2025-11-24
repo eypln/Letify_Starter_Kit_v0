@@ -18,9 +18,11 @@ interface ProfileHeaderProps {
   profile: Profile
 }
 
+type ProfileStatus = 'pending_admin' | 'approved' | 'denied';
+
 export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
-  const statusLabel = getStatusLabel(profile.status as any)
-  const statusVariant = getStatusBadgeVariant(profile.status as any)
+  const statusLabel = getStatusLabel(profile.status as ProfileStatus);
+  const statusVariant = getStatusBadgeVariant(profile.status as ProfileStatus);
 
   return (
     <Card>
@@ -89,7 +91,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
             <div className="border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium">Account Status</p>
-                <Badge variant={statusVariant as any} className="bg-purple-500 text-white">
+                <Badge variant={statusVariant as 'default' | 'secondary' | 'destructive' | 'outline'} className="bg-purple-500 text-white">
                   {statusLabel}
                 </Badge>
               </div>

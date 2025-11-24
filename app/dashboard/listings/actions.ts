@@ -5,24 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 const PAGE_SIZE = 10;
 
-const CANDIDATES = {
-  addingDate: ['created_at', 'inserted_at', 'createdAt', 'created', 'updated_at'],
-  referenceUrl: ['reference_url', 'ref_url', 'url', 'link', 'source', 'source_link'],
-  city: ['city', 'location_city'],
-  price: ['price', 'amount', 'cost'],
-  bedroom: ['bedrooms', 'bedroom', 'beds'],
-  bathroom: ['bathrooms', 'bathroom', 'baths'],
-  propertyType: ['property_type', 'type', 'propertytype'],
-  description: ['description', 'desc', 'details', 'summary'],
-  fbPostUrl: ['fb_post_url', 'facebook_post_url', 'fb_post_link', 'post_url'],
-  fbReelsUrl: ['fb_reels_url', 'facebook_reels_url', 'reels_url'],
-} as const;
-
-function pick(obj: any, keys: readonly string[]) {
-  for (const k of keys) if (k in obj && obj[k] != null) return obj[k];
-  return null;
-}
-
 
 export async function getListings({ page }: { page: number }) {
   const supabase = await createClient();
@@ -57,7 +39,16 @@ export async function getListings({ page }: { page: number }) {
       throw new Error(error.message || 'Supabase listings fetch error');
     }
 
-    const rows = (Array.isArray(data) ? data : []).map((d: any) => ({
+    // Get all listing IDs that are shared in teamwork
+    const listingIds = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => d?.id as string).filter(Boolean);
+    const { data: sharedListings } = await supabase
+      .from('teamwork_listings')
+      .select('listing_id')
+      .in('listing_id', listingIds);
+
+    const sharedListingIds = new Set((sharedListings || []).map((item: { listing_id: string }) => item.listing_id));
+
+    const rows = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
       id: d?.id ?? '',
       addingDate: d?.created_at ?? '',
       sourceUrl: d?.property_url ?? '',
@@ -71,6 +62,7 @@ export async function getListings({ page }: { page: number }) {
       fbReelsUrl: d?.facebook_reel_url ?? d?.fb_reels_url ?? null,
       title: d?.title ?? '',
       availability: d?.availability ?? 'Available',
+      isSharedInTeamwork: sharedListingIds.has(d?.id as string),
     }));
 
     return {
@@ -79,9 +71,10 @@ export async function getListings({ page }: { page: number }) {
       pageCount: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
       pageSize: PAGE_SIZE
     };
-  } catch (err: any) {
+  } catch (err) {
+    const error = err as Error;
     console.error('getListings error:', err);
-    throw new Error(err?.message || 'getListings error');
+    throw new Error(error?.message || 'getListings error');
   }
 }
 
@@ -186,13 +179,13 @@ export async function getAllAvailableAndSoonListings() {
       throw new Error(error.message || 'Failed to fetch map listings');
     }
 
-    return (Array.isArray(data) ? data : []).map((d: any) => ({
+    return (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
       id: d?.id ?? '',
       city: d?.city ?? '',
       title: d?.title ?? '',
       availability: d?.availability ?? 'Available',
     }));
-  } catch (err: any) {
+  } catch (err) {
     console.error('getAllAvailableAndSoonListings error:', err);
     return [];
   }

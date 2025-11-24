@@ -45,7 +45,13 @@ export async function GET(req: NextRequest) {
     const typeDistribution: Record<string, number> = {}
     const dailyBreakdown: Record<string, number> = {}
 
-    events.forEach((event: any) => {
+    interface EventData {
+      event_category: string;
+      event_type: string;
+      created_at: string;
+    }
+
+    events.forEach((event: EventData) => {
       // Category distribution
       categoryDistribution[event.event_category] = (categoryDistribution[event.event_category] || 0) + 1
 

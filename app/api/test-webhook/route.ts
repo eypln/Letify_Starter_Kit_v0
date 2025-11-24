@@ -73,8 +73,9 @@ export async function GET(req: Request) {
       sentTo: webhookUrl,
       response: result
     }, { status: 200 });
-  } catch (err: any) {
+  } catch (err) {
+    const error = err as Error;
     console.error("Manual webhook test error:", err);
-    return NextResponse.json({ error: "Internal server error", details: err.message || 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", details: error.message || 'Unknown error' }, { status: 500 });
   }
 }

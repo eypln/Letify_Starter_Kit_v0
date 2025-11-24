@@ -9,7 +9,7 @@ export interface ApiError {
     message: string;
     code?: string;
     status: number;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   };
 }
 
@@ -99,9 +99,9 @@ export function handleApiError(error: unknown): ApiError {
  * Wrap API handlers with error handling
  */
 export function withErrorHandler(
-  handler: (req: Request, context?: any) => Promise<Response>
+  handler: (req: Request, context?: Record<string, unknown>) => Promise<Response>
 ) {
-  return async (req: Request, context?: any) => {
+  return async (req: Request, context?: Record<string, unknown>) => {
     try {
       return await handler(req, context);
     } catch (error) {
@@ -116,7 +116,7 @@ export function withErrorHandler(
  */
 export async function validateRequestBody<T>(
   req: Request,
-  schema: (data: any) => T
+  schema: (data: unknown) => T
 ): Promise<T> {
   try {
     const body = await req.json();

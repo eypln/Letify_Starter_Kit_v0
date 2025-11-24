@@ -57,8 +57,13 @@ export async function GET(req: NextRequest) {
 
     if (metrics && metrics.length > 0) {
       // Group by metric type
-      const groupedByType: Record<string, any[]> = {}
-      metrics.forEach((m: any) => {
+      interface MetricData {
+        metric_type: string;
+        metric_value: number;
+        metric_date: string;
+      }
+      const groupedByType: Record<string, MetricData[]> = {}
+      metrics.forEach((m: MetricData) => {
         if (!groupedByType[m.metric_type]) {
           groupedByType[m.metric_type] = []
         }

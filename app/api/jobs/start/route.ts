@@ -9,6 +9,29 @@ type StartPayload =
   | { mode: 'url'; sourceUrl: string; language?: string }
   | { mode: 'manual'; listingId?: string; sourceUrl?: string; language?: string };
 
+interface N8nResponse {
+  generatedDescription?: string;
+  output?: { newPostDescription?: string };
+  result?: { generatedDescription?: string };
+  content?: { description?: string };
+  city?: string;
+  City?: string;
+  price?: number | string;
+  Price?: number | string;
+  deposit?: number | string;
+  Deposit?: number | string;
+  bedrooms?: number | string;
+  Bedroom?: number | string;
+  bathrooms?: number | string;
+  Bathroom?: number | string;
+  propertyType?: string;
+  PropertyType?: string;
+  sourceUrl?: string;
+  status?: string;
+  progress_int?: number | string;
+  [key: string]: unknown;
+}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as StartPayload;
 
@@ -30,7 +53,7 @@ export async function POST(req: Request) {
   // 1) Listing: varsa bul, yoksa oluştur (property_url yoksa title ile kontrol)
   let listingId = body.mode === 'manual' ? body.listingId ?? null : null;
   // AddDialog ve stepper için: title alanı AddDialog'dan, property_url stepper'dan gelir. n8n ve stepper mantığı bozulmaz.
-  const title = (body as any).title ?? null;
+  const title = (body as { title?: string }).title ?? null;
 
   if (!listingId) {
     let existing;
@@ -57,7 +80,7 @@ export async function POST(req: Request) {
       listingId = existing.id;
     } else {
       // Yeni kayıt oluştur
-      const insertFields: Record<string, any> = { user_id: user.id, availability: 'Available' };
+      const insertFields: Record<string, unknown> = { user_id: user.id, availability: 'Available' };
       if (sourceUrl) insertFields.property_url = sourceUrl;
       if (title) insertFields.title = title;
       const { data: newListing, error: listingErr } = await supabase
@@ -128,39 +151,43 @@ export async function POST(req: Request) {
   });
 
   if (n8nOk && n8n) {
+    // Type assertion for n8n response
+    const n8nData = n8n as N8nResponse;
+    
     // 1) Description'ı normalize et
     const generatedDescription =
-      n8n.generatedDescription ||
-      n8n.output?.newPostDescription ||
-      n8n.result?.generatedDescription ||
-      n8n.content?.description ||
+      n8nData.generatedDescription ||
+      n8nData.output?.newPostDescription ||
+      n8nData.result?.generatedDescription ||
+      n8nData.content?.description ||
       '';
 
     // 2) Jobs.result — UI'nin beklediği tüm şekiller dolu olsun
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jobResult: any = {
       generatedDescription,
       newPostDescription: generatedDescription,
       content: { description: generatedDescription },
       fields: {
-        city: n8n.city ?? n8n.City,
-        price: n8n.price ?? n8n.Price,
-        deposit: n8n.deposit ?? n8n.Deposit,
-        bedrooms: n8n.bedrooms ?? n8n.Bedroom,
-        bathrooms: n8n.bathrooms ?? n8n.Bathroom,
-        property_type: n8n.propertyType ?? n8n.PropertyType,
-        sourceUrl: n8n.sourceUrl ?? sourceUrl ?? null,
+        city: n8nData.city ?? n8nData.City,
+        price: n8nData.price ?? n8nData.Price,
+        deposit: n8nData.deposit ?? n8nData.Deposit,
+        bedrooms: n8nData.bedrooms ?? n8nData.Bedroom,
+        bathrooms: n8nData.bathrooms ?? n8nData.Bathroom,
+        property_type: n8nData.propertyType ?? n8nData.PropertyType,
+        sourceUrl: n8nData.sourceUrl ?? sourceUrl ?? null,
       },
     };
 
     // 3) Listings — mevcut kolon adlarıyla güncelle
-    const listingUpdate: Record<string, any> = {};
+    const listingUpdate: Record<string, unknown> = {};
     if (generatedDescription) listingUpdate.description = generatedDescription;
-    if (n8n.city)          listingUpdate.city = n8n.city;
-    if (n8n.price)         listingUpdate.price = Number(n8n.price);
-    if (n8n.deposit)       listingUpdate.deposit = Number(n8n.deposit);
-    if (n8n.bedrooms)      listingUpdate.bedrooms = Number(n8n.bedrooms);
-    if (n8n.bathrooms)     listingUpdate.bathrooms = Number(n8n.bathrooms);
-    if (n8n.propertyType)  listingUpdate.property_type = n8n.propertyType;
+    if (n8nData.city)          listingUpdate.city = n8nData.city;
+    if (n8nData.price)         listingUpdate.price = Number(n8nData.price);
+    if (n8nData.deposit)       listingUpdate.deposit = Number(n8nData.deposit);
+    if (n8nData.bedrooms)      listingUpdate.bedrooms = Number(n8nData.bedrooms);
+    if (n8nData.bathrooms)     listingUpdate.bathrooms = Number(n8nData.bathrooms);
+    if (n8nData.propertyType)  listingUpdate.property_type = n8nData.propertyType;
 
     // 3a) Listings güncelle (varsa)
     if (Object.keys(listingUpdate).length > 0) {
@@ -173,8 +200,8 @@ export async function POST(req: Request) {
     await supabase
       .from('jobs')
       .update({
-        status: n8n.status ?? 'done',
-        progress_int: Number(n8n.progress_int ?? 100),
+        status: n8nData.status ?? 'done',
+        progress_int: Number(n8nData.progress_int ?? 100),
         result: jobResult,
       })
       .eq('id', jobRow.id);

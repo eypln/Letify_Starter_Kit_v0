@@ -6,7 +6,7 @@ import { JOB_TTL_MS } from '@/lib/wizard/constants';
 export default function JobTimer({ onExpireAction }: { onExpireAction: () => void }) {
   const jobId = useWizardStore((s) => s.jobId);
   const startedAt = useWizardStore((s) => s.jobStartedAt);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const firedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

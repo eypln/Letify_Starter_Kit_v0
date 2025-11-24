@@ -31,8 +31,16 @@ export default function Step5ShareReels() {
   } = useWizardStore();
 
   // user ve fb state'ini localde tutmak için
-  const [user, setUser] = React.useState<any>(null);
-  const [fb, setFb] = React.useState<any>(null);
+  interface UserData {
+    id: string;
+    email: string;
+  }
+  interface FbData {
+    pageId: string;
+    accessToken: string;
+  }
+  const [user, setUser] = React.useState<UserData | null>(null);
+  const [fb, setFb] = React.useState<FbData | null>(null);
 
   // Eksik kritik verileri store'a yaz (userId, userEmail, fbPageId, fbAccessToken, jobId, listingId)
   async function ensureCriticalData() {
@@ -182,7 +190,7 @@ export default function Step5ShareReels() {
       {reelsShareStatus === 'idle' && (
         <div className="rounded-xl border p-6">
           <div className="text-sm text-gray-600">
-            Waiting to share Reels. Click "Proceed → Step 5" in Step 4.
+            Waiting to share Reels. Click &quot;Proceed → Step 5&quot; in Step 4.
           </div>
         </div>
       )}

@@ -12,7 +12,6 @@ import StartFlowCTA from "@/components/wizard/StartFlowCTA";
 export default function StartContent() {
   const { toast } = useToast();
   const router = useRouter();
-  const { setJobId, setListingId } = useWizardStore(); // 👈 Wizard store hook'u
   const [open, setOpen] = React.useState(false);
   const [url, setUrl] = React.useState("");
   const [loading, setLoading] = React.useState(false);

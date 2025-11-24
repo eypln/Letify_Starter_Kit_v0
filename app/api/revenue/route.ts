@@ -18,7 +18,7 @@ if (
 }
 
 // GET - Fetch all revenue records for authenticated user
-export async function GET(req: Request) {
+export async function GET() {
   const supabase = await createClient();
 
   const {
@@ -314,7 +314,6 @@ export async function PUT(req: Request) {
 
     // Check if boss notification is needed
     const bothDatesPaid = landlord_paid_date && client_paid_date;
-    const prevBothDatesPaid = prevRecord?.landlord_paid_date && prevRecord?.client_paid_date;
     const shouldNotify = inform_boss_after_both_sides_paid && bothDatesPaid && !prevRecord?.boss_notified;
 
     if (shouldNotify) {
@@ -329,8 +328,30 @@ export async function PUT(req: Request) {
   return NextResponse.json({ success: true, data });
 }
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+interface RevenueData {
+  id?: string;
+  ref_no?: string | null;
+  client_name?: string | null;
+  rent_amount?: number | null;
+  landlord_fee?: number | null;
+  client_fee?: number | null;
+  agent_income?: number | null;
+  [key: string]: unknown;
+}
+
+interface NotificationPayload {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}
+
 // Helper function to send boss notification
-async function sendBossNotification(supabase: any, user_id: string, revenueData: any) {
+async function sendBossNotification(supabase: SupabaseClient, user_id: string, revenueData: RevenueData) {
   try {
     // Get user profile for agent name
     const { data: userProfile } = await supabase
@@ -498,7 +519,7 @@ function generateRevenueNotificationEmail(data: {
 }
 
 // Helper function to send push notification to boss
-async function sendBossNotificationPush(userId: string, payload: any) {
+async function sendBossNotificationPush(userId: string, payload: NotificationPayload) {
   try {
     const supabase = await createClient();
     
@@ -533,9 +554,10 @@ async function sendBossNotificationPush(userId: string, payload: any) {
           pushSubscription,
           JSON.stringify(payload)
         );
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as { statusCode?: number }
         // If subscription is invalid/expired, remove it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        if (error.statusCode === 410 || error.statusCode === 404) {
           await supabase
             .from('push_subscriptions')
             .delete()

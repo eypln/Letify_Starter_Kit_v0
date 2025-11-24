@@ -117,7 +117,16 @@ export async function GET(req: Request) {
   }
 }
 
-async function sendSystemNotification(userId: string, payload: any) {
+interface SystemNotificationPayload {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}
+
+async function sendSystemNotification(userId: string, payload: SystemNotificationPayload) {
   try {
     const supabase = await createClient();
     
@@ -152,9 +161,10 @@ async function sendSystemNotification(userId: string, payload: any) {
           pushSubscription,
           JSON.stringify(payload)
         );
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as { statusCode?: number }
         // If subscription is invalid/expired, remove it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        if (error.statusCode === 410 || error.statusCode === 404) {
           await supabase
             .from('push_subscriptions')
             .delete()

@@ -13,14 +13,14 @@ function n8nUrlFor(action: N8nAction) {
   return base + map[action];
 }
 
-export async function sendToN8n(action: N8nAction, payload: any): Promise<{ok:boolean; status:number; data:any}> {
+export async function sendToN8n(action: N8nAction, payload: Record<string, unknown>): Promise<{ok:boolean; status:number; data:unknown}> {
   const url = n8nUrlFor(action);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ action, ...payload }),
   });
-  let data: any = null;
+  let data: unknown = null;
   try { data = await res.json(); } catch {}
   return { ok: res.ok, status: res.status, data };
 }

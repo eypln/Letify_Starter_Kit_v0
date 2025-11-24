@@ -19,9 +19,10 @@ export async function GET() {
     httpOk = res.ok;
     httpStatus = res.status;
     httpBody = (await res.text()).slice(0, 200);
-  } catch (e: any) {
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
     httpOk = false;
-    httpBody = `fetch-error: ${e?.message}`;
+    httpBody = `fetch-error: ${errorMessage}`;
   }
 
   return NextResponse.json({

@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 // app/api/webhooks/fb-post/route.ts
 import { NextResponse } from 'next/server';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -22,15 +23,14 @@ export async function POST(req: Request) {
   try {
     const { sendToN8n } = await import('@/lib/n8n');
     // Eksikse Supabase'den tamamla
-    let patchedPayload = {
+    const patchedPayload = {
       action: 'postReelsFb',
       listing: { id: listingId, fbPostUrl },
       content: description ? { description } : undefined,
       ...body?.payload,
     };
     try {
-      const { createClient } = require('@/lib/supabase/server');
-  const supabase = await createClient();
+      const supabase = await createClient();
       // User
       if (!patchedPayload.user || !patchedPayload.user.id) {
         const { data: { user } } = await supabase.auth.getUser();

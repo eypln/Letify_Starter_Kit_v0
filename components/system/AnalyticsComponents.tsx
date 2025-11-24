@@ -14,7 +14,7 @@ interface MetricsChartProps {
   category?: string
 }
 
-export function MetricsChart({ title, value, change, unit = '', category }: MetricsChartProps) {
+export function MetricsChart({ title, value, change, unit = '' }: MetricsChartProps) {
   const isPositive = !change || change >= 0
   const changePercent = change ? Math.abs(change).toFixed(1) : '0'
 
@@ -59,11 +59,11 @@ export function ExportButton({ exportType, startDate, endDate }: ExportButtonPro
       const defaultEndDate = endDate || new Date().toISOString().split('T')[0]
 
       const blob = await exportData(
-        exportType as any,
+        exportType as 'listings' | 'clients' | 'revenue' | 'viewings',
         format,
         defaultStartDate,
         defaultEndDate
-      )
+      );
 
       if (blob) {
         // Map format to correct file extension
@@ -73,10 +73,11 @@ export function ExportButton({ exportType, startDate, endDate }: ExportButtonPro
       } else {
         setError('Export failed: No data returned')
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Export failed'
-      console.error('Export failed:', error)
-      setError(errorMessage)
+    } catch (err) {
+      const error = err as Error;
+      const errorMessage = error?.message || 'Export failed';
+      console.error('Export failed:', error);
+      setError(errorMessage);
     } finally {
       setIsLoading(false)
     }
@@ -117,8 +118,18 @@ interface AnalyticsDashboardProps {
   daysBack?: number
 }
 
+interface AnalyticsSummary {
+  summary: {
+    totalEvents: number;
+    uniqueEventTypes: number;
+    uniqueCategories: number;
+    daysBack: number;
+  };
+  categoryDistribution: Record<string, number>;
+}
+
 export function AnalyticsDashboard({ daysBack = 30 }: AnalyticsDashboardProps) {
-  const [summary, setSummary] = useState<any>(null)
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -175,7 +186,7 @@ export function AnalyticsDashboard({ daysBack = 30 }: AnalyticsDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {Object.entries(summary.categoryDistribution).map(([category, count]: [string, any]) => (
+            {Object.entries(summary.categoryDistribution).map(([category, count]) => (
               <div key={category} className="flex items-center justify-between">
                 <span className="text-sm font-medium capitalize">{category}</span>
                 <span className="text-sm text-muted-foreground">{count} events</span>

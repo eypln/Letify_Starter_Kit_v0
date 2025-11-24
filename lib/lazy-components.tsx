@@ -16,7 +16,7 @@ export const LazySelect = dynamic(() => import('react-select'), {
  * Used in: Clients, Viewings, Revenue pages
  */
 export const LazyDatePicker = dynamic(
-  // @ts-ignore - Type incompatibility with react-datepicker defaultProps
+  // @ts-expect-error - Type incompatibility with react-datepicker defaultProps
   () => import('react-datepicker'),
   {
     ssr: false,

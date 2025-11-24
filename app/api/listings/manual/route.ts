@@ -2,7 +2,6 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server'; // mevcut user'ı okumak için
 import { logActivity } from '@/lib/activity';
 
@@ -81,6 +80,7 @@ export async function POST(req: Request) {
   };
 
   // jobs tablonun şemasına göre alan isimleri değişebilir; flexible insert:
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: jErr } = await service.from('jobs').insert(job as any);
   if (jErr) {
     // jobs yazılamasa bile listing oluşturuldu; yine de 200 dönebiliriz

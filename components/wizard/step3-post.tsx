@@ -22,7 +22,6 @@ export default function Step3Post() {
   useJobGuard(3);
   const { postStatus, postUrl, postError, setStep, clear } = useWizardStore();
   const router = useRouter();
-  const [userEmail, setUserEmail] = React.useState<string | null>(null);
   const [userCredits, setUserCredits] = React.useState<number>(0);
   const [userSubscriptionStatus, setUserSubscriptionStatus] = React.useState<string | null>(null);
   const [userRole, setUserRole] = React.useState<string | null>(null);
@@ -35,7 +34,6 @@ export default function Step3Post() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        setUserEmail(user?.email || null);
         
         if (user?.id) {
           // Credits bilgisini al
@@ -205,6 +203,7 @@ export default function Step3Post() {
     if (postStatus === 'done' && postUrl) {
       logPostActivity();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postStatus, postUrl]);
 
   // Next buton şu koşullarla aktif:

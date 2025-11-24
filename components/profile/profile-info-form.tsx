@@ -24,7 +24,7 @@ interface ProfileInfoFormProps {
   profile: Profile
 }
 
-export default function ProfileInfoForm({ user, profile }: ProfileInfoFormProps) {
+export default function ProfileInfoForm({ profile }: Omit<ProfileInfoFormProps, 'user'>) {
   const { toast } = useToast()
   const [fullName, setFullName] = useState(profile.full_name || '')
   const [phone, setPhone] = useState(profile.phone || '')

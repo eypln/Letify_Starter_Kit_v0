@@ -37,11 +37,13 @@ export default async function ProfilePage() {
         </p>
       </div>
 
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <ProfileHeader user={user} profile={profile as any} />
 
       <Separator />
 
-      <ProfileInfoForm user={user} profile={profile as any} />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <ProfileInfoForm profile={profile as any} />
       
       <Separator />
       

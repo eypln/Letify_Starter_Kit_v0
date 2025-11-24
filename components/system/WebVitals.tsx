@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useReportWebVitals } from 'next/web-vitals'
 
 /**
@@ -29,8 +28,11 @@ export default function WebVitals() {
     // Send to analytics service (Google Analytics, Vercel Analytics, etc.)
     if (process.env.NODE_ENV === 'production') {
       // Example: Send to Google Analytics
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', metric.name, {
+      interface WindowWithGtag extends Window {
+        gtag?: (event: string, name: string, params: Record<string, unknown>) => void;
+      }
+      if (typeof window !== 'undefined' && (window as WindowWithGtag).gtag) {
+        (window as WindowWithGtag).gtag?.('event', metric.name, {
           value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
           event_category: 'Web Vitals',
           event_label: metric.id,
@@ -140,16 +142,26 @@ export const PerformanceUtils = {
       console.log('📦 Resource Count:', resources.length)
       
       const largeResources = resources
-        .filter((r: any) => r.transferSize > 100000)
-        .sort((a: any, b: any) => b.transferSize - a.transferSize)
+        .filter((r) => {
+          const resource = r as PerformanceResourceTiming;
+          return resource.transferSize > 100000;
+        })
+        .sort((a, b) => {
+          const resA = a as PerformanceResourceTiming;
+          const resB = b as PerformanceResourceTiming;
+          return resB.transferSize - resA.transferSize;
+        })
         .slice(0, 10)
       
       if (largeResources.length > 0) {
-        console.log('🔍 Largest Resources (>100KB):', largeResources.map((r: any) => ({
-          name: r.name.split('/').pop(),
-          size: Math.round(r.transferSize / 1024) + 'KB',
-          duration: Math.round(r.duration) + 'ms',
-        })))
+        console.log('🔍 Largest Resources (>100KB):', largeResources.map((r) => {
+          const resource = r as PerformanceResourceTiming;
+          return {
+            name: resource.name.split('/').pop(),
+            size: Math.round(resource.transferSize / 1024) + 'KB',
+            duration: Math.round(resource.duration) + 'ms',
+          };
+        }))
       }
     }
   },

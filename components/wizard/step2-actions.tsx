@@ -15,10 +15,7 @@ export default function Step2Actions() {
   const [busy, setBusy] = useState(false);
   const { images } = useUploadStore();
   const {
-    jobId: effectiveJobId,
-    listingId: effectiveListingId,
-    sourceUrl: effectiveSourceUrl,
-    setJobId,
+    jobId,
     setListingId,
     setSourceUrl,
     jobStartedAt,
@@ -32,13 +29,13 @@ export default function Step2Actions() {
   // jobId'yi localStorage'dan çek (fallback)
   useEffect(() => {
     async function ensureListingIdAndSourceUrl() {
-      if (effectiveJobId) {
-        const { listingId, sourceUrl } = await getListingInfoByJobId(effectiveJobId);
-        if (listingId) setListingId(listingId);
-        if (sourceUrl) setSourceUrl(sourceUrl);
+      if (jobId) {
+        const { listingId: fetchedListingId, sourceUrl: fetchedSourceUrl } = await getListingInfoByJobId(jobId);
+        if (fetchedListingId) setListingId(fetchedListingId);
+        if (fetchedSourceUrl) setSourceUrl(fetchedSourceUrl);
         if (typeof window !== 'undefined') {
-          if (listingId) localStorage.setItem('letify_listingId', listingId);
-          if (sourceUrl) localStorage.setItem('letify_sourceUrl', sourceUrl);
+          if (fetchedListingId) localStorage.setItem('letify_listingId', fetchedListingId);
+          if (fetchedSourceUrl) localStorage.setItem('letify_sourceUrl', fetchedSourceUrl);
         }
       }
     }
@@ -53,7 +50,7 @@ export default function Step2Actions() {
   async function triggerPostInBackground() {
     let user = null, fb = null;
     // jobId'yi SSR/CSR uyumlu şekilde kullan
-    const jobIdToUse = effectiveJobId || '';
+    const jobIdToUse = jobId || '';
     // Her payload öncesi, Supabase fallback ile sourceUrl ve listingId'yi garanti altına al
     const { sourceUrl: effectiveSourceUrl, listingId: effectiveListingId } = await getListingInfoByJobId(jobIdToUse);
     console.log('[Step2Actions] jobId:', jobIdToUse, 'sourceUrl:', effectiveSourceUrl, 'listingId:', effectiveListingId);
@@ -61,7 +58,6 @@ export default function Step2Actions() {
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
         user = { id: u.user.id, email: u.user.email };
-        if (!effectiveJobId) useWizardStore.getState().setJobId(u.user.id);
       }
       // Fetch Facebook integration from Supabase
       const { data: integ } = await supabase
@@ -76,13 +72,13 @@ export default function Step2Actions() {
       const payload = {
         action: 'post',
         user,
-        job: { id: effectiveJobId, kind: 'content' },
+        job: { id: jobId, kind: 'content' },
         listing: {
           id: effectiveListingId,
           sourceUrl: effectiveSourceUrl || undefined,
         },
-        images: images.filter((i: any) => i.jobId === effectiveJobId)
-          .map((i: any) => ({ url: i.url, storagePath: i.storagePath })),
+        images: images.filter((i) => i.jobId === jobId)
+          .map((i) => ({ url: i.url, storagePath: i.storagePath })),
         fb,
       };
       // Mask sensitive data in logs
@@ -112,11 +108,12 @@ export default function Step2Actions() {
       if (!postUrl) {
         console.log('⚠️ n8n workflow failed, stepper stayed at step 3.');
       }
-    } catch (e: any) {
+    } catch (err) {
+      const e = err as Error;
       console.log('❌ Post error:', e);
       failPost(e.message || 'unknown error');
       // More descriptive toast
-      const errorMsg = typeof e === 'string' ? e : (e?.message || 'Unknown error');
+      const errorMsg = e?.message || 'Unknown error';
       toast({
         title: 'Post Failed',
         description: `An error occurred during Facebook sharing: ${errorMsg}. Please try again or refresh the page.`,
@@ -136,7 +133,7 @@ export default function Step2Actions() {
       // Yönlendirme yerine sadece store'u temizle
       return;
     }
-    if (!effectiveJobId) return;
+    if (!jobId) return;
 
     setBusy(true);
     startPost();     // state: running
@@ -152,8 +149,8 @@ export default function Step2Actions() {
         type="button"
         className="rounded-xl border px-4 py-2 text-sm"
         onClick={() => {
-          if (effectiveJobId) {
-            clearUploads(effectiveJobId);
+          if (jobId) {
+            clearUploads(jobId);
           }
           // 👇 Her iki store'u da temizle
           const clearAllUploads = useUploadStore.getState().clear;
@@ -168,7 +165,7 @@ export default function Step2Actions() {
 
       <button
         type="button"
-        disabled={busy || !effectiveJobId || images.filter((i: any) => i.jobId === effectiveJobId).length === 0}
+        disabled={busy || !jobId || images.filter((i) => i.jobId === jobId).length === 0}
         onClick={onStartPost}
         className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
       >

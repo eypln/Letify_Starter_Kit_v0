@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 3) JSON'a parse et
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any;
   try { 
     body = JSON.parse(raw); 

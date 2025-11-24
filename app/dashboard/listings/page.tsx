@@ -6,7 +6,7 @@ import { getListings, updateListingAvailability, getAllAvailableAndSoonListings 
 import Link from 'next/link';
 import AddDialog from './add-dialog';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, CheckCircle, Share2 } from 'lucide-react';
+import { CheckCircle, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MaltaMap from '@/components/listing/malta-map';
 
@@ -15,7 +15,7 @@ import { useSearchParams } from 'next/navigation';
 
 const queryClient = new QueryClient();
 
-function TeamworkShareButton({ listingId, title }: { listingId: string; title: string }) {
+function TeamworkShareButton({ listingId, title, isShared }: { listingId: string; title: string; isShared?: boolean }) {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
 
@@ -34,6 +34,8 @@ function TeamworkShareButton({ listingId, title }: { listingId: string; title: s
           title: 'Success',
           description: `"${title}" shared to Teamwork successfully`,
         });
+        // Refresh the page to update the button state
+        window.location.reload();
       } else {
         toast({
           title: 'Error',
@@ -51,6 +53,15 @@ function TeamworkShareButton({ listingId, title }: { listingId: string; title: s
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isShared) {
+    return (
+      <span className="inline-flex items-center gap-1 text-gray-400 cursor-not-allowed">
+        <Share2 className="w-4 h-4" />
+        Shared
+      </span>
+    );
   }
 
   return (
@@ -124,21 +135,52 @@ function AvailabilitySelector({
   );
 }
 
+interface Listing {
+  id: string;
+  addingDate: string;
+  sourceUrl: string;
+  title?: string;
+  city?: string;
+  price?: number;
+  bedroom?: number;
+  bathroom?: number;
+  propertyType?: string;
+  description?: string;
+  availability?: 'Available' | 'Rented' | 'Soon';
+  fbPostUrl?: string;
+  fbReelsUrl?: string;
+  isSharedInTeamwork?: boolean;
+}
+
+interface MapListing {
+  id: string;
+  city: string;
+  title: string;
+  availability: 'Available' | 'Soon';
+}
+
+interface ListingsData {
+  rows: Listing[];
+  total: number;
+  pageCount: number;
+  pageSize: number;
+}
+
 function ListingsContent() {
   const [descModal, setDescModal] = React.useState<string|null>(null);
-  const [listingsData, setListingsData] = React.useState<any>(null);
-  const [mapListings, setMapListings] = React.useState<any[]>([]);
+  const [listingsData, setListingsData] = React.useState<ListingsData | null>(null);
+  const [mapListings, setMapListings] = React.useState<MapListing[]>([]);
   const [refreshKey, setRefreshKey] = React.useState(0);
   const searchParams = useSearchParams();
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
 
   React.useEffect(() => {
-    getListings({ page }).then(setListingsData);
+    getListings({ page }).then((data) => setListingsData(data as ListingsData));
   }, [page, refreshKey]);
 
   // Fetch all Available and Soon listings for the map
   React.useEffect(() => {
-    getAllAvailableAndSoonListings().then(setMapListings);
+    getAllAvailableAndSoonListings().then((data) => setMapListings(data as MapListing[]));
   }, [refreshKey]);
 
   const handleRefresh = () => setRefreshKey(prev => prev + 1);
@@ -204,7 +246,7 @@ function ListingsContent() {
             </tr>
           </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
-            {rows.map((r: any, i: number) => (
+            {rows.map((r: Listing, i: number) => (
               <tr key={r.id} className="border-t">
                 <td className="text-right text-gray-500">{startIndex + i + 1}</td>
                 <td className="whitespace-nowrap">{new Date(r.addingDate).toLocaleString()}</td>
@@ -242,7 +284,7 @@ function ListingsContent() {
                     : <span className="text-gray-400">pending</span>}
                 </td>
                 <td className="whitespace-nowrap">
-                  <TeamworkShareButton listingId={r.id} title={r.title} />
+                  <TeamworkShareButton listingId={r.id} title={r.title || 'Untitled'} isShared={r.isSharedInTeamwork} />
                 </td>
               </tr>
             ))}

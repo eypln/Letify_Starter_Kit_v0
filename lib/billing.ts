@@ -31,7 +31,7 @@ export async function getOrCreateStripeCustomer(userId: string, email?: string) 
       const customer = await stripe.customers.retrieve(bc.stripe_customer_id);
       console.log("Stripe customer is valid:", customer.id);
       return bc.stripe_customer_id as string;
-    } catch (error) {
+    } catch {
       // Stripe'da müşteri bulunamadıysa, yeni bir müşteri oluştur
       console.log("Stripe customer not found, creating new one:", bc.stripe_customer_id);
     }
@@ -77,7 +77,7 @@ export async function addCredits(
   
   try {
     // billing_credit_ledger tablosuna kayıt ekle
-    const { data: ledgerData, error: ledgerError } = await supa.from('billing_credit_ledger').insert({ 
+    const { error: ledgerError } = await supa.from('billing_credit_ledger').insert({ 
       user_id: userId, 
       delta, 
       reason: meta.reason, 
@@ -91,7 +91,7 @@ export async function addCredits(
     }
     
     // increment_credits fonksiyonunu çağır
-    const { data: rpcData, error: rpcError } = await supa.rpc('increment_credits', { 
+    const { error: rpcError } = await supa.rpc('increment_credits', { 
       p_user_id: userId, 
       p_delta: delta 
     });

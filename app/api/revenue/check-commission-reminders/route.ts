@@ -144,7 +144,14 @@ export async function GET(req: Request) {
   }
 }
 
-async function sendCommissionNotification(userId: string, payload: any) {
+async function sendCommissionNotification(userId: string, payload: {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}) {
   try {
     const supabase = await createClient();
     
@@ -179,9 +186,10 @@ async function sendCommissionNotification(userId: string, payload: any) {
           pushSubscription,
           JSON.stringify(payload)
         );
-      } catch (err: any) {
+      } catch (err) {
         // If subscription is invalid/expired, remove it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 410 || statusCode === 404) {
           await supabase
             .from('push_subscriptions')
             .delete()

@@ -13,7 +13,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Users, FileText } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 interface TeamworkListing {
@@ -43,9 +42,8 @@ interface TeamworkClient {
   teamwork_date: string;
 }
 
-export default function TeamworkClient({ user, profile }: { user: any; profile: any }) {
+export default function TeamworkClient() {
   const { toast } = useToast();
-  const supabase = createClient();
   
   const [teamworkListings, setTeamworkListings] = useState<TeamworkListing[]>([]);
   const [teamworkClients, setTeamworkClients] = useState<TeamworkClient[]>([]);

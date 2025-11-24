@@ -1,11 +1,10 @@
 "use client";
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 
-export default function ViewingsClient({ user, profile }: { user: any; profile: any }) {
+export default function ViewingsClient() {
   return (
     <div className="relative min-h-screen">
       <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">

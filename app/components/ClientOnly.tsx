@@ -1,9 +1,15 @@
 'use client';
-import { useEffect, useState, PropsWithChildren } from 'react';
+import { useSyncExternalStore, PropsWithChildren } from 'react';
+
+const subscribe = () => () => {};
 
 export default function ClientOnly({ children }: PropsWithChildren) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
+  
   if (!mounted) return null;
   return <>{children}</>;
 }

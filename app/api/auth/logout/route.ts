@@ -21,8 +21,9 @@ export async function POST() {
     
     console.log("Logout successful");
     return NextResponse.json({ message: 'Logged out successfully' })
-  } catch (err: any) {
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
     console.error("Unexpected logout error:", err);
-    return NextResponse.json({ error: 'An unexpected error occurred while logging out', details: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'An unexpected error occurred while logging out', details: errorMessage }, { status: 500 })
   }
 }

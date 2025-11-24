@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection, type DropEvent } from 'react-dropzone';
 
 const ACCEPT = { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] } as const;
 
@@ -14,7 +14,8 @@ export default function ImageDropzone({ disabled, onFilesAction, maxCount = 15 }
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback(
-    (accepted: File[], rejected: any[]) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    (accepted: File[], rejected: FileRejection[], _event: DropEvent) => {
       setError(null);
       if (rejected?.length) {
         setError('Some files were rejected due to type or limit.');
@@ -30,7 +31,7 @@ export default function ImageDropzone({ disabled, onFilesAction, maxCount = 15 }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ACCEPT as any,
+    accept: ACCEPT,
     multiple: true,
     maxFiles: maxCount,
   });

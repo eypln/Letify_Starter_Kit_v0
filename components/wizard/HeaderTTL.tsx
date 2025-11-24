@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useWizardStore } from '@/lib/wizard/store';
 import { useUploadStore } from '@/lib/uploads/store';
 import { useRouter } from 'next/navigation';
@@ -8,12 +8,12 @@ import { JOB_TTL_MS } from '@/lib/wizard/constants';
 export default function HeaderTTL() {
   const router = useRouter();
   const { jobStartedAt, clear } = useWizardStore();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const firedRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const timeoutRef  = useRef<number | null>(null);
 
-  const endFlow = () => {
+  const endFlow = useCallback(() => {
     if (firedRef.current) return;
     firedRef.current = true;
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -23,7 +23,7 @@ export default function HeaderTTL() {
     clearUploads();
     // Timer süresi dolduğunda doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
     router.replace('/dashboard?expired=1');
-  };
+  }, [router, clear]);
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -41,7 +41,7 @@ export default function HeaderTTL() {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (timeoutRef.current)  clearTimeout(timeoutRef.current);
     };
-  }, [jobStartedAt]); // clear/router stable
+  }, [jobStartedAt, endFlow]); // clear/router stable
 
   if (!jobStartedAt) return null;
 

@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getEffectiveJobId } from '@/lib/client/job-session'; // 👈 URL/localStorage fallback
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Upload, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const MAX = 15;

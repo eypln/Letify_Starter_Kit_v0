@@ -195,7 +195,7 @@ export async function POST(req: Request) {
           eventType: event.type, 
           eventId: event.id
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to parse test event:", err);
         return NextResponse.json({ error: "Failed to parse test event" }, { status: 400 });
       }
@@ -213,19 +213,20 @@ export async function POST(req: Request) {
           apiVersion: event.api_version,
           timestamp: new Date().toISOString()
         });
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as Error;
         console.error("=== WEBHOOK SIGNATURE VERIFICATION FAILED ===");
         console.error("Error details:", {
-          message: err.message,
-          name: err.name,
-          stack: err.stack
+          message: error.message,
+          name: error.name,
+          stack: error.stack
         });
         console.error("Request details:", {
           signature: sig,
           rawBodyLength: raw.length,
           secretLength: process.env.STRIPE_WEBHOOK_SECRET?.length
         });
-        return NextResponse.json({ error: `Webhook signature verification failed: ${err.message}` }, { status: 400 });
+        return NextResponse.json({ error: `Webhook signature verification failed: ${error.message}` }, { status: 400 });
       }
     }
 
@@ -468,7 +469,9 @@ export async function POST(req: Request) {
               stripe_subscription_id: sub.id,
               stripe_customer_id: String(sub.customer),
               status: sub.status,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               current_period_start: toIso((sub as any).current_period_start),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               current_period_end: toIso((sub as any).current_period_end),
               cancel_at_period_end: Boolean(sub.cancel_at_period_end),
               plan_type: plan,
@@ -564,7 +567,9 @@ export async function POST(req: Request) {
             stripe_subscription_id: sub.id,
             stripe_customer_id: String(sub.customer),
             status: sub.status,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             current_period_start: toIso((sub as any).current_period_start),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             current_period_end: toIso((sub as any).current_period_end),
             cancel_at_period_end: Boolean(sub.cancel_at_period_end),
             plan_type: plan,

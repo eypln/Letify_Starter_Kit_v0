@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     const { data: integrations, error: intError } = await supabase
       .from('users_integrations')
       .select('user_id, fb_token_updated_at, fb_page_id')
-      .not('fb_access_token', 'is', null) as any;
+      .not('fb_access_token', 'is', null);
 
     if (intError) {
       console.error('Error fetching integrations:', intError);
@@ -43,11 +43,8 @@ export async function GET(req: Request) {
     }
 
     for (const integration of integrations) {
-      const { user_id, fb_token_updated_at, fb_page_id } = integration as {
-        user_id: string;
-        fb_token_updated_at: string | null;
-        fb_page_id: string | null;
-      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { user_id, fb_token_updated_at } = integration as any;
 
       if (!fb_token_updated_at) {
         // If no update timestamp, skip (shouldn't happen with trigger)
@@ -135,7 +132,14 @@ export async function GET(req: Request) {
   }
 }
 
-async function sendFacebookTokenNotification(userId: string, payload: any) {
+async function sendFacebookTokenNotification(userId: string, payload: {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}) {
   try {
     const supabase = await createClient();
     
@@ -170,9 +174,10 @@ async function sendFacebookTokenNotification(userId: string, payload: any) {
           pushSubscription,
           JSON.stringify(payload)
         );
-      } catch (err: any) {
+      } catch (err) {
         // If subscription is invalid/expired, remove it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 410 || statusCode === 404) {
           await supabase
             .from('push_subscriptions')
             .delete()

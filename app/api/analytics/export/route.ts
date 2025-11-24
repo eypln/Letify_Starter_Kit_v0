@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now()
 
     // Fetch data based on export type
-    let data: any[] = []
+    let data: Record<string, unknown>[] = []
 
     try {
       switch (exportType) {
@@ -107,10 +107,11 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           )
       }
-    } catch (dbError: any) {
+    } catch (dbError) {
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error'
       console.error(`Database error fetching ${exportType}:`, dbError)
       return NextResponse.json(
-        { error: `Failed to fetch ${exportType} data: ${dbError.message}` },
+        { error: `Failed to fetch ${exportType} data: ${errorMessage}` },
         { status: 500 }
       )
     }
@@ -174,20 +175,22 @@ export async function POST(req: NextRequest) {
         'Cache-Control': 'no-cache',
       },
     })
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorCode = (error as { code?: string }).code
     console.error('Export error:', error)
     return NextResponse.json(
       { 
         error: 'Failed to generate export',
-        details: error?.message || 'Unknown error',
-        type: error?.code || 'UNKNOWN'
+        details: errorMessage,
+        type: errorCode || 'UNKNOWN'
       },
       { status: 500 }
     )
   }
 }
 
-function convertToCSV(data: any[]): string {
+function convertToCSV(data: Record<string, unknown>[]): string {
   if (data.length === 0) return ''
 
   // Get headers
@@ -211,7 +214,7 @@ function convertToCSV(data: any[]): string {
   return csvContent
 }
 
-function convertToExcel(data: any[]): Buffer {
+function convertToExcel(data: Record<string, unknown>[]): Buffer {
   if (data.length === 0) {
     // Create empty workbook
     const workbook = XLSX.utils.book_new()
@@ -229,7 +232,7 @@ function convertToExcel(data: any[]): Buffer {
 
   // Auto-size columns (optional but nice)
   const maxWidth = 50
-  const colWidths: any[] = []
+  const colWidths: { wch: number }[] = []
   const headers = Object.keys(data[0] || {})
   
   headers.forEach((header, i) => {

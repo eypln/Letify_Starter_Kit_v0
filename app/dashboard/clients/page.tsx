@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
 import { getNames } from "country-list";
 import "react-datepicker/dist/react-datepicker.css";
 import { Dialog } from "@/components/ui/dialog";
@@ -12,7 +13,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { LayoutGrid } from "lucide-react";
 
 // Lazy load heavy components
 const Select = dynamic(() => import("react-select"), {
@@ -20,18 +20,29 @@ const Select = dynamic(() => import("react-select"), {
   loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
 });
 
+interface DatePickerProps {
+  selected: Date | null;
+  onChange: (date: Date | null) => void;
+  dateFormat?: string;
+  placeholderText?: string;
+  className?: string;
+  isClearable?: boolean;
+  showYearDropdown?: boolean;
+  scrollableYearDropdown?: boolean;
+}
+
 // Create a wrapper for DatePicker to avoid type issues
 const DatePickerWrapper = dynamic(
   () => import("react-datepicker").then((mod) => {
-    const Component = mod.default;
-    return { default: Component as any };
+    const Component = mod.default as ComponentType<DatePickerProps>;
+    return { default: Component };
   }),
   {
     ssr: false,
     loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
   }
 );
-const DatePicker = DatePickerWrapper as any;
+const DatePicker = DatePickerWrapper;
 
 // Client form interface
 interface ClientForm {
@@ -49,6 +60,7 @@ interface ClientForm {
   budget: string;
   move_in: string;
   phone: string;
+  status: string;
 }
 
 const columns = [
@@ -65,12 +77,33 @@ const columns = [
   "Budget",
   "Move In",
   "Phone",
+  "Status",
   "Teamwork",
 ];
 
 const pageSize = 10;
 
-function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; clientName: string }) {
+interface Client {
+  id: number;
+  user_id: string;
+  adding_date: string | Date;
+  created_at?: string;
+  name: string;
+  people: string;
+  bedroom: string;
+  cities: string;
+  family_sharing: string;
+  nationalities: string;
+  jobs: string;
+  pet: string;
+  budget: string;
+  move_in: string | Date;
+  phone: string;
+  status?: string;
+  isSharedInTeamwork?: boolean;
+}
+
+function ClientTeamworkShareButton({ clientId, clientName, isShared }: { clientId: number; clientName: string; isShared?: boolean }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +122,8 @@ function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; cl
           title: 'Success',
           description: `"${clientName}" shared to Teamwork successfully`,
         });
+        // Refresh the page to update the button state
+        window.location.reload();
       } else {
         toast({
           title: 'Error',
@@ -106,6 +141,15 @@ function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; cl
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isShared) {
+    return (
+      <span className="inline-flex items-center gap-1 text-gray-400 cursor-not-allowed">
+        <Share2 className="w-4 h-4" />
+        Shared
+      </span>
+    );
   }
 
   return (
@@ -127,7 +171,7 @@ function ClientTeamworkShareButton({ clientId, clientName }: { clientId: any; cl
 export default function ClientsPage() {
   // Ülke listesi react-select için options formatında
   const countryOptions = getNames().map((name: string) => ({ label: name, value: name }));
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -158,6 +202,12 @@ export default function ClientsPage() {
     { label: "5", value: "5" },
     { label: "Room", value: "room" },
     { label: "Studio", value: "studio" },
+  ];
+
+  const statusOptions = [
+    { label: "Urgent", value: "Urgent" },
+    { label: "Looking", value: "Looking" },
+    { label: "Rented", value: "Rented" },
   ];
 
   // Malta cities options (Mainland Malta only)
@@ -240,12 +290,13 @@ export default function ClientsPage() {
     budget: "",
     move_in: "",
     phone: "",
+    status: "Looking",
   });
   // DatePicker için ayrı state
   // const [addingDate, setAddingDate] = useState<Date | null>(null);
   const [moveInDate, setMoveInDate] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const supabase = createClient();
 
   // getUserAndClients fonksiyonunu dışarı çıkar
@@ -263,7 +314,22 @@ export default function ClientsPage() {
         .order("created_at", { ascending: false })
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
       if (!error && data) {
-        setClients(data);
+        // Get all client IDs that are shared in teamwork
+        const clientIds = data.map(c => c.id).filter(Boolean);
+        const { data: sharedClients } = await supabase
+          .from('teamwork_clients')
+          .select('client_id')
+          .in('client_id', clientIds);
+
+        const sharedClientIds = new Set((sharedClients || []).map((item: { client_id: number }) => item.client_id));
+
+        // Add isSharedInTeamwork property to each client
+        const clientsWithSharedStatus = data.map(client => ({
+          ...client,
+          isSharedInTeamwork: sharedClientIds.has(client.id),
+        }));
+
+        setClients(clientsWithSharedStatus);
         setPageCount(Math.ceil((count ?? 0) / pageSize));
       }
     }
@@ -294,23 +360,32 @@ export default function ClientsPage() {
     let clientId = form.id;
     if (form.id) {
       // Güncelleme
-      const { id, ...updatePayload } = form;
-      const res = await supabase.from("clients").update(updatePayload).eq("id", id);
+      const { id: _id, ...updatePayload } = form;
+      const res = await supabase.from("clients").update(updatePayload).eq("id", _id);
       error = res.error;
     } else {
       // Ekleme - id alanını çıkart
-      const { id, ...insertPayload } = form;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...insertPayload } = form;
       const payloadWithUser = { ...insertPayload, user_id: user.id, adding_date: new Date().toISOString() };
       const res = await supabase.from("clients").insert([payloadWithUser]).select('id').single();
       error = res.error;
       
       // Yeni eklenen client'ın id'sini al
       if (!error && res.data) {
-        clientId = res.data.id;
+        clientId = res.data.id as number;
       }
     }
     setSubmitting(false);
     if (!error) {
+      // If status is Rented, remove from teamwork_clients
+      if (form.status === 'Rented' && clientId) {
+        await supabase
+          .from('teamwork_clients')
+          .delete()
+          .eq('client_id', clientId);
+      }
+
       // Client oluşturulduysa activity kaydı ekle
       if (!form.id && clientId) {
         try {
@@ -343,6 +418,7 @@ export default function ClientsPage() {
         budget: "",
         move_in: "",
         phone: "",
+        status: "Looking",
       });
       setMoveInDate(null);
       await getUserAndClients(1);
@@ -388,6 +464,7 @@ export default function ClientsPage() {
               budget: "",
               move_in: "",
               phone: "",
+              status: "Looking",
             });
             setShowModal(true);
           }}>
@@ -398,10 +475,10 @@ export default function ClientsPage() {
           {/* Modal for Add Client */}
           {showModal && (
             <Dialog open={showModal} onOpenChange={setShowModal}>
-              <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
-                <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
-                  <h3 className="text-xl font-bold mb-4">{form.id ? "Edit Client" : "Add New Client"}</h3>
-                  <form onSubmit={handleAddClient} className="space-y-4">
+              <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center overflow-y-auto p-4">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg my-8 max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-xl font-bold mb-4 sticky top-0 bg-white pb-2 border-b">{form.id ? "Edit Client" : "Add New Client"}</h3>
+                  <form onSubmit={handleAddClient} className="space-y-3">
                     <Input name="name" value={form.name} onChange={handleInputChange} placeholder="Name" required />
                     <div>
                       <label className="block text-sm font-medium mb-1">People</label>
@@ -504,14 +581,24 @@ export default function ClientsPage() {
                         selected={moveInDate}
                         onChange={handleMoveInDateChange}
                         dateFormat="dd.MM.yyyy"
-                        todayButton="Today"
                         isClearable
                         placeholderText="Select move in date"
                         className="w-full border rounded-md px-3 py-2"
-                        required
                       />
                     </div>
                     <Input name="phone" value={form.phone} onChange={handleInputChange} placeholder="Phone" required />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Status</label>
+                      <Select
+                        options={statusOptions}
+                        value={statusOptions.find((opt: { label: string; value: string }) => opt.value === form.status) || null}
+                        onChange={option => setForm({ ...form, status: option ? (option as { value: string }).value : "Looking" })}
+                        placeholder="Select status"
+                        name="status"
+                        classNamePrefix="react-select"
+                        required
+                      />
+                    </div>
                     <div className="flex justify-end gap-2 mt-4">
                       <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
                       <Button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white" disabled={submitting}>{submitting ? (form.id ? "Updating..." : "Adding...") : (form.id ? "Update" : "Add")}</Button>
@@ -542,12 +629,12 @@ export default function ClientsPage() {
                     <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">No clients found.</td>
                   </tr>
                 ) : (
-                  clients.map((client: any, idx: number) => (
+                  clients.map((client: Client, idx: number) => (
                     <tr key={client.id} className="border-b hover:bg-purple-50 cursor-pointer" onClick={() => {
                       setForm({
                         id: client.id,
                         user_id: client.user_id,
-                        adding_date: client.adding_date || client.created_at || "",
+                        adding_date: typeof client.adding_date === 'string' ? client.adding_date : (client.adding_date instanceof Date ? client.adding_date.toISOString() : '') || client.created_at || "",
                         name: client.name || "",
                         people: client.people || "",
                         bedroom: client.bedroom || "",
@@ -557,8 +644,9 @@ export default function ClientsPage() {
                         jobs: client.jobs || "",
                         pet: client.pet || "",
                         budget: client.budget || "",
-                        move_in: client.move_in || "",
+                        move_in: typeof client.move_in === 'string' ? client.move_in : (client.move_in instanceof Date ? client.move_in.toISOString() : '') || "",
                         phone: client.phone || "",
+                        status: client.status || "Looking",
                       });
                       setMoveInDate(client.move_in ? new Date(client.move_in) : null);
                       setShowModal(true);
@@ -567,9 +655,9 @@ export default function ClientsPage() {
                       <td className="px-3 py-2">
                         {typeof client.adding_date === "string"
                           ? client.adding_date.slice(0, 10)
-                          : client.adding_date?.toISOString
+                          : client.adding_date instanceof Date
                             ? client.adding_date.toISOString().slice(0, 10)
-                            : JSON.stringify(client.adding_date)}
+                            : String(client.adding_date || '').slice(0, 10)}
                       </td>
                       <td className="px-3 py-2">{client.name}</td>
                       <td className="px-3 py-2">{client.people}</td>
@@ -581,7 +669,7 @@ export default function ClientsPage() {
                         className="px-3 py-2 max-w-[80px] truncate cursor-pointer hover:text-purple-600"
                         onClick={(e) => {
                           e.stopPropagation();
-                          client.jobs && setJobsModal(client.jobs);
+                          if (client.jobs) setJobsModal(client.jobs);
                         }}
                       >
                         {client.jobs}
@@ -591,13 +679,25 @@ export default function ClientsPage() {
                       <td className="px-3 py-2">
                         {typeof client.move_in === "string"
                           ? client.move_in.slice(0, 10)
-                          : client.move_in?.toISOString
+                          : client.move_in instanceof Date
                             ? client.move_in.toISOString().slice(0, 10)
-                            : client.move_in}
+                            : String(client.move_in || '').slice(0, 10)}
                       </td>
                       <td className="px-3 py-2">{client.phone}</td>
                       <td className="px-3 py-2">
-                        <ClientTeamworkShareButton clientId={client.id} clientName={client.name} />
+                        <span 
+                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                            client.status === 'Rented' ? 'bg-red-100 text-red-800' :
+                            client.status === 'Looking' ? 'bg-blue-100 text-blue-800' :
+                            client.status === 'Urgent' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {client.status || 'Looking'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <ClientTeamworkShareButton clientId={client.id} clientName={client.name} isShared={client.isSharedInTeamwork} />
                       </td>
                     </tr>
                   ))

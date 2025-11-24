@@ -63,13 +63,13 @@ export async function POST(req: Request) {
         ...finalPayload,
         user: { id: user.id, email: user.email ?? '' }, // always send both
       });
-    } catch (error) {
+    } catch {
       await supabase.from('jobs').update({ status: 'error', error_msg: 'network error' }).eq('id', inserted.id);
       return NextResponse.json({ ok: false, message: 'network error' }, { status: 502 });
     }
     // listings tablosuna upsert
     const sb = createServiceSupabase();
-    let user_id: string | null = user.id;
+    const user_id: string | null = user.id;
     const upsert = {
       user_id,
       listing_id: listingId,

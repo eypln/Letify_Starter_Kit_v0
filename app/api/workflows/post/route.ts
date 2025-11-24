@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   const payload = await req.json(); // { action:'post', user, job, listing, images? }
@@ -9,11 +10,10 @@ export async function POST(req: Request) {
   console.log('[API] /api/workflows/post tetiklendi');
 
   // Eksikse Supabase'den tamamla
-  let patchedPayload = { ...payload };
+  const patchedPayload = { ...payload };
   try {
     // Supabase client
-    const { createClient } = require('@/lib/supabase/server');
-  const supabase = await createClient();
+    const supabase = await createClient();
     // User (id ve email zorunlu)
     if (!patchedPayload.user || !patchedPayload.user.id || !patchedPayload.user.email) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -62,8 +62,7 @@ export async function POST(req: Request) {
     try {
       const postUrl = data?.result?.post_url || data?.post_url;
       let listingId = patchedPayload?.listing?.id || patchedPayload?.listingId;
-      const { createClient } = require('@/lib/supabase/server');
-  const supabase = await createClient();
+      const supabase = await createClient();
       // Eğer listingId yoksa, jobId üzerinden eşle
       if (!listingId && patchedPayload?.job?.id) {
         const { data: listingRow } = await supabase

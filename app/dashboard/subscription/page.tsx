@@ -14,10 +14,6 @@ const fmtDate = (iso?: string | null) =>
 
 import { cn } from '@/lib/utils';
 
-interface BillingCustomer {
-  credits: number;
-}
-
 interface BillingSubscription {
   status: string;
   plan_type: 'mini' | 'full';
@@ -117,9 +113,8 @@ export default function SubscriptionPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   const {
-    buySubscription, buyCredit, openPortal, refresh,
-    loadingKey, errorMsg, infoMsg, testMode,
-    userId, credits, sub, monthlyPostUsage,
+    buySubscription, buyCredit,
+    loadingKey, credits, sub, monthlyPostUsage,
   } = useBillingController();
 
   return (
@@ -129,13 +124,7 @@ export default function SubscriptionPage() {
         setBillingCycle={setBillingCycle}
         buySubscription={buySubscription}
         buyCredit={buyCredit}
-        openPortal={openPortal}
-        refresh={refresh}
         loadingKey={loadingKey}
-        errorMsg={errorMsg}
-        infoMsg={infoMsg}
-        testMode={testMode}
-        userId={userId}
         credits={credits}
         sub={sub}
         monthlyPostUsage={monthlyPostUsage}
@@ -149,28 +138,16 @@ function SubscriptionContent({
   setBillingCycle,
   buySubscription,
   buyCredit,
-  openPortal,
-  refresh,
   loadingKey,
-  errorMsg,
-  infoMsg,
-  testMode,
-  userId,
   credits,
   sub,
   monthlyPostUsage,
 }: {
   billingCycle: 'monthly' | 'yearly';
   setBillingCycle: (cycle: 'monthly' | 'yearly') => void;
-  buySubscription: any;
-  buyCredit: any;
-  openPortal: any;
-  refresh: any;
+  buySubscription: (plan: 'mini' | 'full', cycle: 'monthly' | 'yearly') => Promise<void>;
+  buyCredit: (amount: 10 | 20 | 50 | 100 | 200) => Promise<void>;
   loadingKey: string | null;
-  errorMsg: string | null;
-  infoMsg: string | null;
-  testMode: boolean;
-  userId: string | null;
   credits: number | null;
   sub: BillingSubscription | null;
   monthlyPostUsage: number | null;

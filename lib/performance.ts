@@ -8,7 +8,7 @@
  * Debounce function to limit how often a function is called
  * Useful for search inputs, resize events, etc.
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -31,7 +31,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * Throttle function to ensure a function is called at most once in a specified period
  * Useful for scroll events, mouse movements, etc.
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -88,7 +88,7 @@ export function setupIntersectionObserver(
 /**
  * Memoize expensive function results
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T): T {
+export function memoize<T extends (...args: unknown[]) => unknown>(fn: T): T {
   const cache = new Map()
 
   return ((...args: Parameters<T>) => {
@@ -119,7 +119,14 @@ export function getNetworkInfo() {
     return null
   }
 
-  const connection = (navigator as any).connection
+  interface NetworkConnection {
+    effectiveType: string;
+    downlink: number;
+    rtt: number;
+    saveData: boolean;
+  }
+  const connection = (navigator as { connection?: NetworkConnection }).connection
+  if (!connection) return null
   return {
     effectiveType: connection.effectiveType, // '4g', '3g', '2g', 'slow-2g'
     downlink: connection.downlink, // Mbps
@@ -135,9 +142,9 @@ export function isLowEndDevice(): boolean {
   if (typeof navigator === 'undefined') return false
 
   const connection = getNetworkInfo()
-  const memory = (navigator as any).deviceMemory // GB
+  const memory = (navigator as { deviceMemory?: number }).deviceMemory // GB
 
-  return (
+  return Boolean(
     (connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') ||
     (memory && memory < 4) ||
     (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4)
@@ -166,7 +173,7 @@ export function deferResource(fn: () => void, priority: 'high' | 'low' = 'low') 
   if (priority === 'high') {
     // Use requestIdleCallback for low-priority tasks
     if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(fn)
+      window.requestIdleCallback(fn)
     } else {
       setTimeout(fn, 1)
     }

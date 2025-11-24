@@ -75,14 +75,20 @@ interface MaltaMapProps {
   }>;
 }
 
+interface Marker extends google.maps.Marker {
+  infoWindow?: google.maps.InfoWindow;
+}
+
 export default function MaltaMap({ listings }: MaltaMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<Marker[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // Load Google Maps script only once
+    if (typeof window === 'undefined') return;
+    
     if (!window.google) {
       // Check if script is already being loaded
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
@@ -100,8 +106,9 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
         console.error('Failed to load Google Maps API');
       };
       document.head.appendChild(script);
-    } else {
-      setIsLoaded(true);
+    } else if (window.google.maps) {
+      // Google Maps already loaded - schedule state update
+      Promise.resolve().then(() => setIsLoaded(true));
     }
   }, []);
 
@@ -190,7 +197,7 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
 
       marker.addListener('click', () => {
         // Close all other info windows
-        markersRef.current.forEach((m: any) => {
+        markersRef.current.forEach((m) => {
           if (m.infoWindow) {
             m.infoWindow.close();
           }
@@ -199,9 +206,10 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
       });
 
       // Store info window reference
-      (marker as any).infoWindow = infoWindow;
+      const markerWithInfo = marker as Marker;
+      markerWithInfo.infoWindow = infoWindow;
 
-      markersRef.current.push(marker);
+      markersRef.current.push(markerWithInfo);
     });
   }, [isLoaded, listings]);
 

@@ -5,7 +5,13 @@ import { useState, useEffect } from 'react';
 import { useBillingController } from './subscription/useBillingController';
 import { useRouter } from 'next/navigation';
 import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
-import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner';
+
+interface Activity {
+  id: string;
+  type: string;
+  created_at: string;
+  data?: Record<string, unknown> | null;
+}
 
 interface DashboardStats {
   totalListings: number;
@@ -14,10 +20,19 @@ interface DashboardStats {
   clientsThisMonth: number;
   totalViewings: number;
   viewingsThisMonth: number;
-  recentActivities: any[];
+  recentActivities: Activity[];
 }
 
-export default function DashboardClient({ user, profile, stats }: { user: any; profile: any; stats: DashboardStats }) {
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Profile {
+  full_name?: string | null;
+}
+
+export default function DashboardClient({ user, profile, stats }: { user: User; profile: Profile; stats: DashboardStats }) {
   // Subscription reminder popup state
   const {
     sub,
@@ -72,9 +87,10 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
       
       router.push('/sign-in');
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error('Logout error:', error);
-      alert('Logout failed: ' + (error.message || 'An error occurred during logout'));
+      alert('Logout failed: ' + (err.message || 'An error occurred during logout'));
     } finally {
       setIsLoggingOut(false);
     }
@@ -141,7 +157,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md transition-colors">Start</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Start</button>
               </div>
             </div>
           </Link>
@@ -157,7 +173,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">View</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View</button>
               </div>
             </div>
           </Link>
@@ -173,7 +189,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">Analyze</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Analyze</button>
               </div>
             </div>
           </Link>
@@ -189,7 +205,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded-md transition-colors">Add Lead</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Add Lead</button>
               </div>
             </div>
           </Link>
@@ -221,7 +237,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md border border-purple-300 transition-colors hover:bg-purple-200">Settings</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
               </div>
             </div>
           </Link>
@@ -237,7 +253,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">Collaborate</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Collaborate</button>
               </div>
             </div>
           </Link>
@@ -253,7 +269,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">Schedule</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Schedule</button>
               </div>
             </div>
           </Link>
@@ -269,7 +285,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 text-purple-700 px-4 py-2 rounded-md transition-colors hover:bg-purple-200">View</button>
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View</button>
               </div>
             </div>
           </Link>
@@ -321,7 +337,7 @@ export default function DashboardClient({ user, profile, stats }: { user: any; p
                 <p className="text-muted-foreground text-sm">No activity yet. Start by creating your first content!</p>
               ) : (
                 <ul className="space-y-2">
-                  {stats.recentActivities.map((activity: any) => (
+                  {stats.recentActivities.map((activity: Activity) => (
                     <li key={activity.id} className="flex items-center justify-between">
                       <span>
                         {activity.type === 'listing' && 'New Listing Shared'}

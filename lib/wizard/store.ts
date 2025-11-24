@@ -34,7 +34,7 @@ type WizardState = {
 
   // Eklenenler: user ve fb
   user: { id: string; email: string; full_name?: string } | null;
-  fb: any | null;
+  fb: { pageId: string; accessToken: string } | null;
 
   startFlow: () => void;
   setListingId: (v: string | null) => void;

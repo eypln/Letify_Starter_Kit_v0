@@ -58,9 +58,10 @@ export default function SignUpPage() {
       }
 
       toast({ title: 'Registration successful', description: 'A verification link has been sent to your email.' })
-    } catch (err: any) {
-      console.error('signUp error:', err)
-      toast({ title: 'Registration error', description: String(err.message || err), variant: 'destructive' })
+    } catch (err) {
+      const error = err as Error;
+      console.error('signUp error:', error);
+      toast({ title: 'Registration error', description: String(error.message || error), variant: 'destructive' });
     } finally {
       setLoading(false)
     }

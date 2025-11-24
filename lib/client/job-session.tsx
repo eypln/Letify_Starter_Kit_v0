@@ -1,5 +1,5 @@
 'use client';
-import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import React, {createContext, useContext, useEffect, useMemo, useState, useCallback} from 'react';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 
 type JobSession = {
@@ -16,56 +16,53 @@ export function JobSessionProvider({children}:{children: React.ReactNode}) {
   const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [jobId, setJobIdState] = useState('');
-  const [listingId, setListingIdState] = useState('');
-
-  // URL -> state, yoksa localStorage -> URL
-  useEffect(() => {
+  
+  // Initialize state from URL or localStorage
+  const [jobId, setJobIdState] = useState(() => {
     const fromUrl = sp.get('jobId') ?? sp.get('job_id') ?? sp.get('id') ?? '';
     if (fromUrl) {
-      setJobIdState(fromUrl);
       if (typeof window !== 'undefined') {
         try { localStorage.setItem('letify_jobId', fromUrl); } catch {}
       }
-      return;
+      return fromUrl;
     }
     if (typeof window !== 'undefined') {
-      try {
-        const j = localStorage.getItem('letify_jobId') || '';
-        if (j) {
-          setJobIdState(j);
-          router.replace(`${pathname}?jobId=${j}`);
-        }
-      } catch {}
+      try { return localStorage.getItem('letify_jobId') || ''; } catch { return ''; }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sp, router, pathname]);
+    return '';
+  });
+  
+  const [listingId, setListingIdState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return localStorage.getItem('letify_listingId') || ''; } catch { return ''; }
+    }
+    return '';
+  });
 
-  // listingId senkronu
+  // Sync URL when jobId changes from localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const l = localStorage.getItem('letify_listingId') || '';
-        if (l) setListingIdState(l);
-      } catch {}
+    const fromUrl = sp.get('jobId') ?? sp.get('job_id') ?? sp.get('id') ?? '';
+    if (!fromUrl && jobId) {
+      router.replace(`${pathname}?jobId=${jobId}`);
     }
-  }, []);
+  }, [sp, router, pathname, jobId]);
 
-  const setJobId = (id: string) => {
+  const setJobId = useCallback((id: string) => {
     setJobIdState(id);
     if (typeof window !== 'undefined') {
       try { localStorage.setItem('letify_jobId', id); } catch {}
     }
     router.replace(`${pathname}?jobId=${id}`);
-  };
-  const setListingId = (id: string) => {
+  }, [router, pathname]);
+  
+  const setListingId = useCallback((id: string) => {
     setListingIdState(id);
     if (typeof window !== 'undefined') {
       try { localStorage.setItem('letify_listingId', id); } catch {}
     }
-  };
+  }, []);
 
-  const clear = async ({hard=false}: {hard?:boolean} = {}) => {
+  const clear = useCallback(async ({hard=false}: {hard?:boolean} = {}) => {
     const jid = jobId || (typeof window !== 'undefined' ? localStorage.getItem('letify_jobId') || '' : '');
     const lid = listingId || (typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '');
     try {
@@ -83,9 +80,9 @@ export function JobSessionProvider({children}:{children: React.ReactNode}) {
     }
     setJobIdState('');
     setListingIdState('');
-  };
+  }, [jobId, listingId]);
 
-  const value = useMemo(() => ({jobId, listingId, setJobId, setListingId, clear}), [jobId, listingId]);
+  const value = useMemo(() => ({jobId, listingId, setJobId, setListingId, clear}), [jobId, listingId, setJobId, setListingId, clear]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

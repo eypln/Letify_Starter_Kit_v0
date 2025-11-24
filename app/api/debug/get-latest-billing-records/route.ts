@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     console.log("Get latest billing records endpoint called");
     

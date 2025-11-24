@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useWizardStore } from '@/lib/wizard/store';
 import { getListingInfoByJobId } from '@/lib/wizard/getListingInfo';
@@ -11,7 +12,7 @@ function Thumb({ src, selectedOrder, onClick }:{
 }) {
   return (
     <button type="button" onClick={onClick} className={`relative rounded-xl border p-1 ${selectedOrder ? 'ring-2 ring-blue-600' : ''}`}>
-      <img src={src} alt="" className="h-28 w-40 rounded-lg object-cover" />
+      <Image src={src} alt="" width={160} height={112} className="h-28 w-40 rounded-lg object-cover" />
       {selectedOrder ? (
         <span className="absolute -top-2 -left-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
           {selectedOrder}
@@ -47,14 +48,8 @@ export default function Step4PrepareReels() {
   // user ve fb state'ini localde tutmak için
 
   async function ensureCriticalData() {
-    let effectiveJobId = jobId;
-    let effectiveListingId = listingId;
-    let effectiveSourceUrl = sourceUrl;
-    if (typeof window !== 'undefined') {
-      effectiveJobId = effectiveJobId || localStorage.getItem('letify_jobId') || '';
-      effectiveListingId = effectiveListingId || localStorage.getItem('letify_listingId') || '';
-      effectiveSourceUrl = effectiveSourceUrl || localStorage.getItem('letify_sourceUrl') || '';
-    }
+    const effectiveListingId = listingId || (typeof window !== 'undefined' ? localStorage.getItem('letify_listingId') || '' : '');
+    const effectiveSourceUrl = sourceUrl || (typeof window !== 'undefined' ? localStorage.getItem('letify_sourceUrl') || '' : '');
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
@@ -124,14 +119,14 @@ export default function Step4PrepareReels() {
           const { data: u } = await supabase.auth.getUser();
           if (u?.user) user = { id: u.user.id, email: u.user.email };
           // user full_name ekle
-          if (user && user.id && !(user as any).full_name) {
+          if (user && user.id && !(user as Record<string, unknown>).full_name) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('full_name')
               .eq('id', user.id)
               .maybeSingle();
             if (profile?.full_name) {
-              (user as any).full_name = profile.full_name;
+              (user as Record<string, unknown>).full_name = profile.full_name;
             }
           }
           const { data: integ } = await supabase
@@ -179,23 +174,27 @@ export default function Step4PrepareReels() {
         });
 
         const ct = res.headers.get('content-type') || '';
-        let data: any;
+        let data: Record<string, unknown> | { raw: string };
         if (ct.includes('application/json')) {
           data = await res.json();
         } else {
           const text = await res.text();
           try { data = JSON.parse(text); } catch { data = { raw: text }; }
         }
-        if (!res.ok) throw new Error(data?.error || 'Workflow failed');
+        if (!res.ok) throw new Error((data as Record<string, unknown>)?.error as string || 'Workflow failed');
 
         const videoUrl =
-          data?.result?.reelPreviewUrl ||
-          data?.reelPreviewUrl ||
-          data?.video_url || data?.googleDriveUrl || data?.driveUrl || data?.url;
+          ('result' in data && (data.result as Record<string, unknown>)?.reelPreviewUrl as string) ||
+          ('reelPreviewUrl' in data && data.reelPreviewUrl as string) ||
+          ('video_url' in data && data.video_url as string) || 
+          ('googleDriveUrl' in data && data.googleDriveUrl as string) || 
+          ('driveUrl' in data && data.driveUrl as string) || 
+          ('url' in data && data.url as string);
 
         if (!videoUrl) throw new Error('videoUrl missing in response');
         finishReels(videoUrl);
-      } catch (e: any) {
+      } catch (err) {
+        const e = err as Error;
         failReels(e.message || 'unknown error');
       }
       return;
@@ -223,14 +222,14 @@ export default function Step4PrepareReels() {
           const { data: u } = await supabase.auth.getUser();
           if (u?.user) user = { id: u.user.id, email: u.user.email };
           // user full_name ekle
-          if (user && user.id && !(user as any).full_name) {
+          if (user && user.id && !(user as Record<string, unknown>).full_name) {
             const { data: profile } = await supabase
               .from('profiles')
               .select('full_name')
               .eq('id', user.id)
               .maybeSingle();
             if (profile?.full_name) {
-              (user as any).full_name = profile.full_name;
+              (user as Record<string, unknown>).full_name = profile.full_name;
             }
           }
           const { data: integ } = await supabase
@@ -264,7 +263,7 @@ export default function Step4PrepareReels() {
 
         // Güvenli parse
         const ct = res.headers.get('content-type') || '';
-        let data: any;
+        let data: Record<string, unknown> | { raw: string };
         if (ct.includes('application/json')) {
           data = await res.json();
         } else {
@@ -272,13 +271,15 @@ export default function Step4PrepareReels() {
           try { data = JSON.parse(text); } catch { data = { raw: text }; }
         }
 
-        if (!res.ok) throw new Error(data?.error || 'Reels share workflow failed');
+        if (!res.ok) throw new Error((data as { error?: string })?.error || 'Reels share workflow failed');
 
         // Reels share URL'sini çıkar
         const shareUrl =
-          data?.result?.reelsShareUrl ||
-          data?.reelsShareUrl ||
-          data?.facebook_url || data?.fbUrl || data?.url;
+          ((data as Record<string, unknown>)?.result as Record<string, unknown>)?.reelsShareUrl as string ||
+          (data as Record<string, unknown>)?.reelsShareUrl as string ||
+          (data as Record<string, unknown>)?.facebook_url as string || 
+          (data as Record<string, unknown>)?.fbUrl as string || 
+          (data as Record<string, unknown>)?.url as string;
 
         // Step 5 component'inde handle edilecek
         const { finishReelsShare } = useWizardStore.getState();
@@ -287,7 +288,8 @@ export default function Step4PrepareReels() {
         } else {
           finishReelsShare(''); // URL yok ama başarılı
         }
-      } catch (e: any) {
+      } catch (err) {
+        const e = err as Error;
         const { failReelsShare } = useWizardStore.getState();
         failReelsShare(e.message || 'unknown error');
       }

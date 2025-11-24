@@ -8,7 +8,7 @@ export async function compressImageTo1MB(file: File): Promise<File> {
     useWebWorker: true,
     initialQuality: 0.8,
     alwaysKeepResolution: false,
-    fileType: file.type as any,
+    fileType: file.type as 'image/jpeg' | 'image/png' | 'image/webp',
   };
   // Kütüphane <=1MB garanti etmeyebilir; döngü ile hedefe yaklaş.
   let current = file;

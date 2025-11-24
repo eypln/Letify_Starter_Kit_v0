@@ -3,7 +3,7 @@
  * Handles event tracking, metrics calculation, and data export
  */
 
-import { AnalyticsEvent, DetailedMetrics, ExportLog } from '@/types/database.types'
+import { AnalyticsEvent, DetailedMetrics } from '@/types/database.types'
 
 /**
  * Record an analytics event
@@ -11,7 +11,7 @@ import { AnalyticsEvent, DetailedMetrics, ExportLog } from '@/types/database.typ
 export async function trackEvent(
   eventType: string,
   eventCategory: string,
-  eventData: Record<string, any> = {}
+  eventData: Record<string, unknown> = {}
 ): Promise<AnalyticsEvent | null> {
   try {
     const response = await fetch('/api/analytics/track', {
@@ -93,7 +93,7 @@ export async function exportData(
   exportFormat: 'csv' | 'json' | 'excel',
   startDate: string,
   endDate: string,
-  filters: Record<string, any> = {}
+  filters: Record<string, unknown> = {}
 ): Promise<Blob | null> {
   try {
     const response = await fetch('/api/analytics/export', {
@@ -146,7 +146,12 @@ export function calculateGrowthPercentage(current: number, previous: number): nu
  * Format metrics data for charts
  */
 export function formatMetricsForChart(metrics: DetailedMetrics[]) {
-  const chartData: Record<string, any[]> = {}
+  interface ChartDataPoint {
+    date: string;
+    value: number;
+    [key: string]: unknown;
+  }
+  const chartData: Record<string, ChartDataPoint[]> = {}
 
   metrics.forEach(metric => {
     if (!chartData[metric.metric_type]) {
@@ -199,7 +204,11 @@ export function calculateEventSummary(events: AnalyticsEvent[]) {
 export async function getAnalyticsForDateRange(
   startDate: string,
   endDate: string
-): Promise<any> {
+): Promise<{
+  summary: unknown;
+  metrics: unknown;
+  dateRange: { startDate: string; endDate: string };
+} | null> {
   try {
     const summary = await getAnalyticsSummary(
       Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (24 * 60 * 60 * 1000))
@@ -221,7 +230,7 @@ export async function getAnalyticsForDateRange(
 /**
  * Prepare CSV content for download
  */
-export function prepareCSVContent(data: any[], fileName: string): { content: string; fileName: string } {
+export function prepareCSVContent(data: Record<string, unknown>[], fileName: string): { content: string; fileName: string } {
   if (!data || data.length === 0) {
     return { content: '', fileName: `${fileName}_empty.csv` }
   }
@@ -249,7 +258,7 @@ export function prepareCSVContent(data: any[], fileName: string): { content: str
 /**
  * Parse analytics filters
  */
-export function parseAnalyticsFilters(filterString?: string): Record<string, any> {
+export function parseAnalyticsFilters(filterString?: string): Record<string, unknown> {
   if (!filterString) return {}
 
   try {

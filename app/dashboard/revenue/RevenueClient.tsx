@@ -59,12 +59,57 @@ const vatOptions = [
   { label: "Non-Vatable (32%)", value: false },
 ];
 
-export default function RevenueClient({ user, profile }: { user: any; profile: any }) {
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Revenue {
+  id: number;
+  user_id: string;
+  ref_no: string | null;
+  client_name: string | null;
+  rent_amount: number | null;
+  landlord_fee: number | null;
+  client_fee: number | null;
+  listing_fee: number | null;
+  agent_income: number | null;
+  agent_tax: number | null;
+  landlord_discount: boolean;
+  client_discount: boolean;
+  has_listing_fee: boolean;
+  vatable: boolean;
+  date_rented: string | null;
+  date_signed: string | null;
+  date_move_in: string | null;
+  landlord_paid_date: string | null;
+  client_paid_date: string | null;
+  collaboration_with: string | null;
+  inform_boss_after_both_sides_paid: boolean;
+  created_at?: string;
+}
+
+interface Listing {
+  id: string;
+  title: string;
+}
+
+interface Client {
+  id: number;
+  name: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string;
+}
+
+export default function RevenueClient({ user }: { user: User }) {
   const { toast } = useToast();
-  const [revenues, setRevenues] = useState<any[]>([]);
-  const [listings, setListings] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [revenues, setRevenues] = useState<Revenue[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -228,6 +273,7 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
 
   useEffect(() => {
     getUserAndRevenues();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const resetForm = () => {
@@ -261,7 +307,7 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
     setShowModal(true);
   };
 
-  const handleEdit = (revenue: any) => {
+  const handleEdit = (revenue: Revenue) => {
     setForm({
       id: revenue.id,
       user_id: revenue.user_id,
@@ -328,7 +374,7 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -401,7 +447,7 @@ export default function RevenueClient({ user, profile }: { user: any; profile: a
                     </td>
                   </tr>
                 ) : (
-                  revenues.map((revenue: any, idx: number) => (
+                  revenues.map((revenue: Revenue, idx: number) => (
                     <tr key={revenue.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {(page - 1) * pageSize + idx + 1}

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server'
 import { sendViewingReminder } from '@/lib/pushNotificationHelper'
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
  * Check for scheduled viewings and send reminders
  * Should be called via cron job every hour
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient()
     const now = new Date()
@@ -65,7 +65,8 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      const viewingDateTime = `${viewing.viewing_date} ${viewing.viewing_time.substring(0, 5)}`
+      // viewingDateTime is for logging purposes if needed in future
+      // const viewingDateTime = `${viewing.viewing_date} ${viewing.viewing_time.substring(0, 5)}`
       const viewingDate = new Date(`${viewing.viewing_date}T${viewing.viewing_time}`)
       
       // Check if we need to send 24-hour reminder
@@ -168,10 +169,10 @@ export async function GET(request: NextRequest) {
       notifications
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking viewing reminders:', error)
     return NextResponse.json({ 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

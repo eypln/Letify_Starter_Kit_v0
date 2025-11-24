@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     try {
       const jsonData = JSON.parse(rawBody);
       console.log("Parsed JSON data:", jsonData);
-    } catch (parseError) {
+    } catch {
       console.log("Body is not valid JSON");
     }
     

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 
 // Import the webhook handler
 import { POST as webhookHandler } from "@/app/api/stripe/webhook/route";

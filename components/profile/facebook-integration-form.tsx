@@ -60,7 +60,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'An error occurred. Please try again.',
@@ -150,7 +150,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
               </a>
             </li>
             <li>• Get a Page Access Token for your page</li>
-            <li>• Get the Page ID from your page's "About" section</li>
+            <li>• Get the Page ID from your page&apos;s &quot;About&quot; section</li>
             <li>• For more details contact with support team for your facebook integration</li>
             <li className="mt-2">
               <a 

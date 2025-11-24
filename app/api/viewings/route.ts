@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
-import type { Database } from '@/types/supabase';
 import { sendEmail, generateViewingNotificationEmail } from '@/lib/email';
 import webpush from 'web-push';
 
@@ -19,7 +18,7 @@ if (
 }
 
 // GET - Fetch all viewings for authenticated user
-export async function GET(req: Request) {
+export async function GET() {
   const supabase = await createClient();
 
   const {
@@ -426,7 +425,14 @@ export async function DELETE(req: Request) {
 }
 
 // Helper function to send push notification to team leader
-async function sendTeamLeaderNotification(userId: string, payload: any) {
+async function sendTeamLeaderNotification(userId: string, payload: {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+}) {
   try {
     const supabase = await createClient();
     
@@ -461,9 +467,10 @@ async function sendTeamLeaderNotification(userId: string, payload: any) {
           pushSubscription,
           JSON.stringify(payload)
         );
-      } catch (err: any) {
+      } catch (err) {
         // If subscription is invalid/expired, remove it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 410 || statusCode === 404) {
           await supabase
             .from('push_subscriptions')
             .delete()

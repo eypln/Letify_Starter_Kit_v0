@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -12,13 +12,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
-import CreateHeader from '@/components/wizard/CreateHeader'
-import JobTimer from '@/components/wizard/JobTimer'
 import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
-import { useUploadStore } from '@/lib/uploads/store'
 
 // Lazy load wizard steps
 const StartContent = dynamic(() => import('./_components/StartContent'), {
@@ -53,50 +50,10 @@ const Step5ShareReels = dynamic(() => import('@/components/wizard/step5-share-re
 
 function NewPostContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const urlStep = Number(searchParams.get('step') || 1);
-  const [resetting, setResetting] = React.useState(false);
 
   // jobId ve listingId'yi URL ve localStorage'dan normalize et
   const jobIdFromUrl = searchParams.get('jobId') ?? searchParams.get('job_id') ?? searchParams.get('job') ?? searchParams.get('id') ?? '';
-  const [listingIdFromLs, setListingIdFromLs] = React.useState('');
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setListingIdFromLs(localStorage.getItem('letify_listingId') || '');
-    }
-  }, []);
-
-  const setStep = useWizardStore((s) => s.setStep);
-  async function handleReset() {
-    setResetting(true);
-    try {
-      let jobId = jobIdFromUrl;
-      let listingId = listingIdFromLs;
-      if (typeof window !== 'undefined') {
-        jobId = jobIdFromUrl || localStorage.getItem('letify_jobId') || '';
-        listingId = listingIdFromLs || localStorage.getItem('letify_listingId') || '';
-      }
-      await fetch('/api/jobs/cancel', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jobId, listingId, hardDeleteListing: false }),
-      });
-    } catch {}
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('letify_jobId');
-        localStorage.removeItem('letify_listingId');
-      }
-    } catch {}
-    // 👇 Her iki store'u da temizle
-    const clearWizard = useWizardStore.getState().clear;
-    clearWizard();
-    const clearUploads = useUploadStore.getState().clear;
-    clearUploads();
-    // Reset All butonuna basıldığında doğrudan dashboard'a yönlendir ve expired=1 parametresini ekle
-    router.replace('/dashboard?expired=1');
-    setResetting(false);
-  }
 
   const jobId = jobIdFromUrl;
   const wizardStep = useWizardStore((s) => s.step);

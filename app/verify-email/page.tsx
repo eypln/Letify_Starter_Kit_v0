@@ -55,8 +55,8 @@ export default function VerifyEmailPage() {
       } else {
         setError('Email not yet verified. Please check your inbox.')
       }
-    } catch (err) {
-  setError('An error occurred. Please try again.')
+    } catch {
+      setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -89,8 +89,8 @@ export default function VerifyEmailPage() {
         setError(null)
         // Success message can be shown here
       }
-    } catch (err) {
-  setError('An error occurred. Please try again.')
+    } catch {
+      setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -119,7 +119,7 @@ export default function VerifyEmailPage() {
 
           <div className="space-y-4 text-center">
             <p className="text-sm text-muted-foreground">
-              Check your inbox and click the verification link. Don't forget to check your spam folder.
+              Check your inbox and click the verification link. Don&apos;t forget to check your spam folder.
             </p>
 
             <div className="space-y-2">

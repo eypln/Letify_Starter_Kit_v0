@@ -34,10 +34,11 @@ export default function SignInPage() {
         });
         router.push('/dashboard');
       }
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as Error;
       toast({
         title: 'Sign in failed',
-        description: err.message,
+        description: error.message,
         variant: 'destructive',
       });
     } finally {

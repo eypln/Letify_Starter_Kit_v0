@@ -1,12 +1,12 @@
 
 "use client";
 import ListingPostButton from '@/components/listing/listing-post-button';
+import Image from 'next/image';
 
-import { useState, useTransition, useRef, ChangeEvent, useEffect } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import Select from 'react-select';
 import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { Info } from 'lucide-react';
 
@@ -94,8 +94,18 @@ const propertyTypeOptions = [
   { label: 'Rooms', value: 'Rooms' }
 ];
 
+interface SelectOption {
+  label: string;
+  value: string;
+}
+
+interface Listing {
+  referenceNo?: string;
+  title?: string;
+}
+
 interface AddDialogProps {
-  listings?: any[];
+  listings?: Listing[];
 }
 
 export default function AddDialog({ listings = [] }: AddDialogProps) {
@@ -264,7 +274,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
   
   async function updateListingFields(listingId: string) {
     const supabase = createClient();
-    const updateFields: Record<string, any> = {
+    const updateFields: Record<string, string | number | null> = {
       city,
       price: price ? Number(price) : null,
       bedrooms: bedroom ? Number(bedroom) : null,
@@ -285,9 +295,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
              });
     }
   }
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
   const [referenceNo, setReferenceNo] = useState("");
   const [suggestedNextNumber, setSuggestedNextNumber] = useState<number | null>(null);
   const [city, setCity] = useState("");
@@ -312,8 +320,8 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
       // Find manual reference numbers (starting with "L" followed by digits, e.g., L1, L2, L3)
       const manualReferences = listings
         .map(l => l.referenceNo || l.title)
-        .filter(ref => ref && /^L\d+$/i.test(ref.toString())) // Match L1, L2, L3, etc.
-        .map(ref => parseInt(ref.toString().substring(1))) // Extract number part after "L"
+        .filter((ref): ref is string => ref !== undefined && /^L\d+$/i.test(ref.toString())) // Match L1, L2, L3, etc.
+        .map(ref => parseInt(ref.substring(1))) // Extract number part after "L"
         .filter(num => !isNaN(num));
 
       if (manualReferences.length > 0) {
@@ -357,7 +365,6 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
     setLoading(true);
     try {
       const supabase = createClient();
-      const now = new Date();
       // Oturumdaki kullanıcı id'sini dinamik olarak al
       const {
         data: { user },
@@ -466,7 +473,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
           images: imageUrls,
         }),
       });
-      const { ok, jobId, message } = await res.json();
+      const { ok, message } = await res.json();
   if (!ok) throw new Error(message || 'Start failed');
       setOpen(false);
       setReferenceNo(""); setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); clearFiles();
@@ -546,7 +553,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 <Select
                   options={maltaCitiesOptions}
                   value={maltaCitiesOptions.find(opt => opt.value === city) || null}
-                  onChange={(option: any) => setCity(option ? option.value : "")}
+                  onChange={(option: { value: string } | null) => setCity(option ? option.value : "")}
                   isClearable
                   placeholder="Select city"
                   name="city"
@@ -562,7 +569,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 <Select
                   options={[1,2,3,4,5].map(n => ({ label: n.toString(), value: n.toString() }))}
                   value={bedroom ? { label: bedroom, value: bedroom } : null}
-                  onChange={(option: any) => setBedroom(option ? option.value : "")}
+                  onChange={(option: SelectOption | null) => setBedroom(option ? option.value : "")}
                   isClearable
                   placeholder="Select bedroom count"
                   name="bedroom"
@@ -574,7 +581,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 <Select
                   options={[1,2,3,4,5].map(n => ({ label: n.toString(), value: n.toString() }))}
                   value={bathroom ? { label: bathroom, value: bathroom } : null}
-                  onChange={(option: any) => setBathroom(option ? option.value : "")}
+                  onChange={(option: SelectOption | null) => setBathroom(option ? option.value : "")}
                   isClearable
                   placeholder="Select bathroom count"
                   name="bathroom"
@@ -586,7 +593,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 <Select
                   options={propertyTypeOptions}
                   value={propertyTypeOptions.find(opt => opt.value === propertyType) || null}
-                  onChange={(option: any) => setPropertyType(option ? option.value : "")}
+                  onChange={(option: { value: string } | null) => setPropertyType(option ? option.value : "")}
                   isClearable
                   placeholder="Select property type"
                   name="propertyType"
@@ -630,7 +637,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 {/* Thumbnail preview */}
                 <div className="flex flex-wrap gap-2 mt-2">
                   {imageUrls.map((url) => (
-                    <img key={url} src={url} alt="preview" className="w-16 h-16 object-cover rounded" />
+                    <Image key={url} src={url} alt="preview" width={64} height={64} className="w-16 h-16 object-cover rounded" />
                   ))}
                 </div>
               </div>
