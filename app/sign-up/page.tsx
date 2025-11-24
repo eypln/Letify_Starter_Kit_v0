@@ -48,7 +48,7 @@ export default function SignUpPage() {
     }
     
     checkExistingSession()
-  }, [])
+  }, [supabase])
 
   const handleSignOut = async () => {
     setLoading(true)

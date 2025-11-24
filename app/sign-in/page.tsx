@@ -56,7 +56,7 @@ function SignInForm() {
     }
     
     checkExistingSession()
-  }, [searchParams, toast])
+  }, [searchParams, toast, supabase])
 
   const handleSignOut = async () => {
     setLoading(true)
