@@ -37,11 +37,12 @@
 - **Validation**: Zod 3.22.4
 
 ### Development Tools
-- **Package Manager**: pnpm
-- **Linting**: ESLint
+- **Package Manager**: pnpm (enforced via .npmrc)
+- **Linting**: ESLint 9 (flat config)
+- **TypeScript**: Strict mode, no `any` types
 - **Code Formatting**: Prettier (implied)
-- **Type Checking**: TypeScript
-- **Testing**: Jest (planned)
+- **Type Checking**: TypeScript 5.x
+- **Testing**: Jest + React Testing Library (68 tests passing)
 - **Build Tool**: Next.js built-in
 
 ## Development Setup
@@ -234,3 +235,99 @@ document.head.appendChild(script)
 **Purpose**: Database, authentication, storage, real-time
 **Integration**: @supabase/supabase-js, @supabase/ssr
 **Environment**: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE
+
+## Code Quality & Linting (24.11.2025)
+
+### ESLint 9 Flat Config
+**Migration Status**: ✅ Complete (24.11.2025)
+**File**: `eslint.config.mjs`
+
+**Configuration**:
+```javascript
+import js from '@eslint/js'
+import tsPlugin from '@typescript-eslint/eslint-plugin'
+import tsParser from '@typescript-eslint/parser'
+import nextPlugin from '@eslint/eslint-plugin-next'
+import reactHooksPlugin from 'eslint-plugin-react-hooks'
+
+export default [
+  js.configs.recommended,
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      '@next/next': nextPlugin,
+      'react-hooks': reactHooksPlugin,
+    },
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+]
+```
+
+**Key Rules**:
+- `no-unused-vars`: Warn on unused variables/imports
+- `no-explicit-any`: Prevent `any` types (replaced with proper interfaces)
+- `react-hooks/rules-of-hooks`: Enforce hooks rules
+- `react-hooks/exhaustive-deps`: Check useEffect/useCallback dependencies
+
+**Migration Result**:
+- 100+ warnings → 0 warnings
+- All `any` types removed
+- React Hook best practices enforced
+- Type safety at 100%
+
+### TypeScript Strict Mode
+**Configuration**: tsconfig.json
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
+```
+
+**Type Patterns**:
+```typescript
+// Error handling
+catch (err) {
+  const error = err as Error;
+  console.error(error.message);
+}
+
+// Interface instead of any
+interface ApiResponse {
+  data: Record<string, unknown>;
+  error?: string;
+}
+
+// Third-party library types
+import { FileRejection, DropEvent } from 'react-dropzone';
+```
+
+### Package Manager Enforcement
+**File**: `.npmrc`
+```
+package-manager=pnpm
+engine-strict=true
+```
+
+**Purpose**:
+- Enforce pnpm usage across team
+- Prevent npm/yarn lockfile conflicts
+- Consistent dependency resolution

@@ -3,6 +3,39 @@
 
 ## Ne Çalışıyor ✅
 
+### 24.11.2025 - ESLint 9 Migration, Type Safety, Client Status System
+**Yapılanlar:**
+- **ESLint 9 Flat Config**: Tüm uyarılar düzeltildi (100+ warning → 0), flat config migration tamamlandı
+- **Type Safety Enhancement**: Tüm `any` types kaldırıldı, proper interfaces eklendi (20+ dosya)
+- **React Hooks Optimization**: exhaustive-deps, set-state-in-effect warnings çözüldü
+- **Client Status System**: Urgent/Looking/Rented tracking, teamwork auto-cleanup, database migration SQL sağlandı
+- **Shared State Tracking**: Listings ve Clients'ta "Shared" badge logic, duplicate error handling
+- **UI Consistency**: Dashboard butonları standardize edildi (soft purple), PWA prompt küçültüldü
+- **Form Validation**: Tüm HTML5 validation mesajları İngilizce yapıldı (viewings form)
+- **Form UX**: Client modal scroll optimization, sticky header, compact layout
+- **Next.js Image**: `<img>` → `<Image>` migrations (add-dialog, step4-prepare-reels)
+- **Error Messages**: "Property already shared with team" duplicate handling (PostgreSQL 23505)
+- Build başarılı: 0 ESLint warnings, 0 TypeScript errors, production-ready
+
+**Teknik Detaylar:**
+- ESLint 9 flat config: `@typescript-eslint`, `@next/eslint-plugin-next`, `react-hooks` plugins
+- Type patterns: `catch (err) → const error = err as Error`, interfaces instead of any
+- React patterns: useState lazy initializer, useCallback for stable refs
+- Database: `clients.status` column (CHECK constraint), teamwork cleanup triggers
+- Shared tracking: Backend checks `teamwork_listings`/`teamwork_clients`, frontend boolean flags
+- UI patterns: Conditional buttons (Share → Shared), color-coded status badges
+- Form patterns: `max-h-[90vh] overflow-y-auto`, sticky headers, compact spacing
+- Third-party types: react-dropzone FileRejection/DropEvent proper imports
+
+**Öğrenilenler:**
+- ESLint 9 migration sistematik yaklaşım: Flat config → Plugin setup → Rule by rule fixes
+- Type safety sonuçları: Daha az runtime error, daha iyi IDE support, refactoring güvenli
+- React Hook warnings prevention: Lazy initializer > setState in effect
+- Shared state pattern: Backend check + frontend boolean + conditional UI = clean UX
+- Form validation: Browser-independent messages için custom onInvalid handlers
+- UI consistency: Tek stil kuralı (soft purple) tüm sayfalarda süreklilik sağlar
+- PWA prompt: Compact layout (max-w-sm, text-xs) daha az intrusive, mobile-friendly
+
 ### 23.11.2025 - Build Optimizasyonu ve SSL Güvenlik Düzeltmeleri
 **Yapılanlar:**
 - Build hatalarının düzeltilmesi: `package-lock.json` silindi, `.npmrc` ile pnpm zorunlu hale getirildi
@@ -43,10 +76,10 @@
 - ✅ **User Profiles**: Profil oluşturma ve yönetimi
 - ✅ **Dashboard**: Ana panel, istatistikler, navigation, 3 yeni sayfa (Teamwork, Viewings, Revenue)
 - ✅ **Image Upload & Compression**: 15 görsele kadar, client-side compression, Supabase Storage
-- ✅ **Client Management**: Müşteri ekleme, listeleme, düzenleme, teamwork paylaşımı
+- ✅ **Client Management**: Müşteri ekleme, listeleme, düzenleme, teamwork paylaşımı, **status tracking (Urgent/Looking/Rented)**
 - ✅ **Listings Management**: İçerik oluşturma ve yönetimi, teamwork paylaşımı
-- ✅ **Teamwork System**: Listing ve client paylaşım, takım iş birliği, 2 tablo ile görüntüleme
-- ✅ **Viewings System**: Property viewing tracking, calendar view, team leader notifications
+- ✅ **Teamwork System**: Listing ve client paylaşım, takım iş birliği, **2 tablo ile görüntüleme, shared state tracking**
+- ✅ **Viewings System**: Property viewing tracking, calendar view, team leader notifications, **English validation messages**
 - ✅ **Revenue System**: Financial tracking, commission calculations, Boss notifications
 - ✅ **Billing & Payments**: Stripe subscriptions, credit packages, webhook processing
 - ✅ **N8N Integration**: Workflow automation, webhook callbacks
@@ -54,29 +87,29 @@
 - ✅ **Post Limit System**: Free plan 30/ay limit, Reels üretimi kontrolü
 - ✅ **Monthly Analytics**: Aylık post, client ve viewing ekleme tracking, günlük viewing grafiği
 - ✅ **Error Boundaries**: React error boundaries, client-side error display, API error handling
-- ✅ **UI Consistency**: Dashboard buttons, pagination styles, table layouts standardized
+- ✅ **UI Consistency**: **Dashboard buttons standardized (soft purple), PWA prompt optimized, form scroll UX**
 
 ### Technical Infrastructure
-- ✅ **Database Schema**: Tüm tablolar ve RLS policies, teamwork tabloları, viewings tablosu, revenue tablosu, analytics tabloları
+- ✅ **Database Schema**: Tüm tablolar ve RLS policies, teamwork tabloları, viewings tablosu, revenue tablosu, analytics tabloları, **clients.status column**
 - ✅ **Post Usage Table**: `user_post_usage` aylık takip için
-- ✅ **Teamwork Tables**: `teamwork_listings` ve `teamwork_clients` tabloları
+- ✅ **Teamwork Tables**: `teamwork_listings` ve `teamwork_clients` tabloları, **shared state tracking logic**
 - ✅ **Viewings Table**: `viewings` tablosu, RLS policies, activity logging
 - ✅ **Revenue Table**: `revenue` tablosu with auto-calculations, Boss notifications, Viewings integration
 - ✅ **Analytics Tables**: `analytics_events`, `detailed_metrics`, `export_logs`, `monthly_summary` tabloları with full RLS
 - ✅ **Email System**: Nodemailer integration, team leader notifications, Boss notifications
-- ✅ **API Routes**: Stripe webhooks, billing portal, credit purchases, teamwork endpoints, viewings CRUD, revenue CRUD, email notifications, analytics endpoints
+- ✅ **API Routes**: Stripe webhooks, billing portal, credit purchases, teamwork endpoints, viewings CRUD, revenue CRUD, email notifications, analytics endpoints, **duplicate share error handling**
 - ✅ **Storage Setup**: User uploads bucket, security policies
 - ✅ **Environment Configuration**: Tüm gerekli env variables, SMTP configuration
-- ✅ **Type Safety**: TypeScript coverage, database types (revenue, teamwork_clients, teamwork_listings, viewings, profiles with email, analytics types)
-- ✅ **UI Components**: Responsive design, accessible components, shadcn/ui Table, react-select, react-datepicker, Analytics components
-- ✅ **Error Messages**: Tooltip'ler ve açıklayıcı hata mesajları
+- ✅ **Type Safety**: **100% TypeScript coverage, no `any` types**, database types (revenue, teamwork_clients, teamwork_listings, viewings, profiles with email, analytics types)
+- ✅ **UI Components**: Responsive design, accessible components, shadcn/ui Table, react-select, react-datepicker, Analytics components, **Next.js Image optimization**
+- ✅ **Error Messages**: Tooltip'ler ve açıklayıcı hata mesajları, **English validation messages**
 - ✅ **Error Handling**: Comprehensive error handling, error boundaries, error display components
 - ✅ **Pagination System**: Client-side pagination with First/Prev/Numbers/Next/Last buttons, 10 records per page for Revenue
-- ✅ **Build System**: All TypeScript errors resolved, Suspense boundaries for useSearchParams, production-ready build
+- ✅ **Build System**: All TypeScript errors resolved, Suspense boundaries for useSearchParams, production-ready build, **ESLint 9 flat config**
 - ✅ **Testing Suite**: Jest + React Testing Library, 68 tests, unit/component/API/integration coverage, TESTING.md documentation
 - ✅ **Performance Optimizations**: Bundle analyzer, lazy loading, Web Vitals monitoring, image/font optimization, loading skeletons, **Dashboard: Performance 86 (11.11.2025)**
 - ✅ **SEO Optimization**: Meta tags, Open Graph, Twitter Cards, sitemap.xml, robots.txt, JSON-LD structured data, SEO.md documentation
-- ✅ **PWA Implementation - COMPLETE**: Service worker with next-pwa, offline support, install prompt, manifest.json, cache strategies **(18.11.2025)**
+- ✅ **PWA Implementation - COMPLETE**: Service worker with next-pwa, offline support, **compact install prompt**, manifest.json, cache strategies **(18.11.2025)**
   - ✅ Manifest.json: 200 OK, valid configuration
   - ✅ Service Worker: Registered & activated
   - ✅ Install Prompt: Live in production
@@ -229,6 +262,13 @@
 - Service Worker registration requires manual component + next-pwa coordination
 - Chrome beforeinstallprompt event requires user engagement + 2-3 visits minimum
 - PWA Install Prompt UX: 5s timeout for automatic show, 7-day dismiss cooldown essential
+- **ESLint 9 migration**: Sistematik yaklaşım (flat config → plugins → rule-by-rule) başarı sağlar
+- **Type safety**: `any` types kaldırmak refactoring güvenliğini artırır, runtime errors azaltır
+- **React Hooks**: useState lazy initializer setState-in-effect problemlerini önler
+- **Shared state pattern**: Backend check + frontend boolean + conditional UI = temiz UX
+- **Form validation**: Browser-independent messages için custom onInvalid handlers şart
+- **UI consistency**: Tek stil kuralı (e.g., soft purple) tüm sayfalarda kullanıcı deneyimini iyileştirir
+- **Third-party types**: Kütüphanelerden proper type imports custom interfaces'ten daha güvenilir
 
 ## Release History 📋
 
