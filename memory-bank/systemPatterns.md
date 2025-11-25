@@ -32,6 +32,64 @@ App (Next.js)
 
 ## Ana Teknik Kararlar
 
+### Email Notification & Verification Pattern (24.11.2025)
+
+**3 Aşamalı Email Akışı:**
+1. **Sign-Up → Admin Approval Email** (admin@letify.cloud)
+2. **Email Verify → Email Verified Notification** (user@email.com)
+3. **Admin Approve → Account Approved Email** (user@email.com)
+
+**PKCE Authentication Flow:**
+- ✅ `detectSessionInUrl: true` - Otomatik code exchange
+- ✅ Explicit localStorage storage - PKCE verifier koruması
+- ❌ Sign-up sonrası `signOut()` YAPMA - code_verifier silinir!
+- ✅ Session management - `email_confirmed_at` kontrolü her yerde
+
+**Admin Client Pattern:**
+```typescript
+// lib/supabase/server.ts
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+export function createAdminClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE!
+  return createSupabaseClient<Database>(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
+}
+
+// Admin API kullanımı
+const supabase = createAdminClient()
+const { data: { user } } = await supabase.auth.admin.getUserById(userId)
+```
+
+**Email Verified Check Pattern:**
+```typescript
+// Sign-In, Sign-Up ve Session Check'lerde:
+if (user && user.email_confirmed_at) {
+  // Email verified - izin ver
+  setExistingUser({ email, role, emailVerified: true })
+} else if (user && !user.email_confirmed_at) {
+  // Email verified değil - sign out yap
+  await supabase.auth.signOut()
+}
+```
+
+**Auth Callback Auto Detection:**
+```typescript
+// app/auth/callback/AuthCallbackContent.tsx
+// Manuel exchangeCodeForSession() YAPMA!
+await new Promise(resolve => setTimeout(resolve, 500))  // SSR için kısa bekleme
+const { data: { session } } = await supabase.auth.getSession()
+// detectSessionInUrl otomatik exchange yapıyor
+```
+
+**Key Learnings:**
+- PKCE verifier localStorage'da saklanır, signOut() tümünü temizler
+- Supabase SSR auto detection yeterli, manuel exchange gereksiz
+- Admin API için service_role key gerekli, anon key yetmez
+- Email verification UX: Adım adım ekranlar (Verify Email → Waiting Approval)
+- Session check: email_confirmed_at kontrolü her auth flow'da olmalı
+
 ### SMTP, Auth, Admin, UI ve Memory Bank Pattern'leri (20.06.2024)
 
 - **Ortam Bazlı SMTP Seçimi:**

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,48 +14,79 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mail, Loader2, CheckCircle } from 'lucide-react'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  
+  useEffect(() => {
+    const loadUserEmail = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserEmail(user?.email || null)
+      
+      // Check if user just came from auth/callback
+      const status = searchParams.get('status')
+      if (status === 'pending') {
+        setError('Email verification is still pending. Please check your email and click the verification link.')
+      }
+    }
+    loadUserEmail()
+  }, [searchParams])
 
   const checkVerification = async () => {
     setIsLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       const supabase = createClient()
       
-      // Session'ı yenile
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[Verify Email] Checking verification status...')
+      
+      // Refresh session first
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
       
       if (sessionError) {
-        setError('Session information could not be retrieved')
+        console.error('[Verify Email] Session refresh error:', sessionError)
+        setError('Failed to refresh session. Please try signing in again.')
         return
       }
 
       if (!session) {
+        console.error('[Verify Email] No session found')
         setError('Session not found. Please sign in again.')
-        router.push('/sign-in')
+        setTimeout(() => router.push('/sign-in'), 2000)
         return
       }
 
-      // User bilgisini tekrar al
+      // Get fresh user data
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError || !user) {
-        setError('User information could not be retrieved')
+        console.error('[Verify Email] User error:', userError)
+        setError('Failed to get user information. Please try again.')
         return
       }
 
+      console.log('[Verify Email] Email confirmed:', !!user.email_confirmed_at)
+
       if (user.email_confirmed_at) {
-        // Email verified, redirect to dashboard
-        router.push('/dashboard')
-        router.refresh()
+        setSuccessMessage('Email verified successfully! Redirecting...')
+        console.log('[Verify Email] Email verified, redirecting to dashboard')
+        setTimeout(() => {
+          router.push('/dashboard')
+          router.refresh()
+        }, 1500)
       } else {
-        setError('Email not yet verified. Please check your inbox.')
+        setError('Email not yet verified. Please check your inbox and click the verification link.')
       }
-    } catch {
+    } catch (err) {
+      const error = err as Error
+      console.error('[Verify Email] Unexpected error:', error)
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -65,31 +96,37 @@ export default function VerifyEmailPage() {
   const resendEmail = async () => {
     setIsLoading(true)
     setError(null)
+    setSuccessMessage(null)
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user?.email) {
-        setError('Email address not found')
+        setError('Email address not found. Please sign in again.')
         return
       }
+
+      console.log('[Verify Email] Resending verification email to:', user.email)
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: user.email,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_WEBAPP_URL}/auth/callback`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_WEBAPP_URL || window.location.origin}/auth/callback`,
         },
       })
 
       if (error) {
-        setError('Email could not be sent. Please try again.')
+        console.error('[Verify Email] Resend error:', error)
+        setError('Failed to send email. Please try again in a few moments.')
       } else {
-        setError(null)
-        // Success message can be shown here
+        console.log('[Verify Email] Verification email sent successfully')
+        setSuccessMessage('Verification email sent successfully! Please check your inbox and spam folder.')
       }
-    } catch {
+    } catch (err) {
+      const error = err as Error
+      console.error('[Verify Email] Resend error:', error)
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -116,10 +153,24 @@ export default function VerifyEmailPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          {successMessage && (
+            <Alert className="bg-green-50 border-green-200">
+              <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-4 text-center">
+            {userEmail && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  Verification email sent to: <strong>{userEmail}</strong>
+                </p>
+              </div>
+            )}
+            
             <p className="text-sm text-muted-foreground">
-              Check your inbox and click the verification link. Don&apos;t forget to check your spam folder.
+              Click the verification link in your email to confirm your account. Don&apos;t forget to check your spam folder.
             </p>
 
             <div className="space-y-2">
@@ -156,5 +207,20 @@ export default function VerifyEmailPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }

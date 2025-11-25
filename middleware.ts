@@ -22,6 +22,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
+  // CRITICAL: Allow /auth/callback to proceed without auth checks
+  // This is needed for email verification and OAuth flows
+  if (pathname === '/auth/callback') {
+    console.log('[Middleware] Allowing /auth/callback to proceed')
+    return NextResponse.next()
+  }
+  
   // NOW create Supabase client - ONLY for non-PWA requests
   let response = NextResponse.next({
     request: {
@@ -109,6 +116,84 @@ export async function middleware(request: NextRequest) {
     }
 
     // Admin bile olsa reddedilmişse erişim engelle
+    if (profile?.status === 'denied') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Teamleader rotaları koruması
+  if (pathname.startsWith('/teamleader')) {
+    if (!user) {
+      url.pathname = '/sign-in'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+    if (!user.email_confirmed_at) {
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+    if (profile?.role !== 'teamleader') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+    if (profile?.status === 'denied') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Manager rotaları koruması
+  if (pathname.startsWith('/manager')) {
+    if (!user) {
+      url.pathname = '/sign-in'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+    if (!user.email_confirmed_at) {
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+    if (profile?.role !== 'manager') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+    if (profile?.status === 'denied') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Boss rotaları koruması
+  if (pathname.startsWith('/boss')) {
+    if (!user) {
+      url.pathname = '/sign-in'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+    if (!user.email_confirmed_at) {
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+    if (profile?.role !== 'boss') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
     if (profile?.status === 'denied') {
       url.pathname = '/access-denied'
       return NextResponse.redirect(url)

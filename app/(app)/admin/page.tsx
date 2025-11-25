@@ -22,8 +22,10 @@ export default function AdminPage() {
 
   const [users, setUsers] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [approving, setApproving] = useState<string | null>(null)
+  const [approvingUserId, setApprovingUserId] = useState<string | null>(null)
+  const [denyingUserId, setDenyingUserId] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [approvedUsersCount, setApprovedUsersCount] = useState(0)
 
   useEffect(() => {
     checkAdminAccess()
@@ -53,6 +55,7 @@ export default function AdminPage() {
       }
 
       await fetchPendingUsers()
+      await fetchApprovedUsersCount()
     } catch (error) {
       console.error('Error checking admin access:', error)
       toast({
@@ -84,8 +87,22 @@ export default function AdminPage() {
     }
   }
 
+  const fetchApprovedUsersCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved')
+
+      if (error) throw error
+      setApprovedUsersCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching approved users count:', error)
+    }
+  }
+
   const handleApprove = async (userId: string) => {
-    setApproving(userId)
+    setApprovingUserId(userId)
     try {
       const response = await fetch('/api/admin/approve-user', {
         method: 'PUT',
@@ -104,6 +121,8 @@ export default function AdminPage() {
 
       // Remove from list
       setUsers(users.filter((u) => u.user_id !== userId))
+      // Refresh approved users count
+      await fetchApprovedUsersCount()
     } catch (error) {
       console.error('Error approving user:', error)
       toast({
@@ -112,12 +131,12 @@ export default function AdminPage() {
         variant: 'destructive',
       })
     } finally {
-      setApproving(null)
+      setApprovingUserId(null)
     }
   }
 
   const handleDeny = async (userId: string) => {
-    setApproving(userId)
+    setDenyingUserId(userId)
     try {
       const response = await fetch('/api/admin/approve-user', {
         method: 'PUT',
@@ -144,7 +163,7 @@ export default function AdminPage() {
         variant: 'destructive',
       })
     } finally {
-      setApproving(null)
+      setDenyingUserId(null)
     }
   }
 
@@ -242,10 +261,10 @@ export default function AdminPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleApprove(user.user_id)}
-                      disabled={approving === user.user_id}
+                      disabled={approvingUserId === user.user_id || denyingUserId === user.user_id}
                       className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors"
                     >
-                      {approving === user.user_id ? (
+                      {approvingUserId === user.user_id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <CheckCircle2 className="w-4 h-4" />
@@ -254,10 +273,10 @@ export default function AdminPage() {
                     </button>
                     <button
                       onClick={() => handleDeny(user.user_id)}
-                      disabled={approving === user.user_id}
+                      disabled={approvingUserId === user.user_id || denyingUserId === user.user_id}
                       className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors"
                     >
-                      {approving === user.user_id ? (
+                      {denyingUserId === user.user_id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <XCircle className="w-4 h-4" />
@@ -272,10 +291,14 @@ export default function AdminPage() {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <div className="text-gray-600 text-sm font-medium">Pending Approvals</div>
             <div className="text-3xl font-bold text-purple-600 mt-2">{users.length}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <div className="text-gray-600 text-sm font-medium">Approved Users</div>
+            <div className="text-3xl font-bold text-green-600 mt-2">{approvedUsersCount}</div>
           </div>
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <div className="text-gray-600 text-sm font-medium">System Status</div>

@@ -12,6 +12,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+// VAT Type enum
+type VatType = 'vatable' | 'non-vatable' | 'part-time';
+
 // Revenue form interface
 interface RevenueForm {
   id?: number | null;
@@ -22,7 +25,7 @@ interface RevenueForm {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
-  vatable: boolean;
+  vat_type: VatType;
   date_rented: string;
   date_signed: string;
   date_move_in: string;
@@ -55,8 +58,9 @@ const columns = [
 const pageSize = 10;
 
 const vatOptions = [
-  { label: "Vatable (40%)", value: true },
-  { label: "Non-Vatable (32%)", value: false },
+  { label: "Vatable (40%)", value: 'vatable' as VatType },
+  { label: "Non-Vatable (32%)", value: 'non-vatable' as VatType },
+  { label: "Part Time (36%)", value: 'part-time' as VatType },
 ];
 
 interface User {
@@ -78,7 +82,8 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
-  vatable: boolean;
+  vat_type: VatType;
+  vatable?: boolean; // Backward compatibility
   date_rented: string | null;
   date_signed: string | null;
   date_move_in: string | null;
@@ -126,7 +131,7 @@ export default function RevenueClient({ user }: { user: User }) {
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
-    vatable: true,
+    vat_type: 'vatable',
     date_rented: "",
     date_signed: "",
     date_move_in: "",
@@ -156,6 +161,28 @@ export default function RevenueClient({ user }: { user: User }) {
     agent_tax: 0,
   });
 
+  // Check if Inform Boss checkbox should be enabled
+  const isInformBossEnabled = () => {
+    // Both dates must be selected
+    if (!landlordPaidDate || !clientPaidDate) {
+      return false;
+    }
+
+    // Get today's date at midnight for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Normalize selected dates to midnight
+    const landlordDate = new Date(landlordPaidDate);
+    landlordDate.setHours(0, 0, 0, 0);
+
+    const clientDate = new Date(clientPaidDate);
+    clientDate.setHours(0, 0, 0, 0);
+
+    // Both dates must be today or in the past
+    return landlordDate <= today && clientDate <= today;
+  };
+
   // Calculate fees when rent amount or discounts change
   useEffect(() => {
     const rentAmount = parseFloat(form.rent_amount) || 0;
@@ -179,8 +206,16 @@ export default function RevenueClient({ user }: { user: User }) {
 
     const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
-    // Agent income calculation (always start from 40%)
-    let agent_income = rentAmount * 0.40;
+    // Agent income calculation based on VAT type
+    let agent_income_base_rate = 0.40; // Default: Vatable (40%)
+    
+    if (form.vat_type === 'non-vatable') {
+      agent_income_base_rate = 0.32; // Non-Vatable (32%)
+    } else if (form.vat_type === 'part-time') {
+      agent_income_base_rate = 0.36; // Part Time (36%)
+    }
+    
+    let agent_income = rentAmount * agent_income_base_rate;
     
     // Reduce agent income based on discounts
     // If landlord has 15% discount, reduce agent income by 7.5%
@@ -199,9 +234,14 @@ export default function RevenueClient({ user }: { user: User }) {
 
     // Agent TAX calculation
     let agent_tax = 0;
-    if (!form.vatable) {
+    if (form.vat_type === 'non-vatable') {
       // Non-vatable: Agent pays 20% tax on their income
       agent_tax = agent_income * 0.20;
+      // Reduce agent income by the tax amount (net income)
+      agent_income = agent_income - agent_tax;
+    } else if (form.vat_type === 'part-time') {
+      // Part-time: Agent pays 10% tax on their income
+      agent_tax = agent_income * 0.10;
       // Reduce agent income by the tax amount (net income)
       agent_income = agent_income - agent_tax;
     }
@@ -218,7 +258,14 @@ export default function RevenueClient({ user }: { user: User }) {
       agent_income,
       agent_tax,
     });
-  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vatable]);
+  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type]);
+
+  // Auto-uncheck inform_boss if payment dates become invalid
+  useEffect(() => {
+    if (form.inform_boss_after_both_sides_paid && !isInformBossEnabled()) {
+      setForm(prev => ({ ...prev, inform_boss_after_both_sides_paid: false }));
+    }
+  }, [landlordPaidDate, clientPaidDate, form.inform_boss_after_both_sides_paid]);
 
   async function getUserAndRevenues(currentPage = page) {
     setLoading(true);
@@ -286,7 +333,7 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
-      vatable: true,
+      vat_type: 'vatable',
       date_rented: "",
       date_signed: "",
       date_move_in: "",
@@ -308,6 +355,14 @@ export default function RevenueClient({ user }: { user: User }) {
   };
 
   const handleEdit = (revenue: Revenue) => {
+    // Backward compatibility: convert old vatable boolean to new vat_type
+    let vatType: VatType = 'vatable';
+    if (revenue.vat_type) {
+      vatType = revenue.vat_type;
+    } else if (revenue.vatable !== undefined) {
+      vatType = revenue.vatable ? 'vatable' : 'non-vatable';
+    }
+    
     setForm({
       id: revenue.id,
       user_id: revenue.user_id,
@@ -317,7 +372,7 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
-      vatable: revenue.vatable ?? true,
+      vat_type: vatType,
       date_rented: revenue.date_rented || "",
       date_signed: revenue.date_signed || "",
       date_move_in: revenue.date_move_in || "",
@@ -478,7 +533,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(revenue.agent_income)}
                         <span className="text-xs text-gray-500 ml-1">
-                          ({revenue.vatable ? "40%" : "32%"})
+                          ({revenue.vat_type === 'vatable' ? "40%" : revenue.vat_type === 'part-time' ? "36%" : "32%"})
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -698,8 +753,8 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1">VAT Type</label>
                     <Select
                       options={vatOptions}
-                      value={vatOptions.find(opt => opt.value === form.vatable)}
-                      onChange={(option) => setForm({ ...form, vatable: option?.value ?? true })}
+                      value={vatOptions.find(opt => opt.value === form.vat_type)}
+                      onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'vatable' })}
                       placeholder="Select VAT type"
                     />
                   </div>
@@ -856,17 +911,36 @@ export default function RevenueClient({ user }: { user: User }) {
                 </div>
 
                 {/* Row 6: Inform Boss Checkbox */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="inform_boss"
-                    checked={form.inform_boss_after_both_sides_paid}
-                    onChange={(e) => setForm({ ...form, inform_boss_after_both_sides_paid: e.target.checked })}
-                    className="h-4 w-4 mr-2"
-                  />
-                  <label htmlFor="inform_boss" className="text-sm font-medium">
-                    Inform Boss after both sides paid
-                  </label>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="inform_boss"
+                      checked={form.inform_boss_after_both_sides_paid}
+                      onChange={(e) => {
+                        if (isInformBossEnabled()) {
+                          setForm({ ...form, inform_boss_after_both_sides_paid: e.target.checked });
+                        }
+                      }}
+                      disabled={!isInformBossEnabled()}
+                      className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <label 
+                      htmlFor="inform_boss" 
+                      className={`text-sm font-medium ${
+                        !isInformBossEnabled() ? 'text-gray-400' : 'text-gray-900'
+                      }`}
+                    >
+                      Inform Boss after both sides paid
+                    </label>
+                  </div>
+                  {!isInformBossEnabled() && (
+                    <p className="text-xs text-amber-600 mt-1 ml-6">
+                      {!landlordPaidDate || !clientPaidDate 
+                        ? 'Both payment dates must be filled to enable this option'
+                        : 'Both payment dates must be today or in the past'}
+                    </p>
+                  )}
                 </div>
 
                 {/* Form Buttons */}

@@ -3,6 +3,39 @@
 
 ## Ne Çalışıyor ✅
 
+### 24.11.2025 - Email Verification & Notification System COMPLETE ✅
+**Yapılanlar:**
+- **Email Verification PKCE Flow**: Sign-up → Email verify → Auth callback → Waiting approval akışı tamamlandı
+- **Email Notification System**: 3 aşamalı email gönderimi (Admin approval request, Email verified, Account approved)
+- **Auth Flow Düzeltmeleri**: PKCE code_verifier localStorage koruması, auto session detection
+- **Sign-Up UX**: "Verify Your Email" ekranı, kullanıcı dostu mesajlar, adım adım yönlendirme
+- **Sign-In Protection**: Email verified olmayan kullanıcılar giriş yapamaz, açıklayıcı hata mesajları
+- **Admin Client**: Service role key ile admin API operations (getUserById)
+- **Waiting Approval Page**: Email verification status gösterimi, profile status tracking
+- **Session Management**: Email verified kontrolü, otomatik sign-out, "Already Signed In" logic
+
+**Teknik Detaylar:**
+- **PKCE Flow**: `detectSessionInUrl: true`, localStorage storage, auto code exchange
+- **Email Templates**: HTML email generation (Nodemailer), generateEmailVerifiedEmail(), admin approval notification
+- **Admin Client**: `createAdminClient()` with service_role key, auth.admin API access
+- **API Routes**: `/api/auth/send-email-verified`, `/api/auth/send-admin-approval`
+- **Auth Callback**: Auto session detection (500ms wait), email verified notification trigger
+- **Client Storage**: Explicit localStorage configuration, PKCE verifier preservation
+- **Session Logic**: `user.email_confirmed_at` check, conditional "Already Signed In" display
+
+**Email Akışı:**
+1. Sign-Up → Admin approval email (admin@letify.cloud)
+2. Email Verify → Email verified notification (user@email.com)
+3. Admin Approve → Account approved email (user@email.com)
+
+**Öğrenilenler:**
+- PKCE flow: `signOut()` tüm storage'ı temizliyor (code_verifier dahil), bu yüzden sign-up sonrası signOut YAPMA
+- Supabase SSR: `detectSessionInUrl` otomatik code exchange yapıyor, manuel `exchangeCodeForSession()` gereksiz
+- Admin API: `service_role` key gerekiyor, normal anon key ile `auth.admin.getUserById()` çalışmıyor
+- Email verification UX: Adım adım ekranlar (Verify Email → Waiting Approval) kullanıcı deneyimini iyileştiriyor
+- Session management: Email verified check her yerde olmalı (sign-in, sign-up, session check)
+- localStorage: Browser storage explicit belirtilmeli SSR client'ta (@supabase/ssr)
+
 ### 24.11.2025 - ESLint 9 Migration, Type Safety, Client Status System
 **Yapılanlar:**
 - **ESLint 9 Flat Config**: Tüm uyarılar düzeltildi (100+ warning → 0), flat config migration tamamlandı
@@ -96,7 +129,7 @@
 - ✅ **Viewings Table**: `viewings` tablosu, RLS policies, activity logging
 - ✅ **Revenue Table**: `revenue` tablosu with auto-calculations, Boss notifications, Viewings integration
 - ✅ **Analytics Tables**: `analytics_events`, `detailed_metrics`, `export_logs`, `monthly_summary` tabloları with full RLS
-- ✅ **Email System**: Nodemailer integration, team leader notifications, Boss notifications
+- ✅ **Email System**: Nodemailer integration, **3-stage email notifications (admin approval, email verified, account approved)**, team leader notifications, Boss notifications **(24.11.2025)**
 - ✅ **API Routes**: Stripe webhooks, billing portal, credit purchases, teamwork endpoints, viewings CRUD, revenue CRUD, email notifications, analytics endpoints, **duplicate share error handling**
 - ✅ **Storage Setup**: User uploads bucket, security policies
 - ✅ **Environment Configuration**: Tüm gerekli env variables, SMTP configuration
@@ -155,11 +188,11 @@
 
 ### Medium Priority
 - ✅ **Advanced Analytics**: Export features, detailed reports (COMPLETED)
-- 🔄 **Email Notifications**: Welcome emails, payment confirmations
+- ✅ **Email Notifications**: Welcome emails, email verification, admin approval notifications (COMPLETED - 24.11.2025)
+- 🔄 **Payment Confirmation Emails**: Subscription & credit purchase confirmations (BEKLEMEDE - Subscription sayfası henüz aktif değil)
 - 🔄 **Backup & Recovery**: Database backup strategies
 - 🔄 **Rate Limiting**: API rate limits, abuse prevention
 - 🔄 **Audit Logging**: Enhanced security logging
-- 🔄 **Rate Limiting**: API rate limiting with BotID
 
 ### Low Priority
 - 🔄 **Multi-language Support**: i18n implementation

@@ -35,7 +35,8 @@ function SignInForm() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         
-        if (user) {
+        // CRITICAL: Only show "Already Signed In" if email is verified
+        if (user && user.email_confirmed_at) {
           // Get user's role
           const { data: profile } = await supabase
             .from('profiles')
@@ -47,6 +48,10 @@ function SignInForm() {
             email: user.email || '',
             role: profile?.role || 'user'
           })
+        } else if (user && !user.email_confirmed_at) {
+          // User exists but email not verified - sign them out
+          console.log('[Sign In] User found with unverified email - signing out')
+          await supabase.auth.signOut()
         }
       } catch (error) {
         console.error('Error checking session:', error)
@@ -109,11 +114,54 @@ function SignInForm() {
         throw error;
       }
       if (data.user) {
+        // CRITICAL: Check if email is verified
+        if (!data.user.email_confirmed_at) {
+          await supabase.auth.signOut()
+          toast({
+            title: 'Email not verified',
+            description: 'Please verify your email address before signing in. Check your inbox for the verification link.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Get user's role to redirect to appropriate page
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, status')
+          .eq('user_id', data.user.id)
+          .single()
+
+        // Determine redirect path based on role
+        const redirectPath = (() => {
+          if (profile?.status === 'pending_admin') {
+            return '/waiting-approval'
+          }
+          if (profile?.status === 'denied') {
+            return '/access-denied'
+          }
+          
+          switch (profile?.role) {
+            case 'admin':
+              return '/admin'
+            case 'teamleader':
+              return '/teamleader'
+            case 'manager':
+              return '/manager'
+            case 'boss':
+              return '/boss'
+            default:
+              return '/dashboard'
+          }
+        })()
+
         toast({
           title: 'Signed in!',
           description: 'You have successfully signed in.',
         });
-        router.push('/dashboard');
+        
+        router.push(redirectPath);
       }
     } catch (err) {
       const error = err as Error;

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import { UserRole } from '@/lib/validation'
 
-export default function SignUpPage() {
+function SignUpForm() {
   const { toast } = useToast()
   const router = useRouter()
   const supabase = createClient()
@@ -18,7 +18,9 @@ export default function SignUpPage() {
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<string>(UserRole.AGENT)
   const [loading, setLoading] = useState(false)
-  const [existingUser, setExistingUser] = useState<{ email: string; role: string } | null>(null)
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState('')
+  const [existingUser, setExistingUser] = useState<{ email: string; role: string; emailVerified: boolean } | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
@@ -27,8 +29,8 @@ export default function SignUpPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         
-        if (user) {
-          // Get user's role
+        if (user && user.email_confirmed_at) {
+          // Only show "Already Signed In" if email is verified
           const { data: profile } = await supabase
             .from('profiles')
             .select('role')
@@ -37,7 +39,8 @@ export default function SignUpPage() {
           
           setExistingUser({
             email: user.email || '',
-            role: profile?.role || 'user'
+            role: profile?.role || 'user',
+            emailVerified: !!user.email_confirmed_at
           })
         }
       } catch (error) {
@@ -100,9 +103,11 @@ export default function SignUpPage() {
     }
     setLoading(true)
     try {
-      const redirectTo =
-        (process.env.NEXT_PUBLIC_WEBAPP_URL || 'http://localhost:3000') + '/auth/callback'
-      const { error } = await supabase.auth.signUp({
+      const redirectTo = `${process.env.NEXT_PUBLIC_WEBAPP_URL || window.location.origin}/auth/callback`
+      
+      console.log('[Sign Up] Starting registration with redirect:', redirectTo)
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -114,7 +119,10 @@ export default function SignUpPage() {
           },
         },
       })
+      
       if (error) throw error
+      
+      console.log('[Sign Up] Registration successful, user ID:', data.user?.id)
 
       // Send admin approval notification email
       try {
@@ -132,11 +140,22 @@ export default function SignUpPage() {
         // Don't fail signup if admin email fails to send
       }
 
-      toast({ title: 'Registration successful', description: 'A verification link has been sent to your email.' })
+      // Show verify email screen
+      setRegisteredEmail(email)
+      setRegistrationSuccess(true)
+      
+      toast({ 
+        title: 'Registration successful', 
+        description: 'A verification link has been sent to your email. Please check your inbox and spam folder.' 
+      })
     } catch (err) {
       const error = err as Error;
-      console.error('signUp error:', error);
-      toast({ title: 'Registration error', description: String(error.message || error), variant: 'destructive' });
+      console.error('[Sign Up] Registration error:', error);
+      toast({ 
+        title: 'Registration error', 
+        description: String(error.message || error), 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false)
     }
@@ -153,7 +172,59 @@ export default function SignUpPage() {
     )
   }
 
-  // If user is already logged in, show options
+  // Show verify email screen after successful registration
+  if (registrationSuccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+        <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
+              <svg className="h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 mb-3">Verify Your Email</h1>
+            <p className="text-gray-600 mb-6">
+              We've sent a verification link to:
+            </p>
+            <p className="font-semibold text-purple-600 mb-6">{registeredEmail}</p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>📧 Check your email</strong>
+              </p>
+              <p className="text-sm text-blue-700">
+                Click the verification link in the email to confirm your account. 
+                Don't forget to check your spam folder if you don't see it in your inbox.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-amber-800">
+                <strong>⏳ What's next?</strong>
+              </p>
+              <ul className="text-sm text-amber-700 mt-2 space-y-1 text-left">
+                <li>1. Verify your email by clicking the link</li>
+                <li>2. Wait for admin approval</li>
+                <li>3. You'll receive another email when approved</li>
+                <li>4. Then you can sign in and start using Letify!</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => window.location.href = '/sign-in'}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
+              Go to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If user is already logged in with verified email, show options
   if (existingUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
@@ -307,5 +378,20 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignUpForm />
+    </Suspense>
   )
 }

@@ -58,7 +58,7 @@
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE=
+SUPABASE_SERVICE_ROLE=        # veya SUPABASE_SERVICE_ROLE_KEY (Admin API için)
 
 # Stripe
 STRIPE_SECRET_KEY=
@@ -70,6 +70,14 @@ N8N_STATUS_CALLBACK_SECRET=
 
 # App
 NEXT_PUBLIC_WEBAPP_URL=
+
+# SMTP Email Configuration (24.11.2025)
+SMTP_HOST=                    # Gmail veya Hostinger SMTP
+SMTP_PORT=                    # 587 (TLS) veya 465 (SSL)
+SMTP_USER=                    # Email gönderen hesap
+SMTP_PASS=                    # Email şifre veya app password
+SMTP_FROM=                    # Gönderen email adresi
+SMTP_ADMIN_EMAIL=             # Admin bildirim email (admin@letify.cloud)
 
 # Push Notifications (11.11.2025)
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=

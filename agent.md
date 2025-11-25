@@ -136,7 +136,7 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
    - ✅ PWA & Offline Support
    - ✅ Advanced Analytics
 
-## Son Deployment Bilgisi (17.11.2025)
+## Son Deployment Bilgisi (24.11.2025)
 
 ### Production Status
 - **URL**: https://app.letify.cloud
@@ -146,25 +146,34 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Security**: BotID integrated
 - **PWA**: Service worker active, install prompt enhanced
 - **Monitoring**: Vercel Analytics + Web Vitals
+- **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 
-### Yeni Eklemeler (17.11.2025)
-1. **BotID Security v1.5.10**
+### Yeni Eklemeler (24.11.2025)
+1. **Email Verification & Notification System ✅**
+   - PKCE authentication flow tamamlandı
+   - 3 aşamalı email akışı: Sign-up → Email verify → Admin approve
+   - Admin client ile service_role API access
+   - Session management: email_confirmed_at kontrolü
+   - UX improvements: "Verify Email" ekranı, "Waiting Approval" sayfası
+   - Email templates: generateEmailVerifiedEmail(), admin approval, account approved
+
+2. **BotID Security v1.5.10** (17.11.2025)
    - API protection with bot detection
    - Korunan rotalar: `/api/sensitive`, `/api/checkout`, `/team/*/activate`, `/api/user/*`
    - Server-side verification: `checkBotId()` pattern
    - Proxy rewrites otomatik yapılandırıldı
 
-2. **PWA Enhancements**
+3. **PWA Enhancements** (17.11.2025)
    - Global component availability (ClientProviders'a taşındı)
    - Hydration bug fixes
    - Debug logging eklendi
    - Local development support enabled
 
 ### Belirtiler
-- Tüm memory bank dosyaları 17.11.2025 tarihine güncellenmiş
-- activeContext.md: Son 2 release dokumentlu (Push Notifications + BotID/PWA)
-- progress.md: Production status güncellenmiş
-- techContext.md: BotID dependency ve deployment info eklendi
-- PWA_INSTALL_PROMPT_DEBUG.md: Production troubleshooting guide
+- Tüm memory bank dosyaları 24.11.2025 tarihine güncellenmiş
+- progress.md: Email Verification & Notification System eklendi
+- systemPatterns.md: Email notification pattern'leri, PKCE flow, admin client pattern eklendi
+- techContext.md: SMTP environment variables eklendi
+- activeContext.md: Son 3 release dokumentlu (Email System + Push Notifications + BotID/PWA)
 
 Bu sorular proje analizi ile cevaplandı. Memory bank TÜM değişiklikleri track ediyor.

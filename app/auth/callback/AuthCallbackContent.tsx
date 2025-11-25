@@ -12,62 +12,109 @@ export default function AuthCallbackContent() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log('[Auth Callback] Starting email verification process...')
+        
         // Get error from URL if present
         const error = searchParams.get('error')
         const errorDescription = searchParams.get('error_description')
+        const code = searchParams.get('code')
 
         if (error) {
-          console.error(`Auth error: ${error} - ${errorDescription}`)
-          // Redirect to sign-in with error message
+          console.error(`[Auth Callback] URL Error: ${error} - ${errorDescription}`)
           router.push(`/sign-in?error=${encodeURIComponent(errorDescription || error)}`)
           return
         }
 
-        // Exchange code for session
-        // The Supabase client will automatically handle the URL hash parameters
+        if (!code) {
+          console.error('[Auth Callback] No code parameter found')
+          router.push('/sign-in?error=Invalid verification link')
+          return
+        }
+
+        console.log('[Auth Callback] Code found, verifying...')
+
+        // CRITICAL: Let Supabase SSR handle the code exchange automatically
+        // Just wait for it to process
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Get current session after auto-exchange
         const {
           data: { session },
           error: sessionError,
         } = await supabase.auth.getSession()
 
         if (sessionError) {
-          console.error('Session error:', sessionError)
-          router.push('/sign-in?error=Failed to create session')
+          console.error('[Auth Callback] Session error:', sessionError)
+          router.push('/sign-in?error=Failed to retrieve session')
           return
         }
 
         if (!session) {
-          console.error('No session found after callback')
-          router.push('/sign-in?error=Session not found')
+          console.error('[Auth Callback] No session found after code exchange')
+          router.push('/sign-in?error=Email verification failed. Please try again.')
           return
         }
 
-        // Check if email is confirmed
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+        // Refresh user data to get latest email_confirmed_at
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-        if (!user?.email_confirmed_at) {
-          // Email not yet confirmed, redirect to verify-email page
-          router.push('/verify-email')
+        if (userError || !user) {
+          console.error('[Auth Callback] User error:', userError)
+          router.push('/sign-in?error=Failed to get user information')
           return
         }
 
-        // Email confirmed, check profile status
-        const { data: profile } = await supabase
+        console.log('[Auth Callback] User:', user.email, 'Email confirmed:', !!user.email_confirmed_at)
+
+        if (!user.email_confirmed_at) {
+          console.warn('[Auth Callback] Email not yet confirmed')
+          router.push('/verify-email?status=pending')
+          return
+        }
+
+        // Email confirmed successfully!
+        console.log('[Auth Callback] Email verified successfully!')
+        
+        // Check profile status
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('status, role')
           .eq('user_id', user.id)
           .single()
 
-        if (profile?.status === 'pending_admin') {
-          // Waiting for admin approval
+        if (profileError) {
+          console.error('[Auth Callback] Profile error:', profileError)
+          // Continue anyway, will be handled by middleware
+        }
+
+        if (!profile) {
+          console.warn('[Auth Callback] No profile found, redirecting to waiting approval')
           router.push('/waiting-approval')
-        } else if (profile?.status === 'denied') {
-          // User denied
+          return
+        }
+
+        console.log('[Auth Callback] Profile status:', profile.status, 'Role:', profile.role)
+
+        // If user just verified email and is pending admin approval, send notification email
+        if (profile.status === 'pending_admin') {
+          // Send email verified notification
+          try {
+            await fetch('/api/auth/send-email-verified', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id }),
+            })
+            console.log('[Auth Callback] Email verified notification sent')
+          } catch (emailError) {
+            console.error('[Auth Callback] Failed to send email notification:', emailError)
+            // Continue anyway - don't block user flow
+          }
+          
+          router.push('/waiting-approval')
+          return
+        } else if (profile.status === 'denied') {
           router.push('/access-denied')
-        } else if (profile?.status === 'approved') {
-          // Redirect based on role
+        } else if (profile.status === 'approved') {
           const redirectPath = (() => {
             switch (profile.role) {
               case 'admin':
@@ -82,15 +129,17 @@ export default function AuthCallbackContent() {
                 return '/dashboard'
             }
           })()
-
+          
+          console.log('[Auth Callback] Redirecting to:', redirectPath)
           router.push(redirectPath)
         } else {
-          // Default redirect
+          console.log('[Auth Callback] Default redirect to dashboard')
           router.push('/dashboard')
         }
       } catch (error) {
-        console.error('Callback error:', error)
-        router.push('/sign-in?error=An error occurred during authentication')
+        const err = error as Error
+        console.error('[Auth Callback] Unexpected error:', err)
+        router.push(`/sign-in?error=${encodeURIComponent('Authentication error: ' + err.message)}`)
       }
     }
 

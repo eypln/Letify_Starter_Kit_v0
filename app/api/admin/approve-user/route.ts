@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
+import { sendEmail, generateUserApprovalEmail } from '@/lib/email'
 
 /**
  * PUT /api/admin/approve-user
@@ -47,6 +48,13 @@ export async function PUT(request: NextRequest) {
 
     const newStatus = action === 'approve' ? 'approved' : 'denied'
 
+    // Get user info before updating (needed for email)
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('full_name, user_id')
+      .eq('user_id', userId)
+      .single()
+
     // Update user profile status
     const { error } = await supabase
       .from('profiles')
@@ -54,8 +62,65 @@ export async function PUT(request: NextRequest) {
       .eq('user_id', userId)
 
     if (error) {
-      console.error('Error updating user status:', error)
+      console.error('[Approve User] Error updating user status:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    console.log(`[Approve User] User ${userId} ${action === 'approve' ? 'approved' : 'denied'}`)
+
+    // Update approval_queue table
+    const queueStatus = action === 'approve' ? 'approved' : 'rejected'
+    const { error: queueError } = await supabase
+      .from('approval_queue')
+      .update({ 
+        status: queueStatus,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+
+    if (queueError) {
+      console.error('[Approve User] Error updating approval_queue:', queueError)
+      // Don't fail the request, approval_queue is secondary
+    }
+
+    // Send approval email to user (only if approved)
+    if (action === 'approve' && userProfile) {
+      try {
+        // Get user email from auth.users
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: emailData } = await (supabase as any)
+          .rpc('get_user_email', {
+            user_uuid: userId
+          })
+        
+        const userEmail = emailData && Array.isArray(emailData) && emailData.length > 0 
+          ? emailData[0].email 
+          : null
+
+        if (userEmail) {
+          const emailHtml = generateUserApprovalEmail({
+            fullName: userProfile.full_name || 'User',
+            email: userEmail,
+          })
+
+          const emailResult = await sendEmail({
+            to: userEmail,
+            subject: '✅ Your Letify Account Has Been Approved!',
+            html: emailHtml,
+          })
+
+          if (emailResult.success) {
+            console.log(`[Approve User] Approval email sent to ${userEmail}`)
+          } else {
+            console.error('[Approve User] Failed to send approval email:', emailResult.error)
+          }
+        } else {
+          console.warn('[Approve User] Could not fetch user email for approval notification')
+        }
+      } catch (emailError) {
+        console.error('[Approve User] Error sending approval email:', emailError)
+        // Don't fail the approval if email fails
+      }
     }
 
     // Log activity

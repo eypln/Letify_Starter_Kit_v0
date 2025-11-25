@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/supabase'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 
 export async function createClient() {
@@ -121,4 +122,21 @@ export async function getUserIntegrations(userId?: string) {
 // Export for API routes
 export async function getSupabaseServer() {
   return await createClient()
+}
+
+// Admin client for server-side admin operations (uses service_role key)
+export function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE!
+  
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE is not defined in environment variables')
+  }
+  
+  return createSupabaseClient<Database>(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
