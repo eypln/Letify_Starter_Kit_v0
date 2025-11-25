@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Select from "react-select";
 import DatePicker from "react-datepicker";
@@ -162,7 +162,7 @@ export default function RevenueClient({ user }: { user: User }) {
   });
 
   // Check if Inform Boss checkbox should be enabled
-  const isInformBossEnabled = () => {
+  const isInformBossEnabled = useCallback(() => {
     // Both dates must be selected
     if (!landlordPaidDate || !clientPaidDate) {
       return false;
@@ -181,7 +181,7 @@ export default function RevenueClient({ user }: { user: User }) {
 
     // Both dates must be today or in the past
     return landlordDate <= today && clientDate <= today;
-  };
+  }, [landlordPaidDate, clientPaidDate]);
 
   // Calculate fees when rent amount or discounts change
   useEffect(() => {
@@ -265,7 +265,7 @@ export default function RevenueClient({ user }: { user: User }) {
     if (form.inform_boss_after_both_sides_paid && !isInformBossEnabled()) {
       setForm(prev => ({ ...prev, inform_boss_after_both_sides_paid: false }));
     }
-  }, [landlordPaidDate, clientPaidDate, form.inform_boss_after_both_sides_paid]);
+  }, [landlordPaidDate, clientPaidDate, form.inform_boss_after_both_sides_paid, isInformBossEnabled]);
 
   async function getUserAndRevenues(currentPage = page) {
     setLoading(true);

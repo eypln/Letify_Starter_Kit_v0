@@ -186,7 +186,7 @@ function SignUpForm() {
             
             <h1 className="text-2xl font-bold text-gray-900 mb-3">Verify Your Email</h1>
             <p className="text-gray-600 mb-6">
-              We've sent a verification link to:
+              We&#39;ve sent a verification link to:
             </p>
             <p className="font-semibold text-purple-600 mb-6">{registeredEmail}</p>
             
@@ -196,18 +196,18 @@ function SignUpForm() {
               </p>
               <p className="text-sm text-blue-700">
                 Click the verification link in the email to confirm your account. 
-                Don't forget to check your spam folder if you don't see it in your inbox.
+                Don&#39;t forget to check your spam folder if you don&#39;t see it in your inbox.
               </p>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-amber-800">
-                <strong>⏳ What's next?</strong>
+                <strong>⏳ What&#39;s next?</strong>
               </p>
               <ul className="text-sm text-amber-700 mt-2 space-y-1 text-left">
                 <li>1. Verify your email by clicking the link</li>
                 <li>2. Wait for admin approval</li>
-                <li>3. You'll receive another email when approved</li>
+                <li>3. You&#39;ll receive another email when approved</li>
                 <li>4. Then you can sign in and start using Letify!</li>
               </ul>
             </div>
