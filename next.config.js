@@ -214,12 +214,25 @@ const nextConfig = {
   },
   
   webpack: (config, { dev, isServer }) => {
-    // Geliştirme ortamında webpack önbellekleme stratejisini optimize et
-    if (dev) {
-      config.infrastructureLogging = {
-        level: 'error', // Sadece hataları göster, uyarıları gizle
-      };
-    }
+    // Supabase Realtime için edge runtime uyarılarını gizle
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Edge runtime'da çalışacak Supabase sürümü
+      '@supabase/realtime-js': '@supabase/realtime-js/dist/module/index.js',
+    };
+
+    // Geliştirme ve production'da webpack loglarını optimize et
+    config.infrastructureLogging = {
+      level: 'error', // Sadece hataları göster
+    };
+
+    // Büyük string serializasyon uyarılarını gizle
+    config.ignoreWarnings = [
+      { module: /node_modules/ },
+      /Serializing big strings/i,
+      /Critical dependency: the request of a dependency is an expression/i,
+    ];
 
     // Production optimizations
     if (!dev && !isServer) {
