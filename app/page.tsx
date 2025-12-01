@@ -30,7 +30,7 @@ export default function HomePage() {
         href="/sign-in" 
         className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
       >
-        Sign In
+        Start
       </a>
     </main>
   )

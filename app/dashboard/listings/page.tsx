@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getListings, updateListingAvailability, getAllAvailableAndSoonListings } from './actions';
 import Link from 'next/link';
 import AddDialog from './add-dialog';
+import EditDialog from './edit-dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -150,6 +151,7 @@ interface Listing {
   fbPostUrl?: string;
   fbReelsUrl?: string;
   isSharedInTeamwork?: boolean;
+  photos?: { url: string }[];
 }
 
 interface MapListing {
@@ -175,7 +177,9 @@ function ListingsContent() {
   const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
 
   React.useEffect(() => {
-    getListings({ page }).then((data) => setListingsData(data as ListingsData));
+    getListings({ page }).then((data) => {
+      setListingsData(data as ListingsData);
+    });
   }, [page, refreshKey]);
 
   // Fetch all Available and Soon listings for the map
@@ -243,6 +247,7 @@ function ListingsContent() {
               <th>FB post</th>
               <th>FB reels</th>
               <th>Teamwork</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
@@ -285,6 +290,9 @@ function ListingsContent() {
                 </td>
                 <td className="whitespace-nowrap">
                   <TeamworkShareButton listingId={r.id} title={r.title || 'Untitled'} isShared={r.isSharedInTeamwork} />
+                </td>
+                <td className="whitespace-nowrap">
+                  <EditDialog listing={r} onUpdate={handleRefresh} />
                 </td>
               </tr>
             ))}

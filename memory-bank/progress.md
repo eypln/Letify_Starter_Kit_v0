@@ -3,6 +3,39 @@
 
 ## Ne Çalışıyor ✅
 
+### 01.12.2025 - Photo Management & Image Display System COMPLETE ✅
+**Yapılanlar:**
+- **Edit Dialog Photo Display**: Existing photos artık edit dialog'da görünüyor (14/30 format)
+- **Photo Grid UI**: Thumbnail display + Download (blue) + Delete (red) buttons
+- **Download Functionality**: Photos kullanıcının cihazına indirilebiliyor (blob download pattern)
+- **Migration API**: Server-side `/api/migrate-listing-photos` endpoint ile uploaded_assets → listings.images
+- **Next.js Image Config**: Supabase storage domain remotePatterns'e eklendi (**.supabase.co)
+- **Build Optimization**: Production build başarılı (91 pages, 0 warnings, 0 errors)
+- **Debug Cleanup**: Tüm console.log'lar silindi, TypeScript types fixed
+- **ESLint Clean**: Unused imports removed, proper dependencies, type-safe code
+
+**Teknik Detaylar:**
+- **RLS Bypass Pattern**: Client-side `uploaded_assets` erişimi engelliydi, server-side migration API ile çözüldü
+- **Server Actions Limitation**: Nested arrays serialize sorunu, useEffect + direct Supabase fetch ile çözüldü
+- **Image Domain Config**: `next/image` external domain için explicit whitelist gerekiyor
+- **Download Flow**: fetch() → blob → object URL → programmatic click → cleanup
+- **Migration Logic**: jobs table → uploaded_assets → listings.images field update
+- **Photo Storage**: 2-tiered system (uploaded_assets legacy, listings.images new)
+
+**User Requirements:**
+- ✅ "edit formunda... databaseden o kayıt için yüklenen resimleri de burada sırasuyla göstermesini isterdim"
+- ✅ "üzerlerine tıklandığında da direk cihazımıza indirilebilmesini isterdim"
+- ✅ "database de images field ın boş olması sorununu düzeltirsek"
+- ✅ "build alırken başarısız olduk" - Build errors fixed
+- ✅ "eslint uyarılarını da düzeltelim" - All warnings resolved
+
+**Öğrenilenler:**
+- Server Actions nested object serialization limitation
+- RLS policies: Client-side restrictions bypass with server-side API
+- Next.js Image: External domains need explicit remotePatterns configuration
+- Photo migration pattern: Useful for bridging old/new data storage approaches
+- Production build: Console logs, invalid API calls, type errors must be eliminated
+
 ### 24.11.2025 - Email Verification & Notification System COMPLETE ✅
 **Yapılanlar:**
 - **Email Verification PKCE Flow**: Sign-up → Email verify → Auth callback → Waiting approval akışı tamamlandı
@@ -110,7 +143,8 @@
 - ✅ **Dashboard**: Ana panel, istatistikler, navigation, 3 yeni sayfa (Teamwork, Viewings, Revenue)
 - ✅ **Image Upload & Compression**: 15 görsele kadar, client-side compression, Supabase Storage
 - ✅ **Client Management**: Müşteri ekleme, listeleme, düzenleme, teamwork paylaşımı, **status tracking (Urgent/Looking/Rented)**
-- ✅ **Listings Management**: İçerik oluşturma ve yönetimi, teamwork paylaşımı
+- ✅ **Listings Management**: İçerik oluşturma ve yönetimi, teamwork paylaşımı, **photo display in edit dialog**
+- ✅ **Photo Management**: Edit dialog'da existing photos display, download to device, migration API for old data
 - ✅ **Teamwork System**: Listing ve client paylaşım, takım iş birliği, **2 tablo ile görüntüleme, shared state tracking**
 - ✅ **Viewings System**: Property viewing tracking, calendar view, team leader notifications, **English validation messages**
 - ✅ **Revenue System**: Financial tracking, commission calculations, Boss notifications
@@ -302,9 +336,35 @@
 - **Form validation**: Browser-independent messages için custom onInvalid handlers şart
 - **UI consistency**: Tek stil kuralı (e.g., soft purple) tüm sayfalarda kullanıcı deneyimini iyileştirir
 - **Third-party types**: Kütüphanelerden proper type imports custom interfaces'ten daha güvenilir
-
 ## Release History 📋
 
+### v2.0 - Photo Management System (01.12.2025) ✅
+**Status**: READY for Vercel deployment
+- ✅ Edit Dialog Photo Display: Existing photos visible with thumbnail grid
+- ✅ Download Functionality: Click to download photos to device
+- ✅ Migration API: Server-side photo migration from uploaded_assets
+- ✅ Next.js Image Config: Supabase storage domains configured
+- ✅ Production Build: 91 pages, 0 warnings, 0 errors
+- ✅ Debug Cleanup: Console logs removed, TypeScript types fixed
+- ✅ Photo Grid UI: Download (blue) + Delete (red) buttons per photo
+- ✅ RLS Bypass: Server-side API solves client permission issues
+
+**Technical Implementation:**
+- Migration API: `/api/migrate-listing-photos` (POST endpoint)
+- Photo Grid: next/image + Lucide icons (Download, X)
+- Download Flow: fetch → blob → object URL → programmatic click
+- Image Config: remotePatterns for **.supabase.co
+- Database: 2-tiered storage (uploaded_assets legacy + listings.images)
+
+**Files Modified:**
+- app/dashboard/listings/edit-dialog.tsx (photo display, download, migration call)
+- app/api/migrate-listing-photos/route.ts (NEW - server-side migration)
+- next.config.js (remotePatterns for Supabase storage)
+- app/dashboard/listings/actions.ts (debug cleanup)
+- app/dashboard/listings/page.tsx (unused imports removed)
+- app/api/debug/photos/route.ts (TypeScript type fix)
+
+### v1.9 - Availability Tracking & Geospatial Features (18.01.2025) ✅
 ### v1.9 - Availability Tracking & Geospatial Features (18.01.2025) ✅
 **Status**: LIVE on Vercel
 - ✅ Availability System: Enum type (Available, Rented, Soon) with color-coded UI

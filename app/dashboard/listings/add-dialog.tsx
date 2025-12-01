@@ -382,7 +382,6 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
       const userId = user.id;
       const urls: string[] = [];
       let uploadError = null;
-      // uuid fonksiyonu için import eklemeniz gerekebilir: import { v4 as uuidv4 } from 'uuid';
       for (const file of images) {
         const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920 });
         const now = new Date();
@@ -401,9 +400,27 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
           uploadError = error.message;
         }
       }
+      if (urls.length > 0) {
+        const { data: currentListing } = await supabase
+          .from('listings')
+          .select('images')
+          .eq('id', listingId)
+          .single();
+        
+        const existingImages = Array.isArray(currentListing?.images) ? currentListing.images : [];
+        const updatedImages = [...existingImages, ...urls];
+        
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({ images: updatedImages })
+          .eq('id', listingId);
+        
+        if (updateError) {
+          console.error('Error saving images to listing:', updateError);
+        }
+      }
       setImageUrls(urls);
       setUploadDone(true);
-      // Zamanlayıcıyı durdur
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;

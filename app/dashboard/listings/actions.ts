@@ -5,8 +5,30 @@ import { createClient } from '@/lib/supabase/server';
 
 const PAGE_SIZE = 10;
 
+interface ListingRow {
+  id: string;
+  addingDate: string;
+  sourceUrl: string;
+  city: string | null;
+  price: number | null;
+  bedroom: number | null;
+  bathroom: number | null;
+  propertyType: string | null;
+  description: string;
+  fbPostUrl: string | null;
+  fbReelsUrl: string | null;
+  title: string;
+  availability: string;
+  isSharedInTeamwork: boolean;
+  photos: { url: string }[];
+}
 
-export async function getListings({ page }: { page: number }) {
+export async function getListings({ page }: { page: number }): Promise<{
+  rows: ListingRow[];
+  total: number;
+  pageCount: number;
+  pageSize: number;
+}> {
   const supabase = await createClient();
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -28,19 +50,19 @@ export async function getListings({ page }: { page: number }) {
         facebook_post_url,
         facebook_reel_url,
         title,
-        availability::text
+        availability::text,
+        images
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
 
     if (error) {
-      // Sadece gerçek Supabase hatası loglanır
       console.error('Supabase listings fetch error:', error);
       throw new Error(error.message || 'Supabase listings fetch error');
     }
 
-    // Get all listing IDs that are shared in teamwork
     const listingIds = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => d?.id as string).filter(Boolean);
+    
     const { data: sharedListings } = await supabase
       .from('teamwork_listings')
       .select('listing_id')
@@ -48,22 +70,72 @@ export async function getListings({ page }: { page: number }) {
 
     const sharedListingIds = new Set((sharedListings || []).map((item: { listing_id: string }) => item.listing_id));
 
-    const rows = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
-      id: d?.id ?? '',
-      addingDate: d?.created_at ?? '',
-      sourceUrl: d?.property_url ?? '',
-      city: d?.city ?? d?.location ?? null,
-      price: d?.price ?? null,
-      bedroom: d?.bedrooms ?? null,
-      bathroom: d?.bathrooms ?? null,
-      propertyType: d?.property_type ?? null,
-      description: d?.description ?? '',
-      fbPostUrl: d?.facebook_post_url ?? d?.fb_post_url ?? null,
-      fbReelsUrl: d?.facebook_reel_url ?? d?.fb_reels_url ?? null,
-      title: d?.title ?? '',
-      availability: d?.availability ?? 'Available',
-      isSharedInTeamwork: sharedListingIds.has(d?.id as string),
-    }));
+    const { data: jobsData } = await supabase
+      .from('jobs')
+      .select('id, listing_id')
+      .in('listing_id', listingIds);
+
+    const jobIds = (jobsData || []).map((j: { id: string }) => j.id);
+    const listingToJobsMap = new Map<string, string[]>();
+    (jobsData || []).forEach((j: { id: string; listing_id: string | null }) => {
+      if (j.listing_id) {
+        if (!listingToJobsMap.has(j.listing_id)) {
+          listingToJobsMap.set(j.listing_id, []);
+        }
+        listingToJobsMap.get(j.listing_id)!.push(j.id);
+      }
+    });
+
+    const { data: uploadedAssets } = await supabase
+      .from('uploaded_assets')
+      .select('job_id, public_url')
+      .in('job_id', jobIds);
+
+    const jobToPhotosMap = new Map<string, string[]>();
+    (uploadedAssets || []).forEach((asset: { job_id: string; public_url: string }) => {
+      if (!jobToPhotosMap.has(asset.job_id)) {
+        jobToPhotosMap.set(asset.job_id, []);
+      }
+      jobToPhotosMap.get(asset.job_id)!.push(asset.public_url);
+    });
+
+    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>): ListingRow => {
+      const listingId = d?.id as string;
+      const jobIdsForListing = listingToJobsMap.get(listingId) || [];
+      
+      const photosFromAssets: { url: string }[] = [];
+      jobIdsForListing.forEach(jobId => {
+        const urls = jobToPhotosMap.get(jobId) || [];
+        urls.forEach(url => photosFromAssets.push({ url }));
+      });
+
+      const imagesFromListing = Array.isArray(d?.images) ? d.images : [];
+      const photosFromImages: { url: string }[] = imagesFromListing.map((img: string | { url: string }) => 
+        typeof img === 'string' ? { url: img } : img
+      );
+
+      const allPhotos: { url: string }[] = [...photosFromAssets, ...photosFromImages];
+
+      const row: ListingRow = {
+        id: listingId,
+        addingDate: (d?.created_at as string) ?? '',
+        sourceUrl: (d?.property_url as string) ?? '',
+        city: (d?.city as string) ?? (d?.location as string) ?? null,
+        price: (d?.price as number) ?? null,
+        bedroom: (d?.bedrooms as number) ?? null,
+        bathroom: (d?.bathrooms as number) ?? null,
+        propertyType: (d?.property_type as string) ?? null,
+        description: (d?.description as string) ?? '',
+        fbPostUrl: (d?.facebook_post_url as string) ?? (d?.fb_post_url as string) ?? null,
+        fbReelsUrl: (d?.facebook_reel_url as string) ?? (d?.fb_reels_url as string) ?? null,
+        title: (d?.title as string) ?? '',
+        availability: (d?.availability as string) ?? 'Available',
+        isSharedInTeamwork: sharedListingIds.has(listingId),
+        photos: JSON.parse(JSON.stringify(allPhotos)),
+      };
+      
+      return row;
+    });
 
     return {
       rows,

@@ -737,6 +737,205 @@ export interface ListingsInsert {
 - Database enforces valid values
 - Indexed for query performance
 
+### Photo Management & Migration API Pattern (v2.0 - 01.12.2025)
+**Use Case**: Display existing photos in edit dialog, handle legacy data migration
+
+**Problem 1: Photos not displaying in edit dialog**
+- Root Cause: Photos stored in `uploaded_assets` table, but `listings.images` field empty
+- Client-side RLS: `uploaded_assets` table restricted, client can't query directly
+- Server Actions: Nested arrays don't serialize properly
+
+**Solution: Migration API + Client-side Supabase Fetch**
+
+**Migration API Pattern**:
+```typescript
+// app/api/migrate-listing-photos/route.ts
+export async function POST(request: Request) {
+  const { listingId } = await request.json()
+  const supabase = createClient()
+  
+  // Step 1: Find job_id from listings
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('listing_id', listingId)
+    .single()
+  
+  if (!jobs) return NextResponse.json({ images: [] })
+  
+  // Step 2: Fetch photos from uploaded_assets (server-side, bypasses RLS)
+  const { data: assets } = await supabase
+    .from('uploaded_assets')
+    .select('public_url')
+    .eq('job_id', jobs.id)
+  
+  const photoUrls = assets?.map(a => a.public_url) || []
+  
+  // Step 3: Update listings.images field with migrated data
+  if (photoUrls.length > 0) {
+    await supabase
+      .from('listings')
+      .update({ images: photoUrls })
+      .eq('id', listingId)
+  }
+  
+  return NextResponse.json({ images: photoUrls, migrated: true })
+}
+```
+
+**Client-Side Photo Loading Pattern**:
+```typescript
+// app/dashboard/listings/edit-dialog.tsx
+'use client'
+
+export default function EditDialog({ listing }: { listing: Listing }) {
+  const [photos, setPhotos] = useState<string[]>([])
+  
+  useEffect(() => {
+    const loadPhotos = async () => {
+      // Check if listings.images field has data
+      if (listing.images && listing.images.length > 0) {
+        setPhotos(listing.images)
+      } else {
+        // Fallback: Call migration API for legacy data
+        const res = await fetch('/api/migrate-listing-photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: listing.id })
+        })
+        const data = await res.json()
+        if (data.images && data.images.length > 0) {
+          setPhotos(data.images)
+        }
+      }
+    }
+    loadPhotos()
+  }, [listing.id]) // eslint-disable-next-line react-hooks/exhaustive-deps
+  
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {photos.map((photoUrl, index) => (
+        <PhotoCard 
+          key={index} 
+          photoUrl={photoUrl} 
+          onDownload={() => handleDownload(photoUrl)}
+          onDelete={() => handleDelete(index)}
+        />
+      ))}
+      <AddPhotoButton onClick={() => fileInputRef.current?.click()} />
+    </div>
+  )
+}
+```
+
+**Photo Download Pattern**:
+```typescript
+const handleDownload = async (photoUrl: string) => {
+  try {
+    // Fetch photo as blob
+    const response = await fetch(photoUrl)
+    const blob = await response.blob()
+    
+    // Create object URL
+    const url = window.URL.createObjectURL(blob)
+    
+    // Create hidden download link
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `photo-${Date.now()}.jpg`
+    a.style.display = 'none'
+    
+    // Trigger download
+    document.body.appendChild(a)
+    a.click()
+    
+    // Cleanup
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    
+    toast.success('Photo downloaded successfully')
+  } catch (error) {
+    console.error('Download failed:', error)
+    toast.error('Failed to download photo')
+  }
+}
+```
+
+**Next.js Image Configuration**:
+```javascript
+// next.config.js
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',  // Wildcard for all Supabase projects
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
+}
+```
+
+**Photo Grid UI Pattern**:
+```typescript
+function PhotoCard({ photoUrl, onDownload, onDelete }: PhotoCardProps) {
+  return (
+    <div className="relative group">
+      {/* Photo thumbnail */}
+      <Image
+        src={photoUrl}
+        alt="Property photo"
+        width={150}
+        height={150}
+        className="rounded-lg object-cover"
+      />
+      
+      {/* Buttons (visible on hover) */}
+      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={onDownload}
+          className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded"
+        >
+          <Download size={16} />
+        </button>
+      </div>
+      
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={onDelete}
+          className="p-1 bg-red-500 hover:bg-red-600 text-white rounded"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+**Benefits**:
+- Server-side API bypasses client-side RLS restrictions
+- Migration pattern bridges legacy data to new schema
+- Progressive enhancement (works with or without migration)
+- User-friendly download (direct to device, no right-click)
+- Clean separation: Migration logic on server, UI logic on client
+
+**When to Use**:
+- Legacy data migration scenarios
+- Client-side RLS restrictions prevent direct queries
+- Photo/file management features needing download capability
+- Hybrid storage systems (old + new schema)
+
+**Key Learnings**:
+- Server Actions: Nested arrays don't serialize properly (use API routes instead)
+- RLS Bypass: Server-side API with service account solves permission issues
+- Next.js Images: External domains require explicit remotePatterns whitelist
+- Download UX: Browser download API (blob → object URL) works cross-browser
+- Photo Storage: 2-tiered approach (uploaded_assets legacy + listings.images new)
+
+---
+
 ### Google Maps Integration Pattern (v1.9)
 **Problem**: Google Maps script should load only once, even with React re-renders
 

@@ -136,11 +136,12 @@ pnpm dev
 
 ### UI Dependencies
 - @radix-ui/*: Component primitives
-- lucide-react: Icons
+- lucide-react: Icons (Download, X, Edit2, etc.)
 - tailwind-merge: Class merging
 - clsx: Conditional classes
 - react-select: Select components
 - react-datepicker: Date picker
+- next/image: Optimized image rendering with remote patterns
 
 ### Maps & Geospatial (v1.9 - 18.01.2025)
 - @types/google.maps: TypeScript definitions for Google Maps JavaScript API
@@ -195,6 +196,62 @@ pnpm dev
 
 
 ## External API Integrations
+
+### Next.js Image Remote Patterns Configuration (v2.0 - 01.12.2025)
+**Purpose**: Enable next/image optimization for Supabase Storage URLs
+
+**Configuration** (next.config.js):
+```javascript
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',  // Wildcard for all Supabase subdomains
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  },
+}
+```
+
+**Why Required**:
+- Next.js Image Optimization requires whitelisted external domains
+- Prevents security vulnerabilities (arbitrary image proxy usage)
+- Enables automatic image optimization (format, size, quality)
+
+**Error Without Config**:
+```
+Error: Invalid src prop (https://xyz.supabase.co/storage/v1/object/public/...)
+hostname "xyz.supabase.co" is not configured under images in your `next.config.js`
+```
+
+**Benefits**:
+- Automatic WebP/AVIF conversion (browser support detection)
+- Responsive image sizing (srcset generation)
+- Lazy loading with blur placeholder
+- CDN caching via Vercel Edge Network
+
+**Pattern Usage**:
+```typescript
+import Image from 'next/image'
+
+<Image
+  src="https://xyz.supabase.co/storage/v1/object/public/user_uploads/photo.jpg"
+  alt="Property photo"
+  width={300}
+  height={200}
+  className="rounded-lg"
+  priority={false}  // Lazy load by default
+/>
+```
+
+**Related Features**:
+- Supabase Storage URLs (public bucket: user_uploads)
+- Photo management in listings edit dialog
+- Migration API for uploaded_assets → listings.images
+
+---
 
 ### Google Maps JavaScript API (v1.9 - 18.01.2025)
 **Purpose**: Geospatial visualization of property listings on Malta map
