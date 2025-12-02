@@ -2,12 +2,36 @@
 import Image from 'next/image';
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
 import Select from 'react-select';
 import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Edit2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import 'react-datepicker/dist/react-datepicker.css';
+
+interface DatePickerProps {
+  selected: Date | null;
+  onChange: (date: Date | null) => void;
+  dateFormat?: string;
+  placeholderText?: string;
+  className?: string;
+  isClearable?: boolean;
+}
+
+const DatePickerWrapper = dynamic(
+  () => import('react-datepicker').then((mod) => {
+    const Component = mod.default as ComponentType<DatePickerProps>;
+    return { default: Component };
+  }),
+  {
+    ssr: false,
+    loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
+  }
+);
+const DatePicker = DatePickerWrapper;
 
 // Malta cities options (Mainland Malta only)
 const maltaCitiesOptions = [
@@ -109,6 +133,7 @@ interface Listing {
   propertyType?: string;
   description?: string;
   availability?: 'Available' | 'Rented' | 'Soon';
+  available_date?: string;
   fbPostUrl?: string;
   fbReelsUrl?: string;
   isSharedInTeamwork?: boolean;
@@ -130,6 +155,7 @@ interface FormData {
   propertyType: string;
   description: string;
   availability: 'Available' | 'Rented' | 'Soon';
+  available_date: string;
   fbPostUrl: string;
   fbReelsUrl: string;
 }
@@ -150,9 +176,14 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
     propertyType: listing.propertyType || '',
     description: listing.description || '',
     availability: listing.availability || 'Available',
+    available_date: listing.available_date || '',
     fbPostUrl: listing.fbPostUrl || '',
     fbReelsUrl: listing.fbReelsUrl || ''
   });
+
+  const [availableDate, setAvailableDate] = useState<Date | null>(
+    listing.available_date ? new Date(listing.available_date) : null
+  );
 
   const [photos, setPhotos] = useState<Array<{ file?: File; url?: string; preview?: string }>>([]);
   const [deletedPhotoUrls, setDeletedPhotoUrls] = useState<string[]>([]);
@@ -383,12 +414,44 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
           property_type: formData.propertyType || null,
           description: formData.description || null,
           availability: formData.availability,
+          available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
           facebook_post_url: formData.fbPostUrl || null,
           facebook_reel_url: formData.fbReelsUrl || null
         })
         .eq('id', listing.id);
 
       if (updateError) throw updateError;
+
+      // Update ALL teamwork_listings records for this listing (via API to bypass RLS)
+      try {
+        const response = await fetch('/api/teamwork/listings/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            listing_id: listing.id,
+            updates: {
+              city: formData.city || null,
+              price: formData.price ? parseFloat(formData.price) : null,
+              bedroom: formData.bedroom ? parseInt(formData.bedroom) : null,
+              bathroom: formData.bathroom ? parseInt(formData.bathroom) : null,
+              property_type: formData.propertyType || null,
+              description: formData.description || null,
+              available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Error syncing teamwork listings:', error);
+        } else {
+          const result = await response.json();
+          console.log('Teamwork listings synced:', result);
+        }
+      } catch (teamworkError) {
+        console.error('Teamwork sync failed:', teamworkError);
+        // Don't throw error, just log it - teamwork sync is not critical
+      }
 
       // Handle photo deletions
       await deletePhotos();
@@ -683,6 +746,19 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                       <option value="Rented">Rented</option>
                       <option value="Soon">Soon</option>
                     </select>
+                  </div>
+
+                  {/* Available Date */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Available Date</label>
+                    <DatePicker
+                      selected={availableDate}
+                      onChange={(date) => setAvailableDate(date)}
+                      dateFormat="dd.MM.yyyy"
+                      isClearable
+                      placeholderText="Select available date"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
                   </div>
 
                   {/* Facebook Post URL */}

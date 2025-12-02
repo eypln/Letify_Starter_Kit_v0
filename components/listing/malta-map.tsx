@@ -84,26 +84,42 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load Google Maps script only once
     if (typeof window === 'undefined') return;
+    
+    // Check if API key is configured
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_API_KEY' || apiKey === 'your_google_maps_api_key') {
+      // Schedule state update after render to avoid setState in effect
+      Promise.resolve().then(() => {
+        setLoadError('Google Maps API key is not configured. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.');
+      });
+      return;
+    }
     
     if (!window.google) {
       // Check if script is already being loaded
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
         existingScript.addEventListener('load', () => setIsLoaded(true));
+        existingScript.addEventListener('error', () => {
+          setLoadError('Failed to load Google Maps. Please check your API key and internet connection.');
+        });
         return;
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY'}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
       script.async = true;
       script.defer = true;
       script.onload = () => setIsLoaded(true);
       script.onerror = () => {
-        console.error('Failed to load Google Maps API');
+        Promise.resolve().then(() => {
+          setLoadError('Failed to load Google Maps. Please check your API key and internet connection.');
+        });
       };
       document.head.appendChild(script);
     } else if (window.google.maps) {
@@ -215,15 +231,33 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
 
   return (
     <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] rounded-lg overflow-hidden border border-gray-300 shadow-lg">
-      {!isLoaded && (
+      {loadError ? (
+        <div className="w-full h-full flex items-center justify-center bg-red-50">
+          <div className="text-center p-6 max-w-md">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold text-red-700 mb-2">Map Loading Error</h3>
+            <p className="text-sm text-red-600 mb-4">{loadError}</p>
+            <details className="text-xs text-left text-gray-600 bg-white p-3 rounded border">
+              <summary className="cursor-pointer font-medium mb-2">Setup Instructions</summary>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Go to Google Cloud Console</li>
+                <li>Enable Maps JavaScript API</li>
+                <li>Create an API key</li>
+                <li>Add to .env.local: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key</li>
+                <li>Restart the development server</li>
+              </ol>
+            </details>
+          </div>
+        </div>
+      ) : !isLoaded ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-100">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading Malta Map...</p>
           </div>
         </div>
-      )}
-      <div ref={mapRef} className="w-full h-full" />
+      ) : null}
+      <div ref={mapRef} className="w-full h-full" style={{ display: loadError ? 'none' : 'block' }} />
     </div>
   );
 }

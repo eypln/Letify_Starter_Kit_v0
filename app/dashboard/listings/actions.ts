@@ -19,6 +19,7 @@ interface ListingRow {
   fbReelsUrl: string | null;
   title: string;
   availability: string;
+  available_date: string | null;
   isSharedInTeamwork: boolean;
   photos: { url: string }[];
 }
@@ -51,17 +52,18 @@ export async function getListings({ page }: { page: number }): Promise<{
         facebook_reel_url,
         title,
         availability::text,
+        available_date,
         images
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range(from, to);
+      .range(from, to) as any;
 
     if (error) {
       console.error('Supabase listings fetch error:', error);
       throw new Error(error.message || 'Supabase listings fetch error');
     }
 
-    const listingIds = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => d?.id as string).filter(Boolean);
+    const listingIds = (Array.isArray(data) ? data : []).map((d: any) => d?.id as string).filter(Boolean);
     
     const { data: sharedListings } = await supabase
       .from('teamwork_listings')
@@ -99,7 +101,7 @@ export async function getListings({ page }: { page: number }): Promise<{
       jobToPhotosMap.get(asset.job_id)!.push(asset.public_url);
     });
 
-    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: Record<string, unknown>): ListingRow => {
+    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: any): ListingRow => {
       const listingId = d?.id as string;
       const jobIdsForListing = listingToJobsMap.get(listingId) || [];
       
@@ -130,6 +132,7 @@ export async function getListings({ page }: { page: number }): Promise<{
         fbReelsUrl: (d?.facebook_reel_url as string) ?? (d?.fb_reels_url as string) ?? null,
         title: (d?.title as string) ?? '',
         availability: (d?.availability as string) ?? 'Available',
+        available_date: (d?.available_date as string) ?? null,
         isSharedInTeamwork: sharedListingIds.has(listingId),
         photos: JSON.parse(JSON.stringify(allPhotos)),
       };
@@ -251,7 +254,7 @@ export async function getAllAvailableAndSoonListings() {
       throw new Error(error.message || 'Failed to fetch map listings');
     }
 
-    return (Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
+    return (Array.isArray(data) ? data : []).map((d: any) => ({
       id: d?.id ?? '',
       city: d?.city ?? '',
       title: d?.title ?? '',

@@ -4,11 +4,35 @@ import ListingPostButton from '@/components/listing/listing-post-button';
 import Image from 'next/image';
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
 import Select from 'react-select';
 import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Info } from 'lucide-react';
+import 'react-datepicker/dist/react-datepicker.css';
+
+interface DatePickerProps {
+  selected: Date | null;
+  onChange: (date: Date | null) => void;
+  dateFormat?: string;
+  placeholderText?: string;
+  className?: string;
+  isClearable?: boolean;
+}
+
+const DatePickerWrapper = dynamic(
+  () => import('react-datepicker').then((mod) => {
+    const Component = mod.default as ComponentType<DatePickerProps>;
+    return { default: Component };
+  }),
+  {
+    ssr: false,
+    loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
+  }
+);
+const DatePicker = DatePickerWrapper;
 
 // Malta cities options (Mainland Malta only)
 const maltaCitiesOptions = [
@@ -62,6 +86,7 @@ const maltaCitiesOptions = [
   { label: "Sliema", value: "Sliema" },
   { label: "St. Julian's", value: "St. Julian's" },
   { label: "St. Paul's Bay", value: "St. Paul's Bay" },
+  { label: "Swatar", value: "Swatar" },
   { label: "Swieqi", value: "Swieqi" },
   { label: "Ta' Xbiex", value: "Ta' Xbiex" },
   { label: "Tarxien", value: "Tarxien" },
@@ -304,6 +329,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
   const [bathroom, setBathroom] = useState<string>("");
   const [propertyType, setPropertyType] = useState("");
   const [description, setDescription] = useState("");
+  const [availableDate, setAvailableDate] = useState<Date | null>(null);
   // Multi-image upload states
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -487,13 +513,14 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
           bathroom,
           propertyType,
           description,
+          available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
           images: imageUrls,
         }),
       });
       const { ok, message } = await res.json();
   if (!ok) throw new Error(message || 'Start failed');
       setOpen(false);
-      setReferenceNo(""); setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); clearFiles();
+      setReferenceNo(""); setCity(""); setPrice(""); setBedroom(""); setBathroom(""); setPropertyType(""); setDescription(""); setAvailableDate(null); clearFiles();
     } catch (e) {
     toast({
       title: 'Error',
@@ -509,8 +536,8 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
     <div>
       <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-purple-600 text-white">+ Add</button>
       {open && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <form onSubmit={handleCreate} className="w-[640px] bg-white rounded-2xl p-5 space-y-3 shadow-lg">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <form onSubmit={handleCreate} className="w-full max-w-[640px] bg-white rounded-2xl p-5 space-y-3 shadow-lg my-8">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Add listing</h3>
               <button type="button" onClick={() => {
@@ -618,6 +645,17 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 />
               </div>
               <div className="col-span-2">
+                <label className="text-xs text-gray-600">Available Date</label>
+                <DatePicker
+                  selected={availableDate}
+                  onChange={(date) => setAvailableDate(date)}
+                  dateFormat="dd.MM.yyyy"
+                  isClearable
+                  placeholderText="Select available date"
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div className="col-span-2">
                 <label className="text-xs text-gray-600">Description</label>
                 <textarea rows={6} className="w-full border rounded-md px-3 py-2 resize-y"
                   value={description} onChange={e=>setDescription(e.target.value)} />
@@ -669,6 +707,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                 setBathroom("");
                 setPropertyType("");
                 setDescription("");
+                setAvailableDate(null);
                 setImages([]);
                 setImageUrls([]);
                 setJobId("");
@@ -722,6 +761,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
                     setBathroom("");
                     setPropertyType("");
                     setDescription("");
+                    setAvailableDate(null);
                     setImages([]);
                     setImageUrls([]);
                     setJobId("");

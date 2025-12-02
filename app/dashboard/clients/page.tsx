@@ -170,7 +170,23 @@ function ClientTeamworkShareButton({ clientId, clientName, isShared }: { clientI
 
 export default function ClientsPage() {
   // Ülke listesi react-select için options formatında
-  const countryOptions = getNames().map((name: string) => ({ label: name, value: name }));
+  // Parantez içindeki ifadeleri kaldır ve French ile başlayan tüm varyantları "France" olarak birleştir
+  const countryOptions = getNames()
+    .map((name: string) => {
+      // Parantez içindeki ifadeleri kaldır: "Saint Martin (French part)" -> "Saint Martin"
+      let cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
+      
+      // French ile başlayan tüm ülkeleri "France" yap
+      if (cleanName.toLowerCase().startsWith('french')) {
+        cleanName = 'France';
+      }
+      
+      return cleanName;
+    })
+    // Tekrar edenleri kaldır ve sırala
+    .filter((name, index, self) => self.indexOf(name) === index)
+    .sort()
+    .map((name: string) => ({ label: name, value: name }));
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -262,6 +278,7 @@ export default function ClientsPage() {
   { label: "Sliema", value: "Sliema" },
   { label: "St. Julian's", value: "St. Julian's" },
   { label: "St. Paul's Bay", value: "St. Paul's Bay" },
+  { label: "Swatar", value: "Swatar" },
   { label: "Swieqi", value: "Swieqi" },
   { label: "Ta' Xbiex", value: "Ta' Xbiex" },
   { label: "Tarxien", value: "Tarxien" },
@@ -363,6 +380,40 @@ export default function ClientsPage() {
       const { id: _id, ...updatePayload } = form;
       const res = await supabase.from("clients").update(updatePayload).eq("id", _id);
       error = res.error;
+
+      // If update successful, sync to teamwork_clients
+      if (!error) {
+        try {
+          const response = await fetch('/api/teamwork/clients/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              client_id: _id,
+              updates: {
+                people: form.people || null,
+                bedroom: form.bedroom || null,
+                cities: form.cities || null,
+                family_sharing: form.family_sharing || null,
+                nationalities: form.nationalities || null,
+                jobs: form.jobs || null,
+                pet: form.pet || null,
+                budget: form.budget || null,
+                move_in: form.move_in || null,
+              }
+            })
+          });
+
+          if (!response.ok) {
+            const syncError = await response.json();
+            console.error('Error syncing teamwork clients:', syncError);
+          } else {
+            const result = await response.json();
+            console.log('Teamwork clients synced:', result);
+          }
+        } catch (syncError) {
+          console.error('Teamwork sync failed:', syncError);
+        }
+      }
     } else {
       // Ekleme - id alanını çıkart
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

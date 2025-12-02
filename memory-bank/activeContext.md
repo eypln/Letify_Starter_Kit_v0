@@ -2,7 +2,14 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (01.12.2025)
+### Ana Odak Alanları (02.12.2025)
+1. **Teamwork & Client Sync System**: Ana kayıt güncellemelerinin teamwork tablolarına otomatik yansıması
+2. **Google Maps Integration**: Malta Listings Map API key configuration ve error handling
+3. **Client Nationalities Cleanup**: Parantez içi ifadeler kaldırma, French varyantları birleştirme
+4. **UI Responsive Optimization**: Add listing form mobil uyumluluğu
+5. **Memory Bank Update**: Tüm değişikliklerin dokümantasyonu
+
+### Önceki Odak (01.12.2025)
 1. **Photo Management System**: Edit dialog'da existing photos display, download, migration API
 2. **Image Domain Configuration**: Next.js remote patterns for Supabase storage
 3. **Production Build Optimization**: Clean build with 0 warnings, 91 pages generated
@@ -23,6 +30,256 @@
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 02.12.2025 - Teamwork Auto-Sync & Data Management Enhancements - COMPLETE ✅
+**Feature**: Otomatik senkronizasyon, Google Maps fix, veri temizliği, responsive UI
+**Deployment**: Hazır - Production'a deploy edilebilir
+**Status**: Tüm özellikler tamamlandı, test edildi
+
+#### Teamwork Auto-Sync System Implementation:
+
+**1. Listings → Teamwork_Listings Sync**
+- Problem: Ana listingde yapılan güncellemeler teamwork_listings'e yansımıyordu
+- Root Cause: 
+  - UPDATE RLS policy yoktu (sadece SELECT, INSERT, DELETE vardı)
+  - Client-side direkt update yapılamıyordu
+- Solution: API endpoint + RLS policy
+  - Created: `/api/teamwork/listings/sync` endpoint
+  - Server-side update: Tüm teamwork_listings kayıtlarını günceller (listing_id bazlı)
+  - RLS Policy: `Allow authenticated users to update teamwork listings`
+- Pattern: Edit dialog → API call → Batch update (Promise.allSettled pattern)
+- Synced Fields: city, price, bedroom, bathroom, property_type, description, available_date
+
+**2. Clients → Teamwork_Clients Sync**
+- Aynı pattern listings için uygulanan
+- Created: `/api/teamwork/clients/sync` endpoint
+- RLS Policy: `Allow authenticated users to update teamwork clients`
+- Synced Fields: people, bedroom, cities, family_sharing, nationalities, jobs, pet, budget, move_in
+- Integration: Client update form → API call → Teamwork sync
+
+**3. Available Date Timezone Fix**
+- Problem: Listing'de 03/12/2025, teamwork'te 02/12/2025 (1 gün fark)
+- Root Cause: `new Date('2025-12-03')` UTC midnight yorumlanıyor, local timezone'da 1 gün geri
+- Solution: Date parsing'e 'T00:00:00' eklendi
+  - Before: `new Date(r.available_date).toLocaleDateString('en-GB')`
+  - After: `new Date(r.available_date + 'T00:00:00').toLocaleDateString('en-GB')`
+- Applied: Hem listings/page.tsx hem teamwork/TeamworkClient.tsx
+
+**4. Teamwork Clients Table Column Reorder**
+- User Request: "people sütununu Family/sharing sütunundan sonra koyalım"
+- Implementation: TableHead ve TableCell sıralaması değiştirildi
+- New Order: #, Teamwork Date, Bedroom, Cities, Family/Sharing, **People**, Nationalities, Jobs, Pet, Budget, Move In, Agent
+
+#### Google Maps Integration Fix:
+
+**1. Map Loading Error Handling**
+- Problem: Harita bazı cihazlarda görünmüyordu ("Oops! Something went wrong")
+- Root Cause: API key eksik veya yanlış yapılandırılmış
+- Solution: Comprehensive error handling
+  - API key validation: Checks for missing/placeholder values
+  - Error state: `loadError` state with user-friendly message
+  - Setup instructions: Collapsible details in error UI
+  - Script loading error tracking: onError handler
+
+**2. API Key Configuration**
+- User provided: `AIzaSyAVNlJEUO_DbW_Z94GB2Ote4Ynm6uAdc_s`
+- Already existed in `.env.local`: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+- Maps JavaScript API: Confirmed active in Google Cloud Console
+- Solution: Development server restart (env variables reload)
+
+**3. Error UI Component**
+- Red background warning panel
+- Detailed error message display
+- Setup instructions accordion
+- Graceful fallback: Map container hidden when error
+
+#### Client Data Cleanup:
+
+**1. Nationalities Dropdown Optimization**
+- Problem: Parantez içi ifadeler (örn: "Saint Martin (French part)", "France (the)")
+- Solution: Regex pattern ile temizlik
+  - Pattern: `.replace(/\s*\([^)]*\)/g, '').trim()`
+  - Removes all parentheses and content inside
+
+**2. French Variants Consolidation**
+- Problem: "French Guiana", "French Polynesia", "French Southern Territories" ayrı ayrı
+- Solution: Tüm "French" başlangıçlı ülkeler → "France"
+  - Logic: `if (cleanName.toLowerCase().startsWith('french')) cleanName = 'France'`
+  - Deduplication: `filter((name, index, self) => self.indexOf(name) === index)`
+  - Sort: Alphabetical ordering for clean dropdown
+
+**3. Country List Processing**
+- Source: `country-list` npm package
+- Processing pipeline:
+  1. Remove parenthetical content
+  2. Consolidate French variants
+  3. Remove duplicates
+  4. Alphabetical sort
+  5. Map to `{ label, value }` format
+
+#### UI Responsive Improvements:
+
+**1. Add Listing Form Modal**
+- Problem: Mobil cihazlarda form sığmıyordu
+- Solution: Responsive modal design
+  - Before: `fixed inset-0 flex items-center justify-center`
+  - After: `fixed inset-0 flex items-center justify-center p-4 overflow-y-auto`
+  - Form: `w-full max-w-[640px] my-8` (vertical margin + max width)
+- Benefits: 
+  - Mobile: Full width, scrollable
+  - Desktop: Max 640px, centered
+  - Padding: Prevents edge-to-edge on small screens
+
+#### Files Modified:
+
+**Teamwork Sync:**
+- `app/api/teamwork/listings/sync/route.ts`: NEW - Listing sync endpoint
+- `app/api/teamwork/clients/sync/route.ts`: NEW - Client sync endpoint
+- `app/dashboard/listings/edit-dialog.tsx`: API call integration, availableDate fix
+- `app/dashboard/clients/page.tsx`: Client update with teamwork sync
+- `supabase/migrations/2025_12_02_add_update_policy_teamwork_listings.sql`: NEW - RLS policy
+- `supabase/migrations/2025_12_02_add_update_policy_teamwork_clients.sql`: NEW - RLS policy
+
+**Google Maps:**
+- `components/listing/malta-map.tsx`: Error handling, API key validation, setup UI
+- `.env.local`: Google Maps API key already configured
+
+**Data Cleanup:**
+- `app/dashboard/clients/page.tsx`: Country list processing (parentheses, French consolidation)
+
+**UI Responsive:**
+- `app/dashboard/listings/add-dialog.tsx`: Modal responsive design
+- `app/dashboard/teamwork/TeamworkClient.tsx`: Column reorder (People after Family/Sharing)
+
+**Timezone Fix:**
+- `app/dashboard/listings/page.tsx`: Date parsing with 'T00:00:00'
+- `app/dashboard/teamwork/TeamworkClient.tsx`: Same date fix pattern
+
+#### Key Technical Patterns:
+
+**1. Teamwork Sync API Pattern**
+```typescript
+// Server-side batch update (bypasses RLS with authenticated context)
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  const { listing_id, updates } = await request.json()
+  
+  const { data } = await supabase
+    .from('teamwork_listings')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('listing_id', listing_id)
+    .select('id')
+  
+  return NextResponse.json({ 
+    success: true, 
+    updated_count: data?.length || 0 
+  })
+}
+```
+
+**2. Client-Side Sync Integration**
+```typescript
+// Edit dialog: After main update, sync to teamwork
+if (!error) {
+  try {
+    const response = await fetch('/api/teamwork/listings/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        listing_id: listing.id,
+        updates: {
+          city: formData.city || null,
+          price: formData.price ? parseFloat(formData.price) : null,
+          bedroom: formData.bedroom ? parseInt(formData.bedroom) : null,
+          // ... all synced fields
+        }
+      })
+    })
+    
+    const result = await response.json()
+    console.log('Teamwork synced:', result)
+  } catch (error) {
+    console.error('Teamwork sync failed:', error)
+    // Don't throw - sync is not critical
+  }
+}
+```
+
+**3. Timezone-Safe Date Display**
+```typescript
+// Force local timezone interpretation (prevent UTC shift)
+{r.available_date ? 
+  new Date(r.available_date + 'T00:00:00').toLocaleDateString('en-GB') 
+  : '—'
+}
+```
+
+**4. Google Maps Error Handling**
+```typescript
+// API key validation
+const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+if (!apiKey || apiKey === 'YOUR_API_KEY' || apiKey === 'your_google_maps_api_key') {
+  setLoadError('Google Maps API key is not configured...')
+  return
+}
+
+// Error UI with setup instructions
+{loadError ? (
+  <div className="w-full h-full flex items-center justify-center bg-red-50">
+    <div className="text-center p-6 max-w-md">
+      <div className="text-red-500 text-5xl mb-4">⚠️</div>
+      <h3 className="text-lg font-semibold text-red-700 mb-2">Map Loading Error</h3>
+      <p className="text-sm text-red-600 mb-4">{loadError}</p>
+      <details className="text-xs text-left text-gray-600 bg-white p-3 rounded border">
+        <summary className="cursor-pointer font-medium mb-2">Setup Instructions</summary>
+        {/* Step-by-step guide */}
+      </details>
+    </div>
+  </div>
+) : ...}
+```
+
+**5. Country List Processing**
+```typescript
+// Cleanup + consolidation + deduplication
+const countryOptions = getNames()
+  .map((name: string) => {
+    let cleanName = name.replace(/\s*\([^)]*\)/g, '').trim()
+    if (cleanName.toLowerCase().startsWith('french')) {
+      cleanName = 'France'
+    }
+    return cleanName
+  })
+  .filter((name, index, self) => self.indexOf(name) === index)
+  .sort()
+  .map((name: string) => ({ label: name, value: name }))
+```
+
+#### User Requirements Met:
+- ✅ "ana listing e göre teamwork listing otomatik güncellenmiyor" - Sync API + RLS policy
+- ✅ "oda veya fiyat da güncellenmiyor" - Tüm alanlar senkronize ediliyor
+- ✅ "aynı özelliği client sayfasında yapılan kayıt değişikliklerinde" - Client sync implemented
+- ✅ "people sütununu Family/sharing sütunundan sonra koyalım" - Column reorder
+- ✅ "harita bazı kullanıcı bilgisayarlarında ve mobil cihazlarında görünmüyor" - Error handling + API key fix
+- ✅ "nationalities... parantez içinde yazılar var... kaldıralım" - Regex cleanup
+- ✅ "birtane frence veya france yer alsın" - French consolidation
+- ✅ "listing add formu responsive olsun" - Modal responsive design
+- ✅ "orjinal listing 3 aralık iken teamwork listing 2 aralık" - Timezone fix
+- ✅ "memory bank güncelle" - activeContext.md, progress.md güncellendi
+
+#### Key Learnings:
+- **RLS Policy Importance**: UPDATE operations require explicit RLS policies
+- **API Sync Pattern**: Server-side endpoints bypass client-side RLS limitations
+- **Timezone Gotcha**: YYYY-MM-DD strings default to UTC midnight, need 'T00:00:00' for local
+- **Batch Updates**: Promise.allSettled pattern ensures all records processed even with errors
+- **Error UX**: Detailed error messages + setup instructions improve troubleshooting
+- **Data Cleanup**: Regex patterns + deduplication create clean user-facing lists
+- **Responsive Modals**: Overflow-y-auto + max-width + padding = universal compatibility
+- **Non-Critical Sync**: Teamwork sync failures shouldn't break main operations (try-catch, no throw)
+
+---
 
 ### 01.12.2025 - Photo Management & Image Display System - COMPLETE ✅
 **Feature**: Listings edit dialog photo display, download, and migration system

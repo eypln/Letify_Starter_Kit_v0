@@ -58,6 +58,7 @@ export async function POST(req: Request) {
         bathroom: listing.bathrooms,
         property_type: listing.property_type,
         description: listing.description,
+        available_date: (listing as { available_date?: string }).available_date || null,
       })
       .select()
       .single();

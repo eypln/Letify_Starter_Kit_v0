@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, FileText, Filter, X } from 'lucide-react';
+import { Users, FileText, Filter } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Popover,
@@ -30,6 +30,7 @@ interface TeamworkListing {
   bathroom: number;
   property_type: string;
   description: string;
+  available_date?: string;
   agent_name: string;
   teamwork_date: string;
 }
@@ -61,8 +62,6 @@ export default function TeamworkClient() {
   // Pagination states
   const [listingsPage, setListingsPage] = useState(1);
   const [clientsPage, setClientsPage] = useState(1);
-  const [totalListings, setTotalListings] = useState(0);
-  const [totalClients, setTotalClients] = useState(0);
   const itemsPerPage = 10;
 
   // Filter states for Listings
@@ -90,7 +89,6 @@ export default function TeamworkClient() {
         const result = await response.json();
         if (result.success) {
           const allListings = result.data || [];
-          setTotalListings(allListings.length);
           setTeamworkListings(allListings);
         }
       } catch (error) {
@@ -116,7 +114,6 @@ export default function TeamworkClient() {
         const result = await response.json();
         if (result.success) {
           const allClients = result.data || [];
-          setTotalClients(allClients.length);
           setTeamworkClients(allClients);
         }
       } catch (error) {
@@ -405,6 +402,7 @@ export default function TeamworkClient() {
                       <TableHead>Bedrooms</TableHead>
                       <TableHead>Bathrooms</TableHead>
                       <TableHead>Property Type</TableHead>
+                      <TableHead>Available Date</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Agent</TableHead>
                     </TableRow>
@@ -421,6 +419,9 @@ export default function TeamworkClient() {
                         <TableCell>{listing.bedroom}</TableCell>
                         <TableCell>{listing.bathroom}</TableCell>
                         <TableCell>{listing.property_type}</TableCell>
+                        <TableCell>
+                          {listing.available_date ? new Date(listing.available_date + 'T00:00:00').toLocaleDateString('en-GB') : '—'}
+                        </TableCell>
                         <TableCell 
                           className="max-w-xs truncate cursor-pointer hover:text-purple-600"
                           onClick={() => listing.description && setDescModal(listing.description)}
@@ -628,10 +629,10 @@ export default function TeamworkClient() {
                     <TableRow>
                       <TableHead className="w-16">#</TableHead>
                       <TableHead>Teamwork Date</TableHead>
-                      <TableHead>People</TableHead>
                       <TableHead>Bedroom</TableHead>
                       <TableHead>Cities</TableHead>
                       <TableHead>Family/Sharing</TableHead>
+                      <TableHead>People</TableHead>
                       <TableHead>Nationalities</TableHead>
                       <TableHead className="w-20 max-w-[80px]">Jobs</TableHead>
                       <TableHead>Pet</TableHead>
@@ -647,10 +648,10 @@ export default function TeamworkClient() {
                         <TableCell>
                           {new Date(client.teamwork_date).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{client.people}</TableCell>
                         <TableCell>{client.bedroom}</TableCell>
                         <TableCell>{client.cities}</TableCell>
                         <TableCell>{client.family_sharing}</TableCell>
+                        <TableCell>{client.people}</TableCell>
                         <TableCell>{client.nationalities}</TableCell>
                         <TableCell 
                           className="max-w-[80px] truncate cursor-pointer hover:text-purple-600"

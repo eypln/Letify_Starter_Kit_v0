@@ -199,6 +199,7 @@ export interface Database {
             location: string | null;
             fb_post_url: string | null;
             fb_reels_url: string | null;
+            available_date: string | null;
             created_at: string;
           };
           Insert: {
@@ -216,6 +217,7 @@ export interface Database {
             location?: string | null;
             fb_post_url?: string | null;
             fb_reels_url?: string | null;
+            available_date?: string | null;
             created_at?: string;
           };
           Update: {
@@ -233,6 +235,7 @@ export interface Database {
             location?: string | null;
             fb_post_url?: string | null;
             fb_reels_url?: string | null;
+            available_date?: string | null;
             created_at?: string;
           };
         };
@@ -385,6 +388,7 @@ export interface Database {
             bathroom: number | null;
             property_type: string | null;
             description: string | null;
+            available_date: string | null;
             created_at: string;
             updated_at: string;
           };
@@ -400,6 +404,7 @@ export interface Database {
             bathroom?: number | null;
             property_type?: string | null;
             description?: string | null;
+            available_date?: string | null;
             created_at?: string;
             updated_at?: string;
           };
@@ -415,6 +420,7 @@ export interface Database {
             bathroom?: number | null;
             property_type?: string | null;
             description?: string | null;
+            available_date?: string | null;
             created_at?: string;
             updated_at?: string;
           };

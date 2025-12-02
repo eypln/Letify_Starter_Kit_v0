@@ -148,6 +148,7 @@ interface Listing {
   propertyType?: string;
   description?: string;
   availability?: 'Available' | 'Rented' | 'Soon';
+  available_date?: string;
   fbPostUrl?: string;
   fbReelsUrl?: string;
   isSharedInTeamwork?: boolean;
@@ -242,12 +243,13 @@ function ListingsContent() {
               <th>Bedroom</th>
               <th>Bathroom</th>
               <th>Property type</th>
-              <th>Description</th>
               <th>Availability</th>
-              <th>FB post</th>
-              <th>FB reels</th>
+              <th>Available Date</th>
               <th>Teamwork</th>
               <th>Actions</th>
+              <th>FB post</th>
+              <th>FB reels</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
@@ -264,19 +266,21 @@ function ListingsContent() {
                 <td>{r.bedroom ?? '—'}</td>
                 <td>{r.bathroom ?? '—'}</td>
                 <td className="max-w-[140px] truncate">{r.propertyType ?? '—'}</td>
-                <td
-                  className="max-w-[320px] h-[3.25rem] overflow-hidden text-ellipsis truncate cursor-pointer text-blue-700 underline"
-                  onClick={() => r.description && setDescModal(r.description)}
-                  title="Click to view full description"
-                >
-                  {r.description ?? '—'}
-                </td>
                 <td className="whitespace-nowrap">
                   <AvailabilitySelector 
                     listingId={r.id} 
                     currentValue={r.availability || 'Available'} 
                     onUpdate={handleRefresh}
                   />
+                </td>
+                <td className="whitespace-nowrap">
+                  {r.available_date ? new Date(r.available_date + 'T00:00:00').toLocaleDateString('en-GB') : '—'}
+                </td>
+                <td className="whitespace-nowrap">
+                  <TeamworkShareButton listingId={r.id} title={r.title || 'Untitled'} isShared={r.isSharedInTeamwork} />
+                </td>
+                <td className="whitespace-nowrap">
+                  <EditDialog listing={r} onUpdate={handleRefresh} />
                 </td>
                 <td className="max-w-[220px] truncate">
                   {r.fbPostUrl
@@ -288,11 +292,12 @@ function ListingsContent() {
                     ? <a href={r.fbReelsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-green-600 underline"><CheckCircle className="w-4 h-4" />Open</a>
                     : <span className="text-gray-400">pending</span>}
                 </td>
-                <td className="whitespace-nowrap">
-                  <TeamworkShareButton listingId={r.id} title={r.title || 'Untitled'} isShared={r.isSharedInTeamwork} />
-                </td>
-                <td className="whitespace-nowrap">
-                  <EditDialog listing={r} onUpdate={handleRefresh} />
+                <td
+                  className="max-w-[320px] h-[3.25rem] overflow-hidden text-ellipsis truncate cursor-pointer text-blue-700 underline"
+                  onClick={() => r.description && setDescModal(r.description)}
+                  title="Click to view full description"
+                >
+                  {r.description ?? '—'}
                 </td>
               </tr>
             ))}
