@@ -223,25 +223,27 @@ export default function ClientsPage() {
   const statusOptions = [
     { label: "Urgent", value: "Urgent" },
     { label: "Looking", value: "Looking" },
-    { label: "Rented", value: "Rented" },
+    { label: "Found", value: "Found" },
   ];
 
   // Malta cities options (Mainland Malta only)
   const maltaCitiesOptions = [
     { label: "Attard", value: "Attard" },
   { label: "Balzan", value: "Balzan" },
+  { label: "Bahar ic-Caghaq", value: "Bahar ic-Caghaq" },
   { label: "Birgu", value: "Birgu" },
   { label: "Birkirkara", value: "Birkirkara" },
-  { label: "Birżebbuġa", value: "Birżebbuġa" },
+  { label: "Birzebbuga", value: "Birzebbuga" },
   { label: "Bormla", value: "Bormla" },
+  { label: "Bugibba", value: "Bugibba" },
   { label: "Dingli", value: "Dingli" },
   { label: "Fgura", value: "Fgura" },
   { label: "Floriana", value: "Floriana" },
-  { label: "Għargħur", value: "Għargħur" },
-  { label: "Għaxaq", value: "Għaxaq" },
+  { label: "Gharghur", value: "Gharghur" },
+  { label: "Ghaxaq", value: "Ghaxaq" },
   { label: "Gudja", value: "Gudja" },
-  { label: "Gżira", value: "Gżira" },
-  { label: "Ħamrun", value: "Ħamrun" },
+  { label: "Gzira", value: "Gzira" },
+  { label: "Hamrun", value: "Hamrun" },
   { label: "Iklin", value: "Iklin" },
   { label: "Isla", value: "Isla" },
   { label: "Kalkara", value: "Kalkara" },
@@ -252,29 +254,27 @@ export default function ClientsPage() {
   { label: "Marsaskala", value: "Marsaskala" },
   { label: "Marsaxlokk", value: "Marsaxlokk" },
   { label: "Mdina", value: "Mdina" },
-  { label: "Mellieħa", value: "Mellieħa" },
-  { label: "Mġarr", value: "Mġarr" },
+  { label: "Mellieha", value: "Mellieha" },
+  { label: "Mgarr", value: "Mgarr" },
   { label: "Mosta", value: "Mosta" },
   { label: "Mqabba", value: "Mqabba" },
   { label: "Msida", value: "Msida" },
   { label: "Mtarfa", value: "Mtarfa" },
-  { label: "Bormla", value: "Bormla" },
-  { label: "Bugibba", value: "Bugibba" },
   { label: "Naxxar", value: "Naxxar" },
   { label: "Paola", value: "Paola" },
   { label: "Pembroke", value: "Pembroke" },
-  { label: "Pietà", value: "Pietà" },
+  { label: "Pieta", value: "Pieta" },
   { label: "Qawra", value: "Qawra" },
   { label: "Qormi", value: "Qormi" },
   { label: "Qrendi", value: "Qrendi" },
   { label: "Rabat", value: "Rabat" },
   { label: "Safi", value: "Safi" },
-  { label: "San Ġiljan", value: "San Ġiljan" },
-  { label: "San Ġwann", value: "San Ġwann" },
-  { label: "San Pawl il-Baħar", value: "San Pawl il-Baħar" },
-  { label: "Santa Luċija", value: "Santa Luċija" },
+  { label: "San Giljan", value: "San Giljan" },
+  { label: "San Gwann", value: "San Gwann" },
+  { label: "San Pawl il-Bahar", value: "San Pawl il-Bahar" },
+  { label: "Santa Lucija", value: "Santa Lucija" },
   { label: "Santa Venera", value: "Santa Venera" },
-  { label: "Siġġiewi", value: "Siġġiewi" },
+  { label: "Siggiewi", value: "Siggiewi" },
   { label: "Sliema", value: "Sliema" },
   { label: "St. Julian's", value: "St. Julian's" },
   { label: "St. Paul's Bay", value: "St. Paul's Bay" },
@@ -283,13 +283,12 @@ export default function ClientsPage() {
   { label: "Ta' Xbiex", value: "Ta' Xbiex" },
   { label: "Tarxien", value: "Tarxien" },
   { label: "Valletta", value: "Valletta" },
-  { label: "Xagħra", value: "Xagħra" },
-  { label: "Xewkija", value: "Xewkija" },
-  { label: "Xgħajra", value: "Xgħajra" },
-  { label: "Żabbar", value: "Żabbar" },
-  { label: "Żebbuġ", value: "Żebbuġ" },
-  { label: "Żejtun", value: "Żejtun" },
-  { label: "Żurrieq", value: "Żurrieq" }
+  { label: "Xemxija", value: "Xemxija" },
+  { label: "Xghajra", value: "Xghajra" },
+  { label: "Zabbar", value: "Zabbar" },
+  { label: "Zebbug", value: "Zebbug" },
+  { label: "Zejtun", value: "Zejtun" },
+  { label: "Zurrieq", value: "Zurrieq" }
   ];
 
   const [form, setForm] = useState<ClientForm>({
@@ -429,8 +428,8 @@ export default function ClientsPage() {
     }
     setSubmitting(false);
     if (!error) {
-      // If status is Rented, remove from teamwork_clients
-      if (form.status === 'Rented' && clientId) {
+      // If status is Found, remove from teamwork_clients
+      if (form.status === 'Found' && clientId) {
         await supabase
           .from('teamwork_clients')
           .delete()
@@ -624,7 +623,22 @@ export default function ClientsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Budget €</label>
-                      <Input name="budget" value={form.budget} onChange={handleInputChange} placeholder="Budget" required />
+                      <Input 
+                        name="budget" 
+                        type="number"
+                        min="0"
+                        max="99999"
+                        value={form.budget} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow numbers and max 5 digits
+                          if (value === '' || (/^\d{1,5}$/.test(value) && parseInt(value) <= 99999)) {
+                            handleInputChange(e);
+                          }
+                        }}
+                        placeholder="Budget (max 99999)" 
+                        required 
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Move In</label>
@@ -738,7 +752,7 @@ export default function ClientsPage() {
                       <td className="px-3 py-2">
                         <span 
                           className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            client.status === 'Rented' ? 'bg-red-100 text-red-800' :
+                            client.status === 'Found' ? 'bg-red-100 text-red-800' :
                             client.status === 'Looking' ? 'bg-blue-100 text-blue-800' :
                             client.status === 'Urgent' ? 'bg-green-100 text-green-800' :
                             'bg-gray-100 text-gray-800'

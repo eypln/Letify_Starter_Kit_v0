@@ -100,6 +100,8 @@ export default function MaltaMap({ listings }: MaltaMapProps) {
       return;
     }
     
+    console.log('Google Maps API Key configured:', apiKey.substring(0, 10) + '...');
+    
     if (!window.google) {
       // Check if script is already being loaded
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');

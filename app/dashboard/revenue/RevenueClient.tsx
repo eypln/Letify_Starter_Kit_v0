@@ -44,7 +44,7 @@ const columns = [
   "Landlord Fee (€)",
   "Client Fee (€)",
   "Listing Fee (€)",
-  "Agent Income (€)",
+  "Agent Net Income (€)",
   "Agent TAX (€)",
   "Date Signed",
   "Date Move In",
@@ -206,46 +206,29 @@ export default function RevenueClient({ user }: { user: User }) {
 
     const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
-    // Agent income calculation based on VAT type
-    let agent_income_base_rate = 0.40; // Default: Vatable (40%)
+    // Calculate total revenue (with discounts applied)
+    const totalRevenue = landlord_fee + client_fee;
     
-    if (form.vat_type === 'non-vatable') {
-      agent_income_base_rate = 0.32; // Non-Vatable (32%)
-    } else if (form.vat_type === 'part-time') {
-      agent_income_base_rate = 0.36; // Part Time (36%)
-    }
+    // Agent income calculation: Always 40% of total revenue (gross)
+    const agent_income_gross = totalRevenue * 0.40;
     
-    let agent_income = rentAmount * agent_income_base_rate;
-    
-    // Reduce agent income based on discounts
-    // If landlord has 15% discount, reduce agent income by 7.5%
-    // If client has 15% discount, reduce agent income by 7.5%
-    let agent_income_reduction = 0;
-    if (form.landlord_discount) {
-      agent_income_reduction += 0.075; // 7.5%
-    }
-    if (form.client_discount) {
-      agent_income_reduction += 0.075; // 7.5%
-    }
-    
-    if (agent_income_reduction > 0) {
-      agent_income = agent_income * (1 - agent_income_reduction);
-    }
-
-    // Agent TAX calculation
+    // Agent TAX calculation based on VAT type
     let agent_tax = 0;
-    if (form.vat_type === 'non-vatable') {
-      // Non-vatable: Agent pays 20% tax on their income
-      agent_tax = agent_income * 0.20;
-      // Reduce agent income by the tax amount (net income)
-      agent_income = agent_income - agent_tax;
+    let agent_income = agent_income_gross;
+    
+    if (form.vat_type === 'vatable') {
+      // Vatable (40%): No tax deduction - agent keeps full 40%
+      agent_tax = 0;
+      agent_income = agent_income_gross;
     } else if (form.vat_type === 'part-time') {
-      // Part-time: Agent pays 10% tax on their income
-      agent_tax = agent_income * 0.10;
-      // Reduce agent income by the tax amount (net income)
-      agent_income = agent_income - agent_tax;
+      // Part Time (36%): 10% tax on gross income
+      agent_tax = agent_income_gross * 0.10;
+      agent_income = agent_income_gross - agent_tax; // Net = 36% of total revenue
+    } else if (form.vat_type === 'non-vatable') {
+      // Full Time / Non-Vatable (32%): 20% tax on gross income
+      agent_tax = agent_income_gross * 0.20;
+      agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
     }
-    // If vatable, no tax deduction needed (already handled by company)
 
     setCalculatedFees({
       landlord_fee,
@@ -813,8 +796,9 @@ export default function RevenueClient({ user }: { user: User }) {
                       <span className="text-green-600 ml-1">+ {formatCurrency(calculatedFees.client_fee_vat)} VAT (18%)</span>
                     </div>
                     <div>Listing Fee: <span className="font-semibold">{formatCurrency(calculatedFees.listing_fee)}</span></div>
-                    <div>Agent Income: <span className="font-semibold">{formatCurrency(calculatedFees.agent_income)}</span></div>
+                    <div>Agent Gross Income: <span className="font-semibold">{formatCurrency(calculatedFees.agent_income + calculatedFees.agent_tax)}</span></div>
                     <div>Agent TAX: <span className="font-semibold">{formatCurrency(calculatedFees.agent_tax)}</span></div>
+                    <div>Agent Net Income: <span className="font-semibold">{formatCurrency(calculatedFees.agent_income)}</span></div>
                   </div>
                 </div>
 
