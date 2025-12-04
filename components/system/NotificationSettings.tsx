@@ -23,15 +23,36 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [mounted, setMounted] = useState(false)
 
+  // Auto-clear success messages after 5 seconds
+  useEffect(() => {
+    if (message?.type === 'success') {
+      const timer = setTimeout(() => {
+        setMessage(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
+
   const checkSubscriptionStatus = async () => {
     if (!isPushSupported()) return
 
     try {
-      const registration = await navigator.serviceWorker.ready
+      // Wait for service worker to be ready with timeout
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Service Worker timeout')), 3000)
+        )
+      ]) as ServiceWorkerRegistration
+      
       const subscription = await registration.pushManager.getSubscription()
       setIsSubscribed(!!subscription)
+      
+      // Clear any previous error messages when checking status
+      setMessage(null)
     } catch (error) {
       console.error('Error checking subscription:', error)
+      // Don't set error message on initial check, just log it
     }
   }
 
@@ -43,6 +64,9 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
       isPushSupported: isPushSupported(),
       vapidKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? 'Present' : 'Missing'
     })
+    
+    // Clear any previous messages on mount
+    setMessage(null)
     
     // Check initial permission status
     setPermission(getNotificationPermission())
@@ -100,12 +124,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
         if (saved) {
           setIsSubscribed(true)
           setPermission('granted')
-          setMessage({ type: 'success', text: 'Notifications enabled successfully! 🎉' })
-
-          // Send test notification
-          setTimeout(() => {
-            sendTestNotification()
-          }, 1000)
+          setMessage({ type: 'success', text: 'Notifications enabled successfully! You can test it using "Send Test" button.' })
         } else {
           setMessage({ type: 'error', text: 'Failed to save notification settings' })
         }
@@ -149,11 +168,16 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
   }
 
   const handleTestNotification = async () => {
+    setLoading(true)
+    setMessage(null)
+    
     try {
       await sendTestNotification()
-      setMessage({ type: 'success', text: 'Test notification sent!' })
+      setMessage({ type: 'success', text: 'Test notification sent! Check your browser notifications.' })
     } catch {
       setMessage({ type: 'error', text: 'Failed to send test notification' })
+    } finally {
+      setLoading(false)
     }
   }
 

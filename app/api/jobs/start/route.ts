@@ -54,6 +54,7 @@ export async function POST(req: Request) {
   let listingId = body.mode === 'manual' ? body.listingId ?? null : null;
   // AddDialog ve stepper için: title alanı AddDialog'dan, property_url stepper'dan gelir. n8n ve stepper mantığı bozulmaz.
   const title = (body as { title?: string }).title ?? null;
+  const available_date = (body as { available_date?: string }).available_date ?? null;
 
   if (!listingId) {
     let existing;
@@ -78,11 +79,19 @@ export async function POST(req: Request) {
     }
     if (existing?.id) {
       listingId = existing.id;
+      // Update available_date if provided (for manual mode)
+      if (available_date) {
+        await supabase
+          .from('listings')
+          .update({ available_date })
+          .eq('id', listingId);
+      }
     } else {
       // Yeni kayıt oluştur
       const insertFields: Record<string, unknown> = { user_id: user.id, availability: 'Available' };
       if (sourceUrl) insertFields.property_url = sourceUrl;
       if (title) insertFields.title = title;
+      if (available_date) insertFields.available_date = available_date;
       const { data: newListing, error: listingErr } = await supabase
         .from('listings')
         .insert(insertFields)

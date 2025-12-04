@@ -134,11 +134,12 @@ interface AddDialogProps {
 
 export default function AddDialog({ listings = [] }: AddDialogProps) {
   const { toast } = useToast();
+  const supabase = createClient();
+  
   async function handleStart() {
     setLoading(true);
     try {
       // Önce referans numarası ile daha önce oluşmuş bir listing var mı kontrol et
-      const supabase = createClient();
       
       // Oturumdaki kullanıcı id'sini al (her iki durum için de kullanılmak üzere en başta tanımlanıyor)
       const {
@@ -297,7 +298,6 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
   const [secondsLeft, setSecondsLeft] = useState(300); // 5 dakika (tekrar eski haline getirildi)
   
   async function updateListingFields(listingId: string) {
-    const supabase = createClient();
     const updateFields: Record<string, string | number | null> = {
       city,
       price: price ? Number(price) : null,
@@ -306,6 +306,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
       property_type: propertyType,
       description,
       title: referenceNo,
+      available_date: availableDate ? `${availableDate.getFullYear()}-${String(availableDate.getMonth() + 1).padStart(2, '0')}-${String(availableDate.getDate()).padStart(2, '0')}` : null,
     };
     const { error } = await supabase
       .from('listings')
@@ -341,22 +342,43 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
 
   // Calculate suggested next reference number when dialog opens
   useEffect(() => {
-    if (open && listings.length > 0) {
-      // Find manual reference numbers (starting with "L" followed by digits, e.g., L1, L2, L3)
-      const manualReferences = listings
-        .map(l => l.referenceNo || l.title)
-        .filter((ref): ref is string => ref !== undefined && /^L\d+$/i.test(ref.toString())) // Match L1, L2, L3, etc.
-        .map(ref => parseInt(ref.substring(1))) // Extract number part after "L"
-        .filter(num => !isNaN(num));
+    async function fetchNextReferenceNumber() {
+      if (!open) return;
+      
+      try {
+        // Query database for all listings with manual reference numbers (L1, L2, L3, etc.)
+        const { data, error } = await supabase
+          .from('listings')
+          .select('title')
+          .ilike('title', 'L%');
 
-      if (manualReferences.length > 0) {
-        const maxNumber = Math.max(...manualReferences);
-        setSuggestedNextNumber(maxNumber + 1);
-      } else {
+        if (error) {
+          console.error('Error fetching reference numbers:', error);
+          setSuggestedNextNumber(1);
+          return;
+        }
+
+        // Extract numeric parts from reference numbers
+        const manualReferences = (data || [])
+          .map(l => l.title)
+          .filter((title): title is string => title !== null && /^L\d+$/i.test(title)) // Match L1, L2, L3, etc.
+          .map(title => parseInt(title.substring(1))) // Extract number part after "L"
+          .filter(num => !isNaN(num));
+
+        if (manualReferences.length > 0) {
+          const maxNumber = Math.max(...manualReferences);
+          setSuggestedNextNumber(maxNumber + 1);
+        } else {
+          setSuggestedNextNumber(1);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
         setSuggestedNextNumber(1);
       }
     }
-  }, [open, listings]);
+
+    fetchNextReferenceNumber();
+  }, [open]);
 
   const handleUseSuggested = () => {
     if (suggestedNextNumber !== null) {
@@ -512,7 +534,7 @@ export default function AddDialog({ listings = [] }: AddDialogProps) {
           bathroom,
           propertyType,
           description,
-          available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
+          available_date: availableDate ? `${availableDate.getFullYear()}-${String(availableDate.getMonth() + 1).padStart(2, '0')}-${String(availableDate.getDate()).padStart(2, '0')}` : null,
           images: imageUrls,
         }),
       });

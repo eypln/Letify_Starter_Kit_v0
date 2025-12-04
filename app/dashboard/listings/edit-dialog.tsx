@@ -181,7 +181,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
   });
 
   const [availableDate, setAvailableDate] = useState<Date | null>(
-    listing.available_date ? new Date(listing.available_date) : null
+    listing.available_date ? new Date(listing.available_date + 'T00:00:00') : null
   );
 
   const [photos, setPhotos] = useState<Array<{ file?: File; url?: string; preview?: string }>>([]);
@@ -413,7 +413,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
           property_type: formData.propertyType || null,
           description: formData.description || null,
           availability: formData.availability,
-          available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
+          available_date: availableDate ? `${availableDate.getFullYear()}-${String(availableDate.getMonth() + 1).padStart(2, '0')}-${String(availableDate.getDate()).padStart(2, '0')}` : null,
           facebook_post_url: formData.fbPostUrl || null,
           facebook_reel_url: formData.fbReelsUrl || null
         })
@@ -435,7 +435,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
               bathroom: formData.bathroom ? parseInt(formData.bathroom) : null,
               property_type: formData.propertyType || null,
               description: formData.description || null,
-              available_date: availableDate ? availableDate.toISOString().split('T')[0] : null,
+              available_date: availableDate ? `${availableDate.getFullYear()}-${String(availableDate.getMonth() + 1).padStart(2, '0')}-${String(availableDate.getDate()).padStart(2, '0')}` : null,
             }
           })
         });
