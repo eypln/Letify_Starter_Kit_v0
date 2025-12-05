@@ -10,6 +10,7 @@
 - **State Management**: Zustand + React Query
 - **Styling**: Tailwind CSS + Native HTML (Radix UI removed from Dashboard for performance)
 - **Performance**: Lighthouse-optimized (Dashboard: Performance 86, TBT 160ms)
+- **PWA**: next-pwa with custom service worker, Web Push notifications
 
 ### Component Architecture
 ```
@@ -18,7 +19,7 @@ App (Next.js)
 ├── Pages
 │   ├── Public (Sign-in, Sign-up, Home)
 │   ├── Protected (Dashboard, Profile, etc.)
-│   └── API Routes (Stripe webhooks, N8N callbacks)
+│   └── API Routes (Stripe webhooks, N8N callbacks, Push notifications)
 ├── Components
 │   ├── UI (Reusable components)
 │   ├── Feature-specific (Upload, Billing, etc.)
@@ -26,11 +27,157 @@ App (Next.js)
 └── Lib
     ├── Supabase (Client/Server)
     ├── Stripe (Configuration)
+    ├── Push Notifications (Web Push API integration)
     ├── Utils (Helpers)
     └── Validation (Zod schemas)
 ```
 
 ## Ana Teknik Kararlar
+
+### PWA Mobile Push Notification System Architecture (05.12.2025)
+
+**Problem Discovery → Root Cause → Solution Journey:**
+- **User Question**: "PWA mobilde notification geliyor mu?"
+- **Workspace Audit**: 20+ file deep investigation
+- **Root Cause Found**: Service Worker push events capture etmiyordu!
+- **System Status**:
+  - Backend notification sending: ✅ Working
+  - Web Push API subscription: ✅ Working
+  - Service Worker push handler: ❌ MISSING
+  - Result: Backend → API → SW break = No notifications
+
+**Solution Pattern - Custom Service Worker:**
+
+1. **next-pwa Configuration Conflict**:
+   ```javascript
+   // REMOVED: runtimeCaching (conflicts with swSrc)
+   // ADDED: swSrc: 'public/service-worker.js'
+   // RESULT: Use custom SW instead of auto-generated
+   ```
+
+2. **Service Worker Push Event Handler**:
+   ```javascript
+   self.addEventListener('push', function(event) {
+     const data = event.data.json();
+     const promiseChain = self.registration.showNotification(
+       data.title,
+       {
+         body: data.body,
+         icon: data.icon || '/icons/Logo/192.png',
+         badge: data.badge || '/icons/Logo/96.png',
+         vibrate: [200, 100, 200], // Mobile vibration UX
+         data: data.data,
+         requireInteraction: data.requireInteraction || false,
+         actions: data.actions || []
+       }
+     );
+     event.waitUntil(promiseChain);
+   });
+   ```
+
+3. **Notification Click Handler**:
+   ```javascript
+   self.addEventListener('notificationclick', function(event) {
+     event.notification.close();
+     const urlToOpen = event.notification.data.url || '/';
+     event.waitUntil(
+       clients.matchAll({ type: 'window', includeUncontrolled: true })
+         .then(windowClients => {
+           // Find or open new window, navigate to URL
+         })
+     );
+   });
+   ```
+
+4. **Workbox Caching Strategies**:
+   - NetworkFirst: HTML pages
+   - CacheFirst: Fonts, images
+   - StaleWhileRevalidate: JS/CSS bundles
+   - Imported from CDN in custom service worker
+
+**Push Notification Full Flow:**
+```
+1. User enables push → lib/notifications.ts
+   → PushManager.subscribe(VAPID public key)
+   → Server saved to push_subscriptions table
+
+2. Teamwork listing shared → /api/teamwork/listings/share
+   → sendTeamworkNotification(excludeUserId, payload)
+   → Query push_subscriptions table
+   → web-push library: Sign with VAPID private key
+   → Send to Web Push Service
+
+3. Service Worker receives push → public/service-worker.js
+   → push event listener triggered
+   → Decode JSON payload
+   → showNotification() displays to user
+   → Mobile vibration pattern activated
+
+4. User clicks notification → notificationclick handler
+   → Extract URL from notification.data
+   → Navigate to app page
+```
+
+**Key Pattern Decisions:**
+- ❌ **Auto-generated SW**: Limited functionality, no push event handling
+- ✅ **Custom Service Worker**: Full control, push + caching integrated
+- ❌ **runtimeCaching with swSrc**: Build conflict (WebpackInjectManifest error)
+- ✅ **Workbox in custom SW**: Manual Workbox config via CDN import
+
+**Build Error Resolution Pattern:**
+```
+Error: WebpackInjectManifest - 'runtimeCaching' not expected with swSrc
+Solution: Remove runtimeCaching array entirely
+Reason: Caching logic moved to custom service-worker.js
+Result: Clean build (Exit Code: 0)
+```
+
+**Manifest Configuration for Mobile:**
+```json
+{
+  "permissions": ["notifications", "push"],
+  "gcm_sender_id": "103953800507"
+}
+```
+
+**Testing Infrastructure:**
+- `/api/notifications/test` - Send test notification
+- NotificationSettings.tsx - UI for enabling/testing
+- Client-side logging - Browser console debug
+- Subscription tracking - Supabase push_subscriptions table
+
+**Performance Considerations:**
+- Service Worker: ~30KB (compressed)
+- Workbox CDN: ~50KB (compressed)
+- Push subscription: One per device per user
+- Browser compatibility: Chrome, Firefox, Edge (Safari limited)
+
+**Type Safety Pattern:**
+```typescript
+// Web Push API interface conflicts
+type DbPushSubscription = Database['public']['Tables']['push_subscriptions']['Row']
+// Avoid naming conflict with browser's global PushSubscription
+```
+
+### @vercel/analytics Import Path Pattern (05.12.2025)
+
+**Next.js 15 Compatibility Issue:**
+- ❌ Old path: `@vercel/analytics/react` (deprecated in 1.6.1+)
+- ✅ New path: `@vercel/analytics/next` (Next.js App Router)
+- **Reason**: Removed React hooks-based API, added Next.js integration
+- **Error**: Console warning "tabReply export deprecated"
+- **Fix Location**: `app/layout.tsx` line 4
+
+**Migration Pattern:**
+```typescript
+// BEFORE (deprecated)
+import { Analytics } from '@vercel/analytics/react'
+
+// AFTER (correct for Next.js 15)
+import { Analytics } from '@vercel/analytics/next'
+```
+
+**Key Learning**: Always check analytics package imports when upgrading Next.js major versions
 
 ### Email Notification & Verification Pattern (24.11.2025)
 

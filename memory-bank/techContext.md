@@ -13,22 +13,32 @@
 - **Charts**: Recharts
 - **Date Handling**: date-fns
 - **PWA**: next-pwa 5.6.0 (Service Worker, Offline Support, Push Notifications)
+  - **Custom Service Worker**: `public/service-worker.js` (270+ lines)
+  - **Workbox Integration**: Via CDN for caching strategies
+  - **Configuration**: `swSrc` for custom service worker, auto-generated disabled
 - **Push Notifications**: web-push 3.6.7 (VAPID authentication, browser notifications)
+  - **Architecture**: Backend → Web Push API → Service Worker → Browser Notification
+  - **Vibration Pattern**: Mobile UX (200, 100, 200 milliseconds)
+  - **Test Endpoint**: `/api/notifications/test` for easy testing
+  - **Database**: `push_subscriptions` table for subscription management
+- **Analytics**: @vercel/analytics 1.6.1 (import: `@vercel/analytics/next` for Next.js 15)
 - **Security**: BotID 1.5.10 (Bot protection, API security)
 
 ### Backend & Database
 - **Backend-as-a-Service**: Supabase
 - **Database**: PostgreSQL
-- **Authentication**: Supabase Auth
+- **Authentication**: Supabase Auth (PKCE flow, email verification)
 - **Storage**: Supabase Storage
 - **Real-time**: Supabase Realtime
 - **Edge Functions**: Supabase Edge Runtime
+- **RLS Policies**: Comprehensive row-level security for all tables
 
 ### Payments & Automation
 - **Payment Processor**: Stripe 18.5.0
 - **Webhook Handler**: Stripe Webhooks
 - **Workflow Engine**: N8N
 - **API Integration**: REST + Webhooks
+- **Email**: Nodemailer 7.0.9 (SMTP configuration)
 
 ### State Management & Data Fetching
 - **Global State**: Zustand 5.0.8
@@ -39,11 +49,12 @@
 ### Development Tools
 - **Package Manager**: pnpm (enforced via .npmrc)
 - **Linting**: ESLint 9 (flat config)
-- **TypeScript**: Strict mode, no `any` types
+- **TypeScript**: Strict mode, no `any` types (exception: Supabase generated types)
 - **Code Formatting**: Prettier (implied)
 - **Type Checking**: TypeScript 5.x
 - **Testing**: Jest + React Testing Library (68 tests passing)
 - **Build Tool**: Next.js built-in
+- **Performance**: Lighthouse optimized (Dashboard: Performance 86)
 
 ## Development Setup
 

@@ -2,12 +2,17 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (02.12.2025)
-1. **Teamwork & Client Sync System**: Ana kayıt güncellemelerinin teamwork tablolarına otomatik yansıması
-2. **Google Maps Integration**: Malta Listings Map API key configuration ve error handling
-3. **Client Nationalities Cleanup**: Parantez içi ifadeler kaldırma, French varyantları birleştirme
-4. **UI Responsive Optimization**: Add listing form mobil uyumluluğu
-5. **Memory Bank Update**: Tüm değişikliklerin dokümantasyonu
+### Ana Odak Alanları (05.12.2025)
+1. **PWA Mobile Push Notification System**: Kritik discovery - Service Worker push event handling eksikti
+2. **@vercel/analytics Deprecation Fix**: Import path güncelleme (@vercel/analytics/next)
+3. **Production Build Optimization**: Build errors çözüldü, successful build alındı
+4. **Memory Bank Update**: Tüm yapılan değişikliklerin dokümantasyonu
+
+### Önceki Odak (02.12.2025)
+1. **Teamwork & Client Sync System**: Ana kayıt güncellemelerinin teamwork tablolarına otomatik yansıması ✅
+2. **Google Maps Integration**: Malta Listings Map API key configuration ve error handling ✅
+3. **Client Nationalities Cleanup**: Parantez içi ifadeler kaldırma, French varyantları birleştirme ✅
+4. **UI Responsive Optimization**: Add listing form mobil uyumluluğu ✅
 
 ### Önceki Odak (01.12.2025)
 1. **Photo Management System**: Edit dialog'da existing photos display, download, migration API
@@ -30,6 +35,249 @@
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 05.12.2025 - PWA Mobile Push Notification System Architecture Fix - COMPLETE ✅
+**Feature**: Kritik push notification sistema fix - Service Worker push event handling implementasyonu
+**Root Cause Discovery**: Service Worker push events capture etmiyordu, backend → Web Push API → ?? (SW break)
+**Deployment**: Hazır - Production'a deploy edilebilir (build başarılı)
+**Status**: Tüm features tamamlandı, production build başarılı
+
+#### @vercel/analytics Deprecation Fix:
+**Problem**: Console'da "tabReply deprecated export" uyarısı
+**Root Cause**: Next.js 15 App Router için yanlış import path (`@vercel/analytics/react`)
+**Solution**:
+- Package updated: 1.5.0 → 1.6.1
+- Import fixed: `@vercel/analytics/react` → `@vercel/analytics/next`
+- File: `app/layout.tsx` line 4
+- Result: Deprecation warnings resolved ✅
+
+#### CRITICAL: Mobile Push Notification System Architecture:
+**Problem Tanımı**: "PWA mobil yaptık ve push notification ekledik. Ancak mobilde notification geliyor mu bu yapıda?"
+
+**Root Cause Analysis - Deep Audit Bulguları**:
+1. **Backend**: ✅ Başarıyla push notification gönderiliyor
+   - `lib/pushNotificationHelper.ts`: `sendTeamworkNotification()` fonksiyonu aktif
+   - `/api/teamwork/listings/share/route.ts`: Listing paylaşılırken push gönderiliyor
+   - Supabase `push_subscriptions` tablosu: Subscriptions kaydediliyor
+   - web-push library: VAPID keys'i ile imzalanıyor
+
+2. **Browser API**: ✅ Web Push API çalışıyor
+   - Client-side subscription: `lib/notifications.ts` yapıyor
+   - Permission management: NotificationSettings'te enable/disable çalışıyor
+   - VAPID handshake: Başarılı
+
+3. **SERVICE WORKER**: ❌ **KRITIK PROBLEM**
+   - Auto-generated service worker (next-pwa): Sadece caching logic'i vardı
+   - `public/sw-push.js` mevcut idi ama hiçbir yerde import/register edilmiyordu
+   - **Push events capture edilmiyordu → Notifications alınamıyordu**
+   - Result: Backend gönderdi ✅, Push API aldı ✅, ama SW listen etmedi ❌
+
+**Solution - Complete Service Worker Rewrite**:
+
+1. **Created: `public/service-worker.js`** (270+ lines)
+   - **Push Event Handler**: 
+     ```javascript
+     self.addEventListener('push', function(event) {
+       const data = event.data.json();
+       const promiseChain = self.registration.showNotification(
+         data.title,
+         {
+           body: data.body,
+           icon: data.icon || '/icons/Logo/192.png',
+           badge: data.badge || '/icons/Logo/96.png',
+           vibrate: [200, 100, 200], // Mobile device vibration
+           data: data.data,
+           requireInteraction: data.requireInteraction || false,
+           actions: data.actions || []
+         }
+       );
+       event.waitUntil(promiseChain);
+     });
+     ```
+   - **Notification Click Handler**: Bildirime tıklandığında URL'ye navigate
+   - **Subscription Change Handler**: Push subscription yenilenmesi ve resubscription
+   - **Workbox Caching Strategies**: Fonts, images, JS/CSS, API calls, HTML pages
+   - **Offline Fallback**: Bağlantı kesikken cached content
+
+2. **Modified: `next.config.js`**
+   - Added: `swSrc: 'public/service-worker.js'` (custom service worker kullanma)
+   - Added: Headers configuration for `/service-worker.js` (cache policies)
+   - Removed: `runtimeCaching` array (custom swSrc ile conflict - WebpackInjectManifest error)
+   - Result: next-pwa auto-generation yerine custom SW kullanılıyor
+
+3. **Modified: `public/manifest.json`**
+   - Added: `"gcm_sender_id": "103953800507"` (Android push support)
+   - Added: `"permissions": ["notifications", "push"]` (browser izin isteme)
+
+4. **Created: `/api/notifications/test/route.ts`**
+   - POST endpoint test notifications gönderme
+   - Server-side: Tüm users'a (sender dışında) notification gönder
+   - Integration: Supabase `push_subscriptions` tablosundan çek
+
+5. **Modified: `components/system/NotificationSettings.tsx`**
+   - Changed: `handleTestNotification()` local function → server API call
+   - Before: Local `sendTestNotification()`
+   - After: `fetch('/api/notifications/test', { method: 'POST' })`
+   - Result: "Test notification sent to X device(s)!" mesajı
+
+#### Build Process - Error Resolution:
+
+**First Build Attempt - FAILED**:
+```
+Error: WebpackInjectManifest error:
+'runtimeCaching' property is not expected to be here. 
+Did you mean property 'excludeChunks'?
+```
+- Root Cause: `swSrc` ve `runtimeCaching` together conflict (next-pwa 5.6.0 limitation)
+- Both cannot coexist: Either auto-generated SW with runtimeCaching OR custom swSrc
+
+**Solution Implemented**:
+- Removed entire `runtimeCaching` array (100+ lines) from `next.config.js`
+- Moved all caching logic into custom `public/service-worker.js` (Workbox)
+- Result: Build conflict resolved
+
+**Second Build Attempt - SUCCESS ✅**:
+```
+Exit Code: 0
+✓ Compiled successfully
+✓ Linting and checking validity of types  
+✓ Generating static pages (91/91)
+Production build ready for deployment
+```
+
+#### Technical Architecture - Full Push Flow:
+
+**Sequence:**
+```
+1. User enables push notifications
+   → `/lib/notifications.ts`: subscribeToPush()
+   → Browser ServiceWorkerContainer.ready
+   → PushManager.subscribe(VAPID public key)
+   → Server saved: Supabase push_subscriptions table
+
+2. Teamwork listing shared
+   → `/api/teamwork/listings/share/route.ts`: POST
+   → `sendTeamworkNotification(excludeUserId, payload)` called
+   → Server queries: `push_subscriptions` table for all subscriptions
+   → web-push library: VAPID private key'i ile sign
+   → Browser Web Push API: Notification gönder
+
+3. Service Worker receives push
+   → `public/service-worker.js`: push event listener
+   → Decode JSON payload
+   → `self.registration.showNotification()` call
+   → User sees notification with vibration + sound
+   → Mobile: Bildirim tray'de görünür
+
+4. User clicks notification
+   → Service Worker: notificationclick event listener
+   → Extract URL from notification.data
+   → `clients.matchAll()` ve `client.navigate()`
+   → App açılır, doğru sayfaya navigate
+```
+
+#### Files Modified/Created:
+
+**NEW Files:**
+1. `public/service-worker.js` - 270+ lines
+   - Complete push event handling
+   - Workbox caching integration
+   - All service worker event listeners
+   
+2. `app/api/notifications/test/route.ts` - Test endpoint
+   - POST handler for testing
+   - Sends to all users except sender
+
+**Modified Files:**
+1. `app/layout.tsx` - Line 4
+   - Import path: `@vercel/analytics/react` → `@vercel/analytics/next`
+
+2. `next.config.js`
+   - After line 4: Added `swSrc: 'public/service-worker.js'`
+   - Added service-worker.js to headers() configuration
+   - Removed entire `runtimeCaching` array (build conflict resolution)
+
+3. `public/manifest.json`
+   - Before `related_applications`: Added `gcm_sender_id` ve `permissions`
+
+4. `components/system/NotificationSettings.tsx`
+   - `handleTestNotification()`: API call implementation
+   - Returns: `{ success: true, deviceCount: number }`
+
+#### Key Technical Discoveries:
+
+1. **next-pwa Limitation**: Custom `swSrc` ve auto `runtimeCaching` mutually exclusive
+   - Must choose: Either auto-generation OR custom service worker
+   - Custom approach needed for advanced features
+
+2. **Workbox Integration**: CDN import from custom SW'de possible
+   - `importScripts('https://storage.googleapis.com/workbox-cdn/...')`
+   - No build-time injection needed
+
+3. **Vibration Pattern**: Mobile UX enhancement
+   - `vibrate: [200, 100, 200]` - Phone titrer
+   - Production: Kullanıcı fark eder, engagement artır
+
+4. **Push Event Payload**: JSON structured
+   - Required: `title`, `body`
+   - Optional: `icon`, `badge`, `data`, `actions`
+   - Custom data: `notification.data` field'ında pass
+
+5. **Browser Compatibility**: Web Push API
+   - Chrome/Firefox/Edge: ✅ Full support
+   - Safari: ⚠️ Limited (Web Push Notifications experimental)
+   - iOS Safari: ❌ Not supported (PWA limitations)
+
+#### Validation & Testing Points:
+
+**Code Ready For Testing:**
+- ✅ Service Worker push event handler implemented
+- ✅ Notification display with vibration pattern
+- ✅ Click handler navigates to correct page
+- ✅ Test endpoint created for easy validation
+- ✅ Manifest notifications permission configured
+- ✅ Build successful (0 errors)
+
+**Mobile Testing Next Steps:**
+1. Android Chrome: Enable push → Send test → Verify notification
+2. Android background: App closed → Send test → Verify still works
+3. Offline: Disable network → Send test → Check queue on reconnect
+4. Click action: Tap notification → Verify app opens to correct page
+5. Multiple notifications: Send several → Verify all appear
+
+#### Production Readiness Checklist:
+- ✅ Service Worker deployed to `/public/service-worker.js`
+- ✅ Manifest updated with permissions
+- ✅ next.config.js configured for custom SW
+- ✅ Build passes without errors
+- ✅ Test endpoint available at `/api/notifications/test`
+- ✅ VAPID keys configured in `.env.local`
+- ⏳ Production deployment (build ready)
+- ⏳ Mobile device testing (code ready)
+- ⏳ Push subscription monitoring (email subscription tracking if needed)
+
+#### Key Pattern for Future Features:
+- **Custom Service Worker Approach**: 
+  - Problem: Auto-generated SW limited functionality
+  - Solution: Custom `public/service-worker.js` + `swSrc` config
+  - Benefit: Full control over all SW features
+  - Trade-off: Must manually maintain Workbox integration
+
+#### User Discovery Journey:
+- **Initial Question**: "PWA mobilde notification geliyor mu?"
+- **Investigation**: Workspace deep audit (20+ files analyzed)
+- **Root Cause**: "SW push events capture etmiyordu!"
+- **Solution**: Complete SW push handler implementation
+- **Outcome**: "Artık mobile push notifications çalışacak!"
+
+#### Documentation Created:
+- `MOBILE_PUSH_FIX.md` - Comprehensive system documentation
+  - Push notification architecture
+  - Testing procedures
+  - Troubleshooting guide
+  - Deployment steps
+
+---
 
 ### 02.12.2025 - Teamwork Auto-Sync & Data Management Enhancements - COMPLETE ✅
 **Feature**: Otomatik senkronizasyon, Google Maps fix, veri temizliği, responsive UI

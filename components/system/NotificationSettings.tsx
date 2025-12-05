@@ -176,9 +176,23 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
     setMessage(null)
     
     try {
-      await sendTestNotification()
-      setMessage({ type: 'success', text: 'Test notification sent! Check your browser notifications.' })
-    } catch {
+      // Send test notification via API (server-side)
+      const response = await fetch('/api/notifications/test', {
+        method: 'POST',
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        setMessage({ 
+          type: 'success', 
+          text: `Test notification sent to ${data.sent} device(s)! Check your notifications.` 
+        })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to send test notification' })
+      }
+    } catch (error) {
+      console.error('Test notification error:', error)
       setMessage({ type: 'error', text: 'Failed to send test notification' })
     } finally {
       setLoading(false)
