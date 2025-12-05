@@ -97,6 +97,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
             <Input
               id="fb_page_id"
               placeholder="123456789012345"
+              autoComplete="off"
               {...register('fb_page_id')}
               disabled={isLoading}
             />
@@ -114,6 +115,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
               id="fb_access_token"
               type="password"
               placeholder="EAAB..."
+              autoComplete="new-password"
               {...register('fb_access_token')}
               disabled={isLoading}
             />

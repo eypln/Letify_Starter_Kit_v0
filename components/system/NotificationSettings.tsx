@@ -115,25 +115,29 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
     setMessage(null)
 
     try {
+      console.log('[handleEnableNotifications] Starting with userId:', userId)
       const subscription = await subscribeToPush(vapidKey)
+      console.log('[handleEnableNotifications] Subscribe result:', subscription)
 
       if (subscription) {
         // Save to database
+        console.log('[handleEnableNotifications] Saving subscription...')
         const saved = await savePushSubscription(userId, subscription)
+        console.log('[handleEnableNotifications] Save result:', saved)
 
         if (saved) {
           setIsSubscribed(true)
           setPermission('granted')
           setMessage({ type: 'success', text: 'Notifications enabled successfully! You can test it using "Send Test" button.' })
         } else {
-          setMessage({ type: 'error', text: 'Failed to save notification settings' })
+          setMessage({ type: 'error', text: 'Failed to save notification settings to database' })
         }
       } else {
         setMessage({ type: 'error', text: 'Failed to enable notifications. Permission may be blocked.' })
       }
     } catch (err) {
       const error = err as Error;
-      console.error('Error enabling notifications:', error);
+      console.error('[handleEnableNotifications] Error:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to enable notifications' });
     } finally {
       setLoading(false)

@@ -67,28 +67,39 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 export async function subscribeToPush(
   vapidPublicKey: string
 ): Promise<PushSubscription | null> {
+  console.log('[subscribeToPush] Starting...')
+  
   if (!isPushSupported()) {
+    console.log('[subscribeToPush] Push not supported')
     return null
   }
 
   try {
+    console.log('[subscribeToPush] Requesting permission...')
     // Request permission first
     const permission = await requestNotificationPermission()
+    console.log('[subscribeToPush] Permission result:', permission)
     
     if (permission !== 'granted') {
+      console.log('[subscribeToPush] Permission not granted')
       return null
     }
 
+    console.log('[subscribeToPush] Waiting for service worker...')
     // Get service worker registration
     const registration = await navigator.serviceWorker.ready
+    console.log('[subscribeToPush] Service worker ready:', registration)
 
     // Check if already subscribed
+    console.log('[subscribeToPush] Checking existing subscription...')
     let subscription = await registration.pushManager.getSubscription()
     if (subscription) {
+      console.log('[subscribeToPush] Already subscribed:', subscription)
       return subscription
     }
 
     // Subscribe to push
+    console.log('[subscribeToPush] Creating new subscription...')
     const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
     
     subscription = await registration.pushManager.subscribe({
@@ -96,10 +107,11 @@ export async function subscribeToPush(
       applicationServerKey: applicationServerKey as BufferSource,
     })
 
+    console.log('[subscribeToPush] Subscription created:', subscription)
     return subscription
   } catch (error) {
-    console.error('Error subscribing to push:', error)
-    return null
+    console.error('[subscribeToPush] Error:', error)
+    throw error
   }
 }
 
@@ -134,10 +146,12 @@ export async function savePushSubscription(
   userId: string,
   subscription: PushSubscription
 ): Promise<boolean> {
+  console.log('[savePushSubscription] Starting...', { userId, endpoint: subscription.endpoint })
+  
   try {
     const supabase = createClient()
 
-    const { error } = await supabase.from('push_subscriptions').upsert({
+    const subscriptionData = {
       user_id: userId,
       endpoint: subscription.endpoint,
       keys: {
@@ -145,16 +159,20 @@ export async function savePushSubscription(
         auth: arrayBufferToBase64(subscription.getKey('auth')),
       },
       updated_at: new Date().toISOString(),
-    })
+    }
+    
+    console.log('[savePushSubscription] Saving to database...')
+    const { error } = await supabase.from('push_subscriptions').upsert(subscriptionData)
 
     if (error) {
-      console.error('Error saving subscription:', error)
+      console.error('[savePushSubscription] Database error:', error)
       return false
     }
 
+    console.log('[savePushSubscription] Successfully saved')
     return true
   } catch (error) {
-    console.error('Error saving push subscription:', error)
+    console.error('[savePushSubscription] Error:', error)
     return false
   }
 }
@@ -179,8 +197,8 @@ export async function sendLocalNotification(
 
   const notification = new Notification(title, {
     body,
-    icon: icon || '/icons/icon-192x192.png',
-    badge: badge || '/icons/icon-72x72.png',
+    icon: icon || '/icons/Logo/192.png',
+    badge: badge || '/icons/Logo/96.png',
     tag: tag || 'letify-notification',
     data,
     requireInteraction: false,
@@ -206,7 +224,7 @@ export async function sendTestNotification(): Promise<void> {
   await sendLocalNotification({
     title: 'Letify Notification',
     body: 'Push notifications are working! 🎉',
-    icon: '/icons/icon-192x192.png',
+    icon: '/icons/Logo/192.png',
     tag: 'test-notification',
     data: {
       url: '/dashboard',
