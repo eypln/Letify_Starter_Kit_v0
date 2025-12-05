@@ -86,11 +86,11 @@ export async function subscribeToPush(
     }
 
     console.log('[subscribeToPush] Waiting for service worker...')
-    // Get service worker registration with timeout for production
+    // Get service worker registration with timeout
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
       new Promise<ServiceWorkerRegistration>((_, reject) => 
-        setTimeout(() => reject(new Error('Service worker timeout after 10 seconds')), 10000)
+        setTimeout(() => reject(new Error('Service worker initialization timeout')), 5000)
       )
     ])
     console.log('[subscribeToPush] Service worker ready:', registration)

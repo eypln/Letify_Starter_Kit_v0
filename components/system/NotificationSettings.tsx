@@ -37,11 +37,11 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
     if (!isPushSupported()) return
 
     try {
-      // Wait for service worker to be ready with timeout
+      // Wait for service worker to be ready with shorter timeout
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Service Worker timeout')), 3000)
+          setTimeout(() => reject(new Error('Service Worker timeout')), 5000)
         )
       ]) as ServiceWorkerRegistration
       
