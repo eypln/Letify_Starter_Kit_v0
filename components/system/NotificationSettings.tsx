@@ -8,7 +8,6 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
   savePushSubscription,
-  sendTestNotification,
 } from '@/lib/notifications'
 import { Bell, BellOff, Check } from 'lucide-react'
 

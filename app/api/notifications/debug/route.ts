@@ -42,7 +42,7 @@ export async function GET() {
     console.log('[Debug] Admin error:', adminError);
 
     // Check auth.users for this user
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const { data: userData } = await supabase.auth.getUser();
 
     return NextResponse.json({
       currentUser: {

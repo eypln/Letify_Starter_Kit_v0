@@ -132,7 +132,7 @@ interface AddDialogProps {
   listings?: Listing[];
 }
 
-export default function AddDialog({ listings: _listings = [] }: AddDialogProps) {
+export default function AddDialog({}: AddDialogProps) {
   const { toast } = useToast();
   const supabase = createClient();
   
@@ -378,7 +378,7 @@ export default function AddDialog({ listings: _listings = [] }: AddDialogProps) 
     }
 
     fetchNextReferenceNumber();
-  }, [open]);
+  }, [open, supabase]);
 
   const handleUseSuggested = () => {
     if (suggestedNextNumber !== null) {

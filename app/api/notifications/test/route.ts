@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/supabase/server';
  * Test endpoint for push notifications
  * Send a test notification to all users
  */
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const user = await getUser();
     if (!user) {
