@@ -86,9 +86,18 @@ export async function subscribeToPush(
     }
 
     console.log('[subscribeToPush] Waiting for service worker...')
-    // Get service worker registration
-    const registration = await navigator.serviceWorker.ready
+    // Get service worker registration with timeout for production
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<ServiceWorkerRegistration>((_, reject) => 
+        setTimeout(() => reject(new Error('Service worker timeout after 10 seconds')), 10000)
+      )
+    ])
     console.log('[subscribeToPush] Service worker ready:', registration)
+    
+    if (!registration.pushManager) {
+      throw new Error('PushManager not available')
+    }
 
     // Check if already subscribed
     console.log('[subscribeToPush] Checking existing subscription...')

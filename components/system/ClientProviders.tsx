@@ -80,10 +80,10 @@ export default function ClientProviders() {
   }, [router])
 
   return (
-    <>
+    <div suppressHydrationWarning>
       <RegisterSW />
       <WebVitals />
       <PWAInstallPrompt />
-    </>
+    </div>
   )
 }

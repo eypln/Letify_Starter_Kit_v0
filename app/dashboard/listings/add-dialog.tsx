@@ -132,7 +132,7 @@ interface AddDialogProps {
   listings?: Listing[];
 }
 
-export default function AddDialog({ listings = [] }: AddDialogProps) {
+export default function AddDialog({ listings: _listings = [] }: AddDialogProps) {
   const { toast } = useToast();
   const supabase = createClient();
   

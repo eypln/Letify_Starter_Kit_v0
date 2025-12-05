@@ -6,7 +6,17 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development' ? false : false, // Always enabled
-  buildExcludes: [/middleware-manifest\.json$/],
+  buildExcludes: [
+    /middleware-manifest\.json$/,
+    /build-manifest\.json$/,
+    /react-loadable-manifest\.json$/,
+    /_buildManifest\.js$/,
+    /_ssgManifest\.js$/,
+  ],
+  publicExcludes: [
+    '!icons/README.md',
+    '!*.map',
+  ],
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
@@ -136,8 +146,11 @@ const withPWA = require('next-pwa')({
         const isSameOrigin = self.origin === url.origin
         if (!isSameOrigin) return false
         const pathname = url.pathname
+        // Exclude API routes, auth, and Next.js internal routes
         if (pathname.startsWith('/api/')) return false
         if (pathname.includes('/auth/')) return false
+        if (pathname.startsWith('/_next/static/chunks/')) return false
+        if (pathname.includes('middleware-manifest')) return false
         return true
       },
       handler: 'NetworkFirst',
@@ -313,6 +326,32 @@ const nextConfig = {
     }
 
     return config;
+  },
+  
+  // Experimental features for MessagePort fix
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+  
+  // Headers for service worker
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+    ];
   },
 }
 
