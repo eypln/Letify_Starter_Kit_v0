@@ -4,7 +4,7 @@
  */
 
 import webpush from 'web-push'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 // Configure VAPID
 if (
@@ -39,7 +39,11 @@ export async function sendTeamworkNotification(
   payload: NotificationPayload
 ): Promise<{ sent: number; failed: number }> {
   try {
-    const supabase = await createClient()
+    // Use admin client to bypass RLS and read all subscriptions
+    const supabase = createAdminClient()
+
+    console.log('[sendTeamworkNotification] Using admin client to fetch subscriptions')
+    console.log('[sendTeamworkNotification] Excluding user:', excludeUserId)
 
     // Get all push subscriptions except the sender's
     const { data: subscriptions, error } = await supabase
@@ -125,7 +129,10 @@ export async function sendViewingReminder(
   payload: NotificationPayload
 ): Promise<boolean> {
   try {
-    const supabase = await createClient()
+    // Use admin client to bypass RLS
+    const supabase = createAdminClient()
+
+    console.log('[sendViewingReminder] Sending reminder to user:', userId)
 
     // Get user's push subscriptions
     const { data: subscriptions, error } = await supabase

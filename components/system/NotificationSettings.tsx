@@ -20,7 +20,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null)
   const [mounted, setMounted] = useState(false)
 
   // Auto-clear success messages after 5 seconds
@@ -177,22 +177,24 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
     
     try {
       // Send test notification via API (server-side)
+      console.log('[handleTestNotification] Sending test...')
       const response = await fetch('/api/notifications/test', {
         method: 'POST',
       })
       
       const data = await response.json()
+      console.log('[handleTestNotification] Response:', data)
       
       if (response.ok) {
         setMessage({ 
-          type: 'success', 
-          text: `Test notification sent to ${data.sent} device(s)! Check your notifications.` 
+          type: data.sent > 0 ? 'success' : 'warning', 
+          text: `Test notification sent to ${data.sent} device(s) (Total: ${data.totalSubscriptions || 0} subscriptions in DB, Your user ID: ${data.currentUser?.slice(0, 8)}...). ${data.sent === 0 ? 'No other devices found!' : 'Check your notifications.'}` 
         })
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to send test notification' })
       }
     } catch (error) {
-      console.error('Test notification error:', error)
+      console.error('[handleTestNotification] Error:', error)
       setMessage({ type: 'error', text: 'Failed to send test notification' })
     } finally {
       setLoading(false)
@@ -283,6 +285,8 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
             className={`p-3 rounded-lg text-sm ${
               message.type === 'success'
                 ? 'bg-green-50 text-green-800 border border-green-200'
+                : message.type === 'warning'
+                ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                 : 'bg-red-50 text-red-800 border border-red-200'
             }`}
           >
@@ -291,33 +295,52 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
         )}
 
         {/* Actions */}
-        <div className="flex gap-2">
-          {!isSubscribed ? (
-            <button
-              onClick={handleEnableNotifications}
-              disabled={loading || permission === 'denied'}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Enabling...' : 'Enable Notifications'}
-            </button>
-          ) : (
-            <>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {!isSubscribed ? (
               <button
-                onClick={handleTestNotification}
-                disabled={loading}
-                className="flex-1 px-4 py-2 border border-purple-600 text-purple-600 hover:bg-purple-50 rounded-md transition-colors disabled:opacity-50"
+                onClick={handleEnableNotifications}
+                disabled={loading || permission === 'denied'}
+                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Test
+                {loading ? 'Enabling...' : 'Enable Notifications'}
               </button>
-              <button
-                onClick={handleDisableNotifications}
-                disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Disabling...' : 'Disable'}
-              </button>
-            </>
-          )}
+            ) : (
+              <>
+                <button
+                  onClick={handleTestNotification}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-purple-600 text-purple-600 hover:bg-purple-50 rounded-md transition-colors disabled:opacity-50"
+                >
+                  Send Test
+                </button>
+                <button
+                  onClick={handleDisableNotifications}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Disabling...' : 'Disable'}
+                </button>
+              </>
+            )}
+          </div>
+          {/* Debug button */}
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/notifications/debug');
+                const data = await response.json();
+                console.log('[DEBUG INFO]', data);
+                alert(JSON.stringify(data, null, 2));
+              } catch (error) {
+                console.error('[DEBUG ERROR]', error);
+                alert('Debug error: ' + error);
+              }
+            }}
+            className="w-full px-4 py-2 text-xs border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+          >
+            🐛 Debug Info (Check Console)
+          </button>
         </div>
 
         {/* Browser Permission Info */}
