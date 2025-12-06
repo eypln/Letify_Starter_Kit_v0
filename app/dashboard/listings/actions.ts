@@ -56,14 +56,14 @@ export async function getListings({ page }: { page: number }): Promise<{
         images
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range(from, to) as any;
+      .range(from, to);
 
     if (error) {
       console.error('Supabase listings fetch error:', error);
       throw new Error(error.message || 'Supabase listings fetch error');
     }
 
-    const listingIds = (Array.isArray(data) ? data : []).map((d: any) => d?.id as string).filter(Boolean);
+    const listingIds = (Array.isArray(data) ? data : []).map((d: unknown) => (d as Record<string, unknown>)?.id as string).filter(Boolean);
     
     const { data: sharedListings } = await supabase
       .from('teamwork_listings')
@@ -101,8 +101,9 @@ export async function getListings({ page }: { page: number }): Promise<{
       jobToPhotosMap.get(asset.job_id)!.push(asset.public_url);
     });
 
-    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: any): ListingRow => {
-      const listingId = d?.id as string;
+    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: unknown): ListingRow => {
+      const listing = d as Record<string, unknown>;
+      const listingId = listing?.id as string;
       const jobIdsForListing = listingToJobsMap.get(listingId) || [];
       
       const photosFromAssets: { url: string }[] = [];
@@ -111,8 +112,8 @@ export async function getListings({ page }: { page: number }): Promise<{
         urls.forEach(url => photosFromAssets.push({ url }));
       });
 
-      const imagesFromListing = Array.isArray(d?.images) ? d.images : [];
-      const photosFromImages: { url: string }[] = imagesFromListing.map((img: string | { url: string }) => 
+      const imagesFromListing = Array.isArray(listing?.images) ? listing.images : [];
+      const photosFromImages: { url: string }[] = (imagesFromListing as Array<string | { url: string }>).map((img: string | { url: string }) => 
         typeof img === 'string' ? { url: img } : img
       );
 
@@ -120,19 +121,19 @@ export async function getListings({ page }: { page: number }): Promise<{
 
       const row: ListingRow = {
         id: listingId,
-        addingDate: (d?.created_at as string) ?? '',
-        sourceUrl: (d?.property_url as string) ?? '',
-        city: (d?.city as string) ?? (d?.location as string) ?? null,
-        price: (d?.price as number) ?? null,
-        bedroom: (d?.bedrooms as number) ?? null,
-        bathroom: (d?.bathrooms as number) ?? null,
-        propertyType: (d?.property_type as string) ?? null,
-        description: (d?.description as string) ?? '',
-        fbPostUrl: (d?.facebook_post_url as string) ?? (d?.fb_post_url as string) ?? null,
-        fbReelsUrl: (d?.facebook_reel_url as string) ?? (d?.fb_reels_url as string) ?? null,
-        title: (d?.title as string) ?? '',
-        availability: (d?.availability as string) ?? 'Available',
-        available_date: (d?.available_date as string) ?? null,
+        addingDate: (listing?.created_at as string) ?? '',
+        sourceUrl: (listing?.property_url as string) ?? '',
+        city: (listing?.city as string) ?? (listing?.location as string) ?? null,
+        price: (listing?.price as number) ?? null,
+        bedroom: (listing?.bedrooms as number) ?? null,
+        bathroom: (listing?.bathrooms as number) ?? null,
+        propertyType: (listing?.property_type as string) ?? null,
+        description: (listing?.description as string) ?? '',
+        fbPostUrl: (listing?.facebook_post_url as string) ?? (listing?.fb_post_url as string) ?? null,
+        fbReelsUrl: (listing?.facebook_reel_url as string) ?? (listing?.fb_reels_url as string) ?? null,
+        title: (listing?.title as string) ?? '',
+        availability: (listing?.availability as string) ?? 'Available',
+        available_date: (listing?.available_date as string) ?? null,
         isSharedInTeamwork: sharedListingIds.has(listingId),
         photos: JSON.parse(JSON.stringify(allPhotos)),
       };
@@ -254,12 +255,15 @@ export async function getAllAvailableAndSoonListings() {
       throw new Error(error.message || 'Failed to fetch map listings');
     }
 
-    return (Array.isArray(data) ? data : []).map((d: any) => ({
-      id: d?.id ?? '',
-      city: d?.city ?? '',
-      title: d?.title ?? '',
-      availability: d?.availability ?? 'Available',
-    }));
+    return (Array.isArray(data) ? data : []).map((d: unknown) => {
+      const listing = d as Record<string, unknown>;
+      return {
+        id: listing?.id ?? '',
+        city: listing?.city ?? '',
+        title: listing?.title ?? '',
+        availability: listing?.availability ?? 'Available',
+      };
+    });
   } catch (err) {
     console.error('getAllAvailableAndSoonListings error:', err);
     return [];
