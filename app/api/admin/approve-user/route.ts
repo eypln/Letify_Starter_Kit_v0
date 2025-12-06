@@ -39,14 +39,14 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    if (!['approve', 'deny'].includes(action)) {
+    if (!['approve', 'deny', 'block'].includes(action)) {
       return NextResponse.json(
-        { error: 'Action must be either "approve" or "deny"' },
+        { error: 'Action must be either "approve", "deny", or "block"' },
         { status: 400 }
       )
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'denied'
+    const newStatus = action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'denied'
 
     // Get user info before updating (needed for email)
     const { data: userProfile } = await supabase
@@ -66,10 +66,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`[Approve User] User ${userId} ${action === 'approve' ? 'approved' : 'denied'}`)
+    console.log(`[Approve User] User ${userId} ${action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'denied'}`)
 
     // Update approval_queue table
-    const queueStatus = action === 'approve' ? 'approved' : 'rejected'
+    const queueStatus = action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'rejected'
     const { error: queueError } = await supabase
       .from('approval_queue')
       .update({ 

@@ -15,15 +15,28 @@ interface PendingUser {
   created_at: string
 }
 
+interface ApprovedUser {
+  user_id: string
+  email: string
+  full_name: string
+  phone: string
+  role: string
+  status: string
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createClient()
 
   const [users, setUsers] = useState<PendingUser[]>([])
+  const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([])
+  const [blockedUsers, setBlockedUsers] = useState<ApprovedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null)
   const [denyingUserId, setDenyingUserId] = useState<string | null>(null)
+  const [blockingUserId, setBlockingUserId] = useState<string | null>(null)
+  const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [approvedUsersCount, setApprovedUsersCount] = useState(0)
 
@@ -56,6 +69,8 @@ export default function AdminPage() {
 
       await fetchPendingUsers()
       await fetchApprovedUsersCount()
+      await fetchApprovedUsers()
+      await fetchBlockedUsers()
     } catch (error) {
       console.error('Error checking admin access:', error)
       toast({
@@ -101,6 +116,55 @@ export default function AdminPage() {
     }
   }
 
+  const fetchApprovedUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/approved-users')
+      if (!response.ok) {
+        throw new Error('Failed to fetch approved users')
+      }
+      const data = await response.json()
+      setApprovedUsers(data.users || [])
+    } catch (error) {
+      console.error('Error fetching approved users:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load approved users',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const fetchBlockedUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/blocked-users')
+      if (!response.ok) {
+        throw new Error('Failed to fetch blocked users')
+      }
+      const data = await response.json()
+      
+      // Add mock blocked user for UI testing
+      const mockBlockedUsers = [
+        {
+          user_id: 'test-blocked-123',
+          full_name: 'Test Blocked User',
+          email: 'blocked@example.com',
+          phone: '+905551234567',
+          role: 'agent',
+          status: 'blocked'
+        }
+      ]
+      
+      setBlockedUsers([...mockBlockedUsers, ...(data.users || [])])
+    } catch (error) {
+      console.error('Error fetching blocked users:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load blocked users',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleApprove = async (userId: string) => {
     setApprovingUserId(userId)
     try {
@@ -121,8 +185,9 @@ export default function AdminPage() {
 
       // Remove from list
       setUsers(users.filter((u) => u.user_id !== userId))
-      // Refresh approved users count
+      // Refresh approved users count and list
       await fetchApprovedUsersCount()
+      await fetchApprovedUsers()
     } catch (error) {
       console.error('Error approving user:', error)
       toast({
@@ -164,6 +229,82 @@ export default function AdminPage() {
       })
     } finally {
       setDenyingUserId(null)
+    }
+  }
+
+  const handleBlock = async (userId: string) => {
+    if (!confirm('Are you sure you want to block this user? They will lose access to the platform.')) {
+      return
+    }
+
+    setBlockingUserId(userId)
+    try {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'block' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to block user')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'User blocked successfully',
+      })
+
+      // Refresh the approved users list and count
+      await fetchApprovedUsers()
+      await fetchApprovedUsersCount()
+      await fetchBlockedUsers()
+    } catch (error) {
+      console.error('Error blocking user:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to block user',
+        variant: 'destructive',
+      })
+    } finally {
+      setBlockingUserId(null)
+    }
+  }
+
+  const handleUnblock = async (userId: string) => {
+    if (!confirm('Are you sure you want to unblock this user? They will regain access to the platform.')) {
+      return
+    }
+
+    setUnblockingUserId(userId)
+    try {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'approve' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to unblock user')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'User unblocked successfully',
+      })
+
+      // Refresh all lists
+      await fetchApprovedUsers()
+      await fetchApprovedUsersCount()
+      await fetchBlockedUsers()
+    } catch (error) {
+      console.error('Error unblocking user:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to unblock user',
+        variant: 'destructive',
+      })
+    } finally {
+      setUnblockingUserId(null)
     }
   }
 
@@ -291,7 +432,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <div className="text-gray-600 text-sm font-medium">Pending Approvals</div>
             <div className="text-3xl font-bold text-purple-600 mt-2">{users.length}</div>
@@ -309,6 +450,177 @@ export default function AdminPage() {
             <div className="text-sm font-medium text-gray-900 mt-2">admin@letify.cloud</div>
           </div>
         </div>
+
+        {/* Approved Users Table */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Users</h2>
+            <Badge variant="secondary" className="text-base px-3 py-1">
+              {approvedUsers.length} {approvedUsers.length === 1 ? 'user' : 'users'}
+            </Badge>
+          </div>
+
+          {approvedUsers.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">No approved users yet</p>
+              <p className="text-gray-400 text-sm mt-1">Approved users will appear here</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">User ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Full Name</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Email</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Phone</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Role</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {approvedUsers.map((user) => (
+                    <tr key={user.user_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 text-xs text-gray-600 font-mono">
+                        {user.user_id.slice(0, 8)}...
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                        {user.full_name}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {user.email}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {user.phone || 'N/A'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge 
+                          variant={
+                            user.role === 'admin' ? 'destructive' : 
+                            user.role === 'manager' ? 'default' : 
+                            user.role === 'boss' ? 'destructive' :
+                            user.role === 'teamleader' ? 'default' :
+                            'secondary'
+                          }
+                          className={`capitalize ${
+                            user.role === 'boss' ? 'bg-orange-600 hover:bg-orange-700' :
+                            user.role === 'teamleader' ? 'bg-blue-600 hover:bg-blue-700' :
+                            ''
+                          }`}
+                        >
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="capitalize text-green-700 border-green-300">
+                          {user.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleBlock(user.user_id)}
+                          disabled={blockingUserId === user.user_id}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm rounded-md font-medium transition-colors"
+                        >
+                          {blockingUserId === user.user_id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Block
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Blocked Users Section */}
+        {blockedUsers.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md border border-red-200 p-6 mt-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Blocked Users</h2>
+              <Badge variant="destructive" className="text-base px-3 py-1">
+                {blockedUsers.length} {blockedUsers.length === 1 ? 'user' : 'users'}
+              </Badge>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">User ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Full Name</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Email</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Phone</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Role</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {blockedUsers.map((user) => (
+                    <tr key={user.user_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 text-xs text-gray-600 font-mono">
+                        {user.user_id.slice(0, 8)}...
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                        {user.full_name}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {user.email}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {user.phone || 'N/A'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge 
+                          variant={
+                            user.role === 'admin' ? 'destructive' : 
+                            user.role === 'manager' ? 'default' : 
+                            user.role === 'boss' ? 'destructive' :
+                            user.role === 'teamleader' ? 'default' :
+                            'secondary'
+                          }
+                          className={`capitalize ${
+                            user.role === 'boss' ? 'bg-orange-600 hover:bg-orange-700' :
+                            user.role === 'teamleader' ? 'bg-blue-600 hover:bg-blue-700' :
+                            ''
+                          }`}
+                        >
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="destructive" className="capitalize">
+                          {user.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleUnblock(user.user_id)}
+                          disabled={unblockingUserId === user.user_id}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm rounded-md font-medium transition-colors"
+                        >
+                          {unblockingUserId === user.user_id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                          Unblock
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

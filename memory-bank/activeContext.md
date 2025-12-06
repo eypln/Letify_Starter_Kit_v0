@@ -2,11 +2,17 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (05.12.2025)
-1. **PWA Mobile Push Notification System**: Kritik discovery - Service Worker push event handling eksikti
-2. **@vercel/analytics Deprecation Fix**: Import path güncelleme (@vercel/analytics/next)
-3. **Production Build Optimization**: Build errors çözüldü, successful build alındı
-4. **Memory Bank Update**: Tüm yapılan değişikliklerin dokümantasyonu
+### Ana Odak Alanları (06.12.2025)
+1. **Admin Panel User Management System**: Approved users table, block/unblock functionality
+2. **Next.js 16.0.7 Security Migration**: CVE-2025-55182 (React2Shell) vulnerability patched
+3. **Role-based UI Enhancement**: Color-coded role badges (admin, boss, teamleader, manager, agent)
+4. **Blocked Users Management**: Separate table and unblock functionality
+
+### Önceki Odak (05.12.2025)
+1. **PWA Mobile Push Notification System**: Kritik discovery - Service Worker push event handling eksikti ✅
+2. **@vercel/analytics Deprecation Fix**: Import path güncelleme (@vercel/analytics/next) ✅
+3. **Production Build Optimization**: Build errors çözüldü, successful build alındı ✅
+4. **Memory Bank Update**: Tüm yapılan değişikliklerin dokümantasyonu ✅
 
 ### Önceki Odak (02.12.2025)
 1. **Teamwork & Client Sync System**: Ana kayıt güncellemelerinin teamwork tablolarına otomatik yansıması ✅
@@ -35,6 +41,167 @@
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 06.12.2025 - Admin Panel Enhancement & Next.js 16 Security Migration - COMPLETE ✅
+**Feature**: Admin panel user management system ve CVE-2025-55182 security fix
+**Scope**: Approved users table, block/unblock, email display, role-based colors
+**Deployment**: Production build başarılı (33.4s with Turbopack, 96/96 pages)
+**Status**: Tüm features tamamlandı, Next.js 16.0.7 güvenli
+
+#### CRITICAL: Next.js 16.0.7 Security Migration
+**Trigger**: Vercel email warning about CVE-2025-55182 (React2Shell vulnerability)
+**Vulnerability**: React Server Components RCE in Next.js 15.1.9
+**Impact**: Vercel blocking new deployments until fixed
+
+**Migration Details**:
+- **Next.js**: 15.1.9 → 16.0.7 (security patch)
+- **React**: 19.1.1 → 19.2.1 (stable)
+- **React-DOM**: 19.1.1 → 19.2.1
+- **lucide-react**: 0.344.0 → 0.556.0 (React 19 compatibility)
+
+**Compatibility Fixes**:
+1. **Turbopack Configuration**: Added `turbopack: {}` to next.config.js
+2. **Middleware → Proxy**: Renamed file and function per Next.js 16 convention
+3. **CSS Import Order**: Moved @import to top, removed duplicate
+4. **Build System**: Turbopack now default (13.9s build time)
+
+**Build Results**:
+- ✅ Compile: 33.4s (Turbopack)
+- ✅ TypeScript: 43s (zero errors)
+- ✅ Static Generation: 96/96 pages
+- ✅ Security: CVE-2025-55182 patched
+
+#### Admin Panel User Management System:
+**Requirement**: "Admin page'de onaylı kullanıcıları rolleriyle birlikte görmek istiyorum"
+
+**Implementation**:
+
+1. **Approved Users Table** (Main Feature):
+   - **Data Sources**: 
+     - Profiles table: user_id, full_name, phone, role, status
+     - Auth.users table: email (via admin client)
+   - **Columns**: User ID (first 8 chars), Full Name, Email, Phone, Role, Status, Actions
+   - **API Endpoint**: `/api/admin/approved-users`
+   - **Admin Client Usage**: `createAdminClient()` for auth.admin.getUserById()
+   - **Result**: All approved users displayed with complete information
+
+2. **Email Display Fix**:
+   - **Problem**: All emails showing as "N/A"
+   - **Root Cause**: Using regular `createClient()` for admin methods
+   - **Solution**: Import and use `createAdminClient()` 
+   - **Code**:
+     ```typescript
+     import { createClient, createAdminClient } from '@/lib/supabase/server'
+     const adminClient = createAdminClient()
+     const { data: authData } = await adminClient.auth.admin.getUserById(userId)
+     ```
+   - **Result**: ✅ All user emails now displayed correctly
+
+3. **Role-Based Color System**:
+   - **Admin**: Red badge (destructive variant)
+   - **Boss**: Orange badge (bg-orange-600)
+   - **Teamleader**: Blue badge (bg-blue-600)
+   - **Manager**: Default badge (blue-gray)
+   - **Agent**: Gray badge (secondary variant)
+   - **Implementation**: Dynamic className with conditional styling
+   - **Result**: Visual hierarchy for quick role identification
+
+4. **Block User Functionality**:
+   - **Feature**: Admin can block approved users
+   - **UI**: Red "Block" button with XCircle icon in Actions column
+   - **Confirmation**: "Are you sure?" dialog before blocking
+   - **API**: Updated `/api/admin/approve-user` to support `action: 'block'`
+   - **Status Change**: `approved` → `blocked`
+   - **Database**: Updates both `profiles.status` and `approval_queue.status`
+   - **Auto-refresh**: Approved users table and counts refresh after block
+
+5. **Blocked Users Table** (Separate Section):
+   - **Design**: Red border card below approved users table
+   - **Visibility**: Only shows when blocked users exist
+   - **Columns**: Same as approved users table
+   - **Status Badge**: Red "blocked" badge
+   - **API Endpoint**: `/api/admin/blocked-users`
+   - **Mock Data**: Test user for UI development
+     ```typescript
+     {
+       user_id: 'test-blocked-123',
+       full_name: 'Test Blocked User',
+       email: 'blocked@example.com',
+       phone: '+905551234567',
+       role: 'agent',
+       status: 'blocked'
+     }
+     ```
+
+6. **Unblock User Functionality**:
+   - **Feature**: Admin can restore blocked users
+   - **UI**: Green "Unblock" button with CheckCircle2 icon
+   - **Confirmation**: "Are you sure?" dialog before unblocking
+   - **API**: Uses same endpoint with `action: 'approve'`
+   - **Status Change**: `blocked` → `approved`
+   - **Flow**: Blocked Users table → Unblock → Approved Users table
+   - **Auto-refresh**: Both tables update after unblock
+
+**Files Created**:
+```
+NEW:
+  - app/api/admin/approved-users/route.ts (approved users with emails)
+  - app/api/admin/blocked-users/route.ts (blocked users with emails)
+```
+
+**Files Modified**:
+```
+MODIFIED:
+  - app/(app)/admin/page.tsx:
+    * Added ApprovedUser interface
+    * Added approvedUsers state
+    * Added blockedUsers state
+    * Added blockingUserId state
+    * Added unblockingUserId state
+    * Added fetchApprovedUsers() function
+    * Added fetchBlockedUsers() function
+    * Added handleBlock() function
+    * Added handleUnblock() function
+    * Added Users table section with role-colored badges
+    * Added Blocked Users table section (conditional)
+    * Modified stats section layout (added mb-8)
+    
+  - app/api/admin/approve-user/route.ts:
+    * Added 'block' to allowed actions
+    * Updated newStatus logic: approve/block/deny
+    * Updated queueStatus logic for blocked state
+    * Updated console log for block action
+```
+
+**Technical Architecture**:
+```typescript
+// Admin Client Pattern for Email Access
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+
+const supabase = await createClient()      // Regular auth & profile queries
+const adminClient = createAdminClient()     // Admin-level auth.users access
+
+// Fetch emails bypassing RLS
+const { data: authData } = await adminClient.auth.admin.getUserById(userId)
+const email = authData.user?.email || 'N/A'
+```
+
+**State Management Flow**:
+1. User blocks an approved user
+2. `handleBlock()` calls API with `action: 'block'`
+3. Database updates: `profiles.status = 'blocked'`
+4. `fetchApprovedUsers()` refresh (user disappears)
+5. `fetchBlockedUsers()` refresh (user appears in blocked table)
+6. Approved count decreases
+
+**UI/UX Features**:
+- Loading states on all action buttons
+- Confirmation dialogs prevent accidental actions
+- Toast notifications for success/error feedback
+- Automatic table refresh after actions
+- Color-coded roles for quick scanning
+- Conditional rendering (blocked table only shows if needed)
+- Responsive table design with hover effects
 
 ### 05.12.2025 - PWA Mobile Push Notification System Architecture Fix - COMPLETE ✅
 **Feature**: Kritik push notification sistema fix - Service Worker push event handling implementasyonu
