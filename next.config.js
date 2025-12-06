@@ -54,6 +54,9 @@ const nextConfig = {
   // Power optimizations
   poweredByHeader: false,
   
+  // Next.js 16 Turbopack configuration
+  turbopack: {},
+  
   experimental: {
     serverActions: {
       allowedOrigins: ["localhost:3000"],
