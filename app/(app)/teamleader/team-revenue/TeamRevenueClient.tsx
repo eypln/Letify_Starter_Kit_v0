@@ -11,7 +11,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -112,7 +111,6 @@ interface Profile {
 
 export default function RevenueClient({ user }: { user: User }) {
   const { toast } = useToast();
-  const { dashboardUrl } = useDashboardUrl();
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -439,7 +437,7 @@ export default function RevenueClient({ user }: { user: User }) {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href="/teamleader" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -950,6 +948,261 @@ export default function RevenueClient({ user }: { user: User }) {
           </div>
         </div>
       )}
+
+      {/* Team Revenue Records */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Team Revenue Records</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TeamRevenueTable />
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+// Team Revenue Table Component
+function TeamRevenueTable() {
+  const [teamRevenues, setTeamRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const supabase = createClient();
+
+  const pageSize = 10;
+
+  const teamColumns = [
+    "#",
+    "Agent Name",
+    "Date Rented",
+    "Ref No",
+    "Client Name",
+    "Rent Amount (€)",
+    "Landlord Fee (€)",
+    "Client Fee (€)",
+    "Listing Fee (€)",
+    "Agent Net Income (€)",
+    "Agent TAX (€)",
+    "Date Signed",
+    "Date Move In",
+    "Landlord Paid",
+    "Client Paid",
+    "Collaboration",
+    "Inform Boss",
+  ];
+
+  useEffect(() => {
+    async function fetchTeamRevenues() {
+      setLoading(true);
+      
+      // Get current user to exclude them
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Fetch all revenues from other users
+        const { data, error, count } = await supabase
+          .from("revenue")
+          .select(`
+            *,
+            profiles!revenue_user_id_fkey(full_name)
+          `, { count: "exact" })
+          .neq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .range((page - 1) * pageSize, page * pageSize - 1);
+
+        if (!error && data) {
+          const mappedData = data.map((revenue: any) => ({
+            ...revenue,
+            agent_name: revenue.profiles?.full_name || 'Unknown Agent'
+          }));
+          setTeamRevenues(mappedData);
+          setPageCount(Math.ceil((count || 0) / pageSize));
+        }
+      }
+      
+      setLoading(false);
+    }
+
+    fetchTeamRevenues();
+  }, [page, supabase]);
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB');
+  };
+
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null || amount === undefined) return "-";
+    return `€${amount.toFixed(2)}`;
+  };
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-blue-50">
+            <tr>
+              {teamColumns.map((col) => (
+                <th
+                  key={col}
+                  className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider whitespace-nowrap"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {loading ? (
+              <tr>
+                <td colSpan={teamColumns.length} className="px-4 py-8 text-center text-gray-500">
+                  Loading team revenue records...
+                </td>
+              </tr>
+            ) : teamRevenues.length === 0 ? (
+              <tr>
+                <td colSpan={teamColumns.length} className="px-4 py-8 text-center text-gray-500">
+                  No team revenue records found.
+                </td>
+              </tr>
+            ) : (
+              teamRevenues.map((revenue, idx: number) => (
+                <tr key={revenue.id} className="hover:bg-blue-50">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {(page - 1) * pageSize + idx + 1}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    {revenue.agent_name}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(revenue.date_rented)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {revenue.ref_no || "-"}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {revenue.client_name || "-"}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.rent_amount)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.landlord_fee)}
+                    {revenue.landlord_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.client_fee)}
+                    {revenue.client_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.listing_fee)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.agent_income)}
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({revenue.vat_type === 'vatable' ? "40%" : revenue.vat_type === 'part-time' ? "36%" : "32%"})
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(revenue.agent_tax)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(revenue.date_signed)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(revenue.date_move_in)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(revenue.landlord_paid_date)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatDate(revenue.client_paid_date)}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {revenue.collaboration_with || "-"}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <input
+                      type="checkbox"
+                      checked={revenue.inform_boss_after_both_sides_paid}
+                      disabled
+                      className="h-4 w-4"
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {pageCount > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(1)}
+            disabled={page === 1}
+            className="px-3 py-1"
+          >
+            First
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            className="px-3 py-1"
+          >
+            Prev
+          </Button>
+          
+          {/* Page Numbers */}
+          <div className="flex gap-1">
+            {Array.from({ length: Math.min(pageCount, 5) }, (_, i) => {
+              const pageNum = page <= 3 ? i + 1 : page + i - 2;
+              if (pageNum > pageCount) return null;
+              return (
+                <Button
+                  key={pageNum}
+                  variant={page === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(pageNum)}
+                  className={`px-3 py-1 min-w-[40px] ${
+                    page === pageNum 
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                      : ''
+                  }`}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page + 1)}
+            disabled={page === pageCount}
+            className="px-3 py-1"
+          >
+            Next
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(pageCount)}
+            disabled={page === pageCount}
+            className="px-3 py-1"
+          >
+            Last
+          </Button>
+        </div>
+      )}
+    </>
   );
 }

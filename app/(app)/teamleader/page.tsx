@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { LogOut, Settings, Plus, FileText, Users, Users2, Calendar, Euro, Bell } from 'lucide-react'
 
 export default function TeamLeaderPage() {
   const router = useRouter()
   const supabase = createClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [profile, setProfile] = useState<{ full_name?: string; email?: string } | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -21,15 +23,21 @@ export default function TeamLeaderPage() {
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name')
         .eq('user_id', user.id)
         .single()
 
-      if (profile?.role !== 'teamleader') {
+      if (profileData?.role !== 'teamleader') {
         router.push('/access-denied')
+        return
       }
+
+      setProfile({
+        full_name: profileData.full_name || undefined,
+        email: user.email || undefined
+      })
     }
 
     checkAccess()
@@ -63,7 +71,7 @@ export default function TeamLeaderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Logout Button */}
         <div className="flex justify-end mb-4">
           <button
@@ -76,21 +84,159 @@ export default function TeamLeaderPage() {
           </button>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Team Leader Dashboard</h1>
-        <p className="text-gray-600 mb-8">Welcome to your Team Leader workspace</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            Welcome, {profile?.full_name || profile?.email?.split('@')[0] || 'Team Leader'}!
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your team, track performance, and oversee operations
+          </p>
+        </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
-          <div className="text-center">
-            <div className="text-6xl mb-4">👥</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Team Leader Features Coming Soon</h2>
-            <p className="text-gray-600">This section is under development. Features will include:</p>
-            <ul className="mt-4 space-y-2 text-gray-600 max-w-md mx-auto">
-              <li>• View team member viewings</li>
-              <li>• Receive viewing notifications</li>
-              <li>• Monitor team activity</li>
-              <li>• View team analytics</li>
-            </ul>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Link href="/dashboard/profile" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Settings className="h-6 w-6 text-purple-600" />
+                  <span>Profile</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Account settings and integrations
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Create New Post Card */}
+          <Link href="/dashboard/new-post" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Plus className="h-6 w-6 text-purple-600" />
+                  <span>Create New Post</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Generate content and share on Facebook
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Start</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Clients Card */}
+          <Link href="/dashboard/clients" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Users className="h-6 w-6 text-purple-600" />
+                  <span>Clients</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Client management and reporting
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Manage</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Listings Card */}
+          <Link href="/dashboard/listings" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                  <span>Listings</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  View created content and shares
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Teamwork Card */}
+          <Link href="/dashboard/teamwork" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Users2 className="h-6 w-6 text-purple-600" />
+                  <span>Teamwork</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Collaborate with your teammates
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Collaborate</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Team Viewings Card */}
+          <Link href="/teamleader/team-viewings" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Calendar className="h-6 w-6 text-purple-600" />
+                  <span>Team Viewings</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your viewings and team viewing records
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Team Revenue Card */}
+          <Link href="/teamleader/team-revenue" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Euro className="h-6 w-6 text-purple-600" />
+                  <span>Team Revenue</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your deals and team revenue records
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Notifications Card */}
+          <Link href="/teamleader/notifications" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Bell className="h-6 w-6 text-purple-600" />
+                  <span>Notifications</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  All system notifications and alerts
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Log</button>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

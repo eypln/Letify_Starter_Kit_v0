@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import MaltaMap from '@/components/listing/malta-map';
+import { useDashboardUrl } from '@/lib/hooks/useDashboardUrl';
 
 // DEBUG: Her render'da kaç kayıt geldiğini ve son eklenen kaydın id'sini göster
 import { useSearchParams } from 'next/navigation';
@@ -170,6 +171,7 @@ interface ListingsData {
 }
 
 function ListingsContent() {
+  const { dashboardUrl } = useDashboardUrl();
   const [descModal, setDescModal] = React.useState<string|null>(null);
   const [listingsData, setListingsData] = React.useState<ListingsData | null>(null);
   const [mapListings, setMapListings] = React.useState<MapListing[]>([]);
@@ -217,7 +219,7 @@ function ListingsContent() {
       {/* Header */}
       <div className="mb-6 relative">
         {/* Dashboard button - top right */}
-        <Link href="/dashboard" className="absolute -top-2 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-2 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>

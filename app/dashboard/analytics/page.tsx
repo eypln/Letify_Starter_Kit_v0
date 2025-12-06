@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Input } from '@/components/ui/input'
 import { ExportButton } from '@/components/system/AnalyticsComponents'
 import { Calendar, Download } from 'lucide-react'
+import { useDashboardUrl } from '@/lib/hooks/useDashboardUrl'
 
 const GroupedBarChart = dynamic(() => import('@/components/ui/grouped-bar-chart'), { ssr: false });
 const HistogramBarChart = dynamic(() => import('@/components/ui/histogram-bar-chart'), { ssr: false });
@@ -26,6 +27,7 @@ interface Client {
 }
 
 export default function AnalyticsPage() {
+  const { dashboardUrl } = useDashboardUrl();
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [monthlyPostUsage, setMonthlyPostUsage] = useState<Array<{ month: string; count: number }>>([]);
@@ -303,7 +305,7 @@ export default function AnalyticsPage() {
             Track your performance and export detailed reports
           </p>
         </div>
-        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
+        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>

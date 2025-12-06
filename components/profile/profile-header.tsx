@@ -81,7 +81,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
               <div>
                 <p className="text-sm font-medium">Role</p>
                 <p className="text-sm text-muted-foreground capitalize">
-                  {profile.role}
+                  {profile.role === 'teamleader' ? 'Team Leader' : profile.role}
                 </p>
               </div>
             </div>

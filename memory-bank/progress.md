@@ -3,6 +3,48 @@
 
 ## Ne Çalışıyor ✅
 
+### 06.12.2025 - Role-Based Access Control (RBAC) System COMPLETE ✅
+**Yapılanlar:**
+- **Server-Side Route Protection**: `/dashboard` page restricted to agent role only
+- **Client-Side Route Protection**: `/teamleader` page restricted to teamleader role only
+- **Role Guard Middleware**: Central `roleGuard.ts` utility with ROLE_ROUTES mapping
+- **Custom Access Denied Page**: Role-aware 403 page with automatic redirect to correct dashboard
+- **Shared Pages Navigation**: All 8 shared pages use `useDashboardUrl()` hook for dynamic routing
+- **Team Leader Dashboard**: Complete 8-card layout with Team Viewings, Team Revenue, Notifications
+- **Critical Bug Fixes**:
+  - Fixed profile query: `eq('user_id', user.id)` instead of `eq('id', user.id)`
+  - Fixed redirect loop: Dashboard URL state initialized as `null` not default string
+  - Fixed button race condition: Disabled state until role is fetched
+- **Security Documentation**: Complete `RBAC_SECURITY.md` with architecture, patterns, and test cases
+- **Memory Bank Updates**: systemPatterns.md, activeContext.md updated with RBAC patterns
+
+**Teknik Detaylar:**
+- **Protection Layers**:
+  1. Authentication: Supabase Auth session management
+  2. Authorization: Profile table `role` column
+  3. Server-side: `getProfile()` + `redirect('/access-denied')`
+  4. Client-side: `useEffect` + `router.push('/access-denied')`
+  5. UI/UX: Dynamic dashboard links prevent confusion
+
+- **Role Hierarchy**:
+  - `agent` → `/dashboard` (base level)
+  - `teamleader` → `/teamleader` (team oversight)
+  - `manager` → `/manager` (multi-team, placeholder)
+  - `boss` → `/boss` (executive, placeholder)
+  - `admin` → `/admin` (unrestricted access)
+
+- **Access Matrix**:
+  - Role-specific dashboards: One role only
+  - Shared pages: All authenticated roles
+  - Access-denied: Automatic role-based redirect
+
+- **Testing Verified**:
+  - ✅ Agent cannot access `/teamleader`
+  - ✅ Team Leader cannot access `/dashboard`
+  - ✅ Access-denied redirects to correct dashboard
+  - ✅ Shared pages accessible by all roles
+  - ✅ Dashboard links point to role-specific routes
+
 ### 06.12.2025 - Admin Panel Enhancement & Next.js 16 Security Migration COMPLETE ✅
 **Yapılanlar:**
 - **Next.js 16.0.7 Security Update**: CVE-2025-55182 (React2Shell) vulnerability patched

@@ -16,6 +16,7 @@ import { CheckCircle } from 'lucide-react'
 import { ExpiredBannerFromQuery } from '@/components/ui/ToastBanner'
 import HeaderTTL from '@/components/wizard/HeaderTTL'
 import { useWizardStore } from '@/lib/wizard/store'
+import { useDashboardUrl } from '@/lib/hooks/useDashboardUrl'
 
 // Lazy load wizard steps
 const StartContent = dynamic(() => import('./_components/StartContent'), {
@@ -51,6 +52,7 @@ const Step5ShareReels = dynamic(() => import('@/components/wizard/step5-share-re
 function NewPostContent() {
   const searchParams = useSearchParams();
   const urlStep = Number(searchParams.get('step') || 1);
+  const { dashboardUrl } = useDashboardUrl();
 
   // jobId ve listingId'yi URL ve localStorage'dan normalize et
   const jobIdFromUrl = searchParams.get('jobId') ?? searchParams.get('job_id') ?? searchParams.get('job') ?? searchParams.get('id') ?? '';
@@ -104,11 +106,9 @@ function NewPostContent() {
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">Create New Post</h1>
           {/* HeaderTTL: her zaman göster */}
-          <div className="ml-2">
-            <HeaderTTL />
-          </div>
+          <HeaderTTL />
         </div>
-        <a href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
+        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>

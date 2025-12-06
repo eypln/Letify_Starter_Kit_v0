@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
 
 // Lazy load heavy components
 const Select = dynamic(() => import("react-select"), {
@@ -169,6 +170,7 @@ function ClientTeamworkShareButton({ clientId, clientName, isShared }: { clientI
 }
 
 export default function ClientsPage() {
+  const { dashboardUrl } = useDashboardUrl();
   // Ülke listesi react-select için options formatında
   // Parantez içindeki ifadeleri kaldır ve French ile başlayan tüm varyantları "France" olarak birleştir
   const countryOptions = getNames()
@@ -490,7 +492,7 @@ export default function ClientsPage() {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href="/dashboard" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>

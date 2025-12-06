@@ -19,15 +19,30 @@ App (Next.js)
 ├── Pages
 │   ├── Public (Sign-in, Sign-up, Home)
 │   ├── Protected (Dashboard, Profile, etc.)
+│   ├── Role-Based Dashboards (06.12.2025)
+│   │   ├── /dashboard (Agent only)
+│   │   ├── /teamleader (Team Leader only)
+│   │   ├── /manager (Manager only - placeholder)
+│   │   └── /boss (Boss only - placeholder)
+│   ├── Shared Pages (All authenticated roles)
+│   │   ├── /dashboard/profile
+│   │   ├── /dashboard/clients
+│   │   ├── /dashboard/listings
+│   │   └── ... (7 more shared pages)
+│   ├── Access Control
+│   │   └── /access-denied (Custom 403 page)
 │   └── API Routes (Stripe webhooks, N8N callbacks, Push notifications)
 ├── Components
 │   ├── UI (Reusable components)
 │   ├── Feature-specific (Upload, Billing, etc.)
+│   ├── System (RoleGuard - 06.12.2025)
 │   └── Layout (Header, Sidebar, etc.)
 └── Lib
     ├── Supabase (Client/Server)
     ├── Stripe (Configuration)
     ├── Push Notifications (Web Push API integration)
+    ├── Middleware (roleGuard.ts - RBAC)
+    ├── Hooks (useDashboardUrl - Role-aware routing)
     ├── Utils (Helpers)
     └── Validation (Zod schemas)
 ```
@@ -178,6 +193,118 @@ import { Analytics } from '@vercel/analytics/next'
 ```
 
 **Key Learning**: Always check analytics package imports when upgrading Next.js major versions
+
+### Role-Based Access Control (RBAC) Pattern (06.12.2025)
+
+**System Architecture:**
+```typescript
+// Role Hierarchy
+type UserRole = 'agent' | 'teamleader' | 'manager' | 'boss' | 'admin'
+
+// Route Mapping
+ROLE_ROUTES = {
+  agent: '/dashboard',
+  teamleader: '/teamleader',
+  manager: '/manager',
+  boss: '/boss',
+  admin: '/admin'
+}
+```
+
+**Protection Patterns:**
+
+1. **Server Component Protection (Static Routes):**
+```typescript
+// /app/dashboard/page.tsx
+export default async function Page() {
+  const profile = await getProfile(user?.id)
+  
+  // Role check at server level
+  if (profile.role !== 'agent') {
+    redirect('/access-denied')
+  }
+  // ... render page
+}
+```
+
+2. **Client Component Protection (Dynamic Routes):**
+```typescript
+// /app/(app)/teamleader/page.tsx
+useEffect(() => {
+  const checkAccess = async () => {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)  // CRITICAL: use 'user_id' not 'id'
+      .single()
+    
+    if (profileData?.role !== 'teamleader') {
+      router.push('/access-denied')
+    }
+  }
+  checkAccess()
+}, [])
+```
+
+3. **Shared Pages Pattern (Role-Aware Navigation):**
+```typescript
+// Custom hook for dynamic dashboard URL
+export function useDashboardUrl() {
+  const [url, setUrl] = useState('/dashboard')
+  
+  useEffect(() => {
+    async function fetchRole() {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+      
+      setUrl(getDashboardUrl(profile.role))
+    }
+    fetchRole()
+  }, [])
+  
+  return url
+}
+
+// Usage in shared components
+const dashboardUrl = useDashboardUrl()
+<Link href={dashboardUrl}>Back to Dashboard</Link>
+```
+
+**Critical Gotchas:**
+- ⚠️ **Database Column**: Use `eq('user_id', user.id)` NOT `eq('id', user.id)`
+- ⚠️ **State Race Condition**: Initialize dashboard URL as `null`, not `/dashboard`
+- ⚠️ **Button Disabled State**: Prevent clicks until role is fetched
+- ⚠️ **UI Language**: All user-facing text must be English
+
+**Access Denied Flow:**
+```
+User visits unauthorized route
+  ↓
+Server/Client detects wrong role
+  ↓
+Redirect to /access-denied
+  ↓
+Fetch user's actual role
+  ↓
+Show "Back to Dashboard" button
+  ↓
+Redirect to correct role dashboard
+```
+
+**Implemented Routes:**
+- ✅ `/dashboard` - Agent only
+- ✅ `/teamleader` - Team Leader only (8-card dashboard)
+  - Team Viewings (own + team table)
+  - Team Revenue (own + team table)
+  - Notifications (activity log)
+- ✅ `/manager` - Manager only (placeholder)
+- ✅ `/boss` - Boss only (placeholder)
+- ✅ Shared pages - All roles (Profile, Clients, Listings, etc.)
+
+**Documentation:** See `RBAC_SECURITY.md` for complete architecture
 
 ### Email Notification & Verification Pattern (24.11.2025)
 

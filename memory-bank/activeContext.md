@@ -2,11 +2,45 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (06.12.2025)
+### Ana Odak Alanları (06.12.2025) ✅ COMPLETED
+1. **Role-Based Access Control (RBAC) System**: 
+   - ✅ Server-side route protection (`/dashboard` - agent only)
+   - ✅ Client-side route protection (`/teamleader` - teamleader only)
+   - ✅ Shared pages with role-aware navigation (8 pages)
+   - ✅ Custom access-denied page with role-based redirect
+   - ✅ Critical bug fix: `eq('user_id', user.id)` for profile queries
+   - ✅ Button disabled state to prevent redirect loops
+   
+2. **Team Leader Dashboard**: 
+   - ✅ 8-card main dashboard layout
+   - ✅ Team Viewings page (own viewings + team table)
+   - ✅ Team Revenue page (own deals + team table)
+   - ✅ Notifications page (activity log with filtering)
+   
+3. **Documentation**: 
+   - ✅ `RBAC_SECURITY.md` - Complete security architecture
+   - ✅ Memory Bank updated with RBAC patterns
+   - ✅ Test scenarios documented and verified
+
+### Önceki Odak (06.12.2025)
 1. **Admin Panel User Management System**: Approved users table, block/unblock functionality
 2. **Next.js 16.0.7 Security Migration**: CVE-2025-55182 (React2Shell) vulnerability patched
 3. **Role-based UI Enhancement**: Color-coded role badges (admin, boss, teamleader, manager, agent)
 4. **Blocked Users Management**: Separate table and unblock functionality
+
+## ⚠️ CRITICAL POLICIES
+
+### UI Language Policy
+**ALL UI TEXT MUST BE IN ENGLISH** - No Turkish text in user-facing components, labels, buttons, or messages. Backend logs, code comments, and documentation can be in Turkish.
+
+### Database Query Pattern
+**ALWAYS use `eq('user_id', user.id)`** when querying profiles table. NOT `eq('id', user.id)`. This caused major redirect loop bug in access-denied page.
+
+### Role-Based Navigation
+All shared pages MUST use `useDashboardUrl()` hook for "Back to Dashboard" links. Never hardcode `/dashboard`.
+
+### State Management for Auth
+Initialize dashboard URL as `null`, not default string. Prevents race condition redirects.
 
 ### Önceki Odak (05.12.2025)
 1. **PWA Mobile Push Notification System**: Kritik discovery - Service Worker push event handling eksikti ✅

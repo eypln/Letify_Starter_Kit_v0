@@ -66,6 +66,11 @@ export default async function Page() {
 		redirect('/sign-in')
 	}
 
+	// Rol kontrolü: Sadece 'agent' rolü bu sayfaya erişebilir
+	if (profile.role !== 'agent') {
+		redirect('/access-denied')
+	}
+
 	const stats = await fetchDashboardStats(user.id)
 
 	return (
