@@ -254,14 +254,13 @@ export default function TeamViewingsPage() {
   async function getTeamViewings(currentPage = teamPage) {
     setTeamLoading(true);
     if (user?.id) {
-      // Get all viewings from all users with their profile names
+      // Get all viewings from all agents with their profile names
       const { data, error, count } = await supabase
         .from("viewings")
         .select(`
           *,
           profiles!viewings_user_id_fkey(full_name)
         `, { count: "exact" })
-        .neq("user_id", user.id) // Exclude current user's viewings
         .order("created_at", { ascending: false })
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
       

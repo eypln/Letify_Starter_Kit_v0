@@ -139,7 +139,36 @@ export default function AddDialog({}: AddDialogProps) {
   async function handleStart() {
     setLoading(true);
     try {
-      // Önce referans numarası ile daha önce oluşmuş bir listing var mı kontrol et
+      // Eğer referans numarası boşsa, otomatik olarak API'den al
+      let finalReferenceNo = referenceNo.trim();
+      
+      if (!finalReferenceNo) {
+        try {
+          const response = await fetch('/api/listings/next-reference');
+          if (response.ok) {
+            const { referenceNumber } = await response.json();
+            finalReferenceNo = referenceNumber;
+            setReferenceNo(referenceNumber);
+          } else {
+            toast({
+              title: 'Error',
+              description: 'Could not generate reference number. Please enter manually.',
+              variant: 'destructive',
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching reference number:', error);
+          toast({
+            title: 'Error',
+            description: 'Could not generate reference number. Please enter manually.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+      }
       
       // Oturumdaki kullanıcı id'sini al (her iki durum için de kullanılmak üzere en başta tanımlanıyor)
       const {
@@ -160,8 +189,9 @@ export default function AddDialog({}: AddDialogProps) {
       const { data: existingListing, error: findError } = await supabase
         .from('listings')
         .select('id')
-        .eq('title', referenceNo)
-        .single();
+        .eq('title', finalReferenceNo)
+        .eq('user_id', userId)
+        .maybeSingle();
       if (findError && findError.code !== 'PGRST116') {
             toast({
               title: 'Listing query error',
@@ -185,7 +215,7 @@ export default function AddDialog({}: AddDialogProps) {
             .insert([{
               user_id: userId,
               type: 'listing_updated',
-              data: { listing_id: finalListingId, title: referenceNo },
+              data: { listing_id: finalListingId, title: finalReferenceNo },
               created_at: new Date().toISOString(),
             }]);
         } catch (activityError) {
@@ -201,7 +231,7 @@ export default function AddDialog({}: AddDialogProps) {
         // Yeni listing oluştur (user_id, title, property_url, availability)
         const { data: newListing, error: createError } = await supabase
           .from('listings')
-          .insert({ user_id: userId, title: referenceNo, property_url: 'manual', availability: 'Available' })
+          .insert({ user_id: userId, title: finalReferenceNo, property_url: 'manual', availability: 'Available' })
           .select('id')
           .single();
         if (createError || !newListing) {
@@ -225,7 +255,7 @@ export default function AddDialog({}: AddDialogProps) {
             .insert([{
               user_id: userId,
               type: 'listing_created',
-              data: { listing_id: finalListingId, title: referenceNo },
+              data: { listing_id: finalListingId, title: finalReferenceNo },
               created_at: new Date().toISOString(),
             }]);
         } catch (activityError) {
@@ -240,7 +270,7 @@ export default function AddDialog({}: AddDialogProps) {
           mode: 'manual',
           listingId: finalListingId,
           sourceUrl: '',
-          title: referenceNo,
+          title: finalReferenceNo,
         }),
       });
       const { ok, jobId, message } = await res.json();
@@ -340,13 +370,13 @@ export default function AddDialog({}: AddDialogProps) {
   const [startDone, setStartDone] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
 
-  // Calculate suggested next reference number when dialog opens
+  // Fetch suggested next number when dialog opens (for display only)
   useEffect(() => {
-    async function fetchNextReferenceNumber() {
+    async function fetchSuggestedNumber() {
       if (!open) return;
       
       try {
-        // Query database for all listings with manual reference numbers (L1, L2, L3, etc.)
+        // Query database for the highest L number (for display purposes only)
         const { data, error } = await supabase
           .from('listings')
           .select('title')
@@ -354,15 +384,15 @@ export default function AddDialog({}: AddDialogProps) {
 
         if (error) {
           console.error('Error fetching reference numbers:', error);
-          setSuggestedNextNumber(1);
+          setSuggestedNextNumber(null);
           return;
         }
 
         // Extract numeric parts from reference numbers
         const manualReferences = (data || [])
           .map(l => l.title)
-          .filter((title): title is string => title !== null && /^L\d+$/i.test(title)) // Match L1, L2, L3, etc.
-          .map(title => parseInt(title.substring(1))) // Extract number part after "L"
+          .filter((title): title is string => title !== null && /^L\d+$/i.test(title))
+          .map(title => parseInt(title.substring(1)))
           .filter(num => !isNaN(num));
 
         if (manualReferences.length > 0) {
@@ -373,18 +403,14 @@ export default function AddDialog({}: AddDialogProps) {
         }
       } catch (error) {
         console.error('Unexpected error:', error);
-        setSuggestedNextNumber(1);
+        setSuggestedNextNumber(null);
       }
     }
 
-    fetchNextReferenceNumber();
+    fetchSuggestedNumber();
   }, [open, supabase]);
 
-  const handleUseSuggested = () => {
-    if (suggestedNextNumber !== null) {
-      setReferenceNo(`L${suggestedNextNumber}`);
-    }
-  };
+
 
   function onFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []).slice(0, 15);
@@ -595,21 +621,19 @@ export default function AddDialog({}: AddDialogProps) {
               <div className="col-span-2">
                 <label className="text-xs text-gray-600">Reference No</label>
                 
-                <input className="w-full border rounded-md px-3 py-2 mb-2" value={referenceNo} onChange={e=>setReferenceNo(e.target.value)} required />
+                <input 
+                  className="w-full border rounded-md px-3 py-2 mb-2" 
+                  value={referenceNo} 
+                  onChange={e => setReferenceNo(e.target.value)}
+                  placeholder={suggestedNextNumber ? `Leave empty for auto L${suggestedNextNumber}, or enter manual (e.g., 86647)` : "e.g., L4 or 86647"}
+                />
                 
-                {suggestedNextNumber !== null && (
-                  <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-md text-sm">
-                    <Info className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                    <span className="text-purple-700 text-xs">
-                      Last used manual reference no: L{suggestedNextNumber - 1}
+                {suggestedNextNumber !== null && !referenceNo && (
+                  <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md text-sm">
+                    <Info className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-green-700 text-xs flex-1">
+                      If you leave this empty, <strong>L{suggestedNextNumber}</strong> will be automatically assigned when you click Start.
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleUseSuggested}
-                      className="ml-auto px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                    >
-                      Use L{suggestedNextNumber}
-                    </button>
                   </div>
                 )}
               </div>
