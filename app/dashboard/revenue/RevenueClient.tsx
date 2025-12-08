@@ -134,7 +134,7 @@ export default function RevenueClient({ user }: { user: User }) {
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
-    vat_type: 'vatable',
+    vat_type: 'non-vatable',
     date_rented: "",
     date_signed: "",
     date_move_in: "",
@@ -319,7 +319,7 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
-      vat_type: 'vatable',
+      vat_type: 'non-vatable',
       date_rented: "",
       date_signed: "",
       date_move_in: "",
@@ -379,6 +379,17 @@ export default function RevenueClient({ user }: { user: User }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields: Ref No, Client Name, Rent Amount, Date Rented, Date Signed, and Date Move In",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -659,7 +670,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 1: Ref No, Client Name */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Ref No</label>
+                    <label className="block text-sm font-medium mb-1">Ref No <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from listings or type manually..."
@@ -681,7 +692,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: '#d1d5db',
+                          borderColor: form.ref_no ? '#d1d5db' : '#ef4444',
                         }),
                       }}
                     />
@@ -690,7 +701,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Name</label>
+                    <label className="block text-sm font-medium mb-1">Client Name <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from clients or type manually..."
@@ -712,7 +723,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: '#d1d5db',
+                          borderColor: form.client_name ? '#d1d5db' : '#ef4444',
                         }),
                       }}
                     />
@@ -808,33 +819,36 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 3: Date Rented, Date Signed, Date Move In */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Rented</label>
+                    <label className="block text-sm font-medium mb-1">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
                       onChange={(date) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Signed</label>
+                    <label className="block text-sm font-medium mb-1">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
                       onChange={(date) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Move In</label>
+                    <label className="block text-sm font-medium mb-1">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
                       onChange={(date) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
+                      required
                     />
                   </div>
                 </div>

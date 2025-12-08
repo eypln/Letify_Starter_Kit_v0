@@ -3,6 +3,138 @@
 
 ## Ne Çalışıyor ✅
 
+### 08.12.2025 - Manager Notifications & Deal Management System COMPLETE ✅
+**Yapılanlar:**
+- **Manager Notifications Page (6th Card)**:
+  - Bell icon card on manager dashboard
+  - Deal-only filtering: new_revenue_added, deal_finalized
+  - UI format: "{Agent Name} added/finalized deal for {ref_no} - {client_name/rent_amount}"
+  - Pagination: 50 records per page
+  - Auto-refresh on new activity
+
+- **Edit Deal Functionality for Elevated Users**:
+  - EditDealModal component (637 lines) with identical calculation logic to agent's Add Deal form
+  - Actions column added to TeamRevenueClient (teamleader) and ManagerTeamRevenueClient (manager)
+  - Edit button opens modal with pre-filled data
+  - Real-time calculation preview: Landlord Fee + Client Fee + Listing Fee + Agent Income + Tax
+  - Form fields: Ref No, Client Name, Rent Amount, VAT Type, Discounts, Dates, Payment Dates, Collaboration, Inform Boss
+  - Success callback refreshes team revenue table
+
+- **Deal Finalized Notification System**:
+  - Trigger: When "Inform Boss" checkbox checked AND both payment dates filled
+  - Recipients: Boss + Manager + Teamleader (all elevated users)
+  - Activity log type: "deal_finalized" (replaces "revenue_updated" when finalized)
+  - Push notification: 💰 Deal Finalized - "{Agent} finalized the deal for {ref_no} - €{rent_amount}"
+  - Email notification: Detailed revenue summary with all fee breakdowns
+  - UI notification: Shows in Manager & Teamleader notifications pages
+  - Database flag: boss_notified prevents duplicate notifications
+
+- **Agent Revenue Form Validation**:
+  - 6 required fields: Ref No, Client Name, Rent Amount, Date Rented, Date Signed, Date Move In
+  - Visual indicators: Red asterisk (*) on labels, red border on empty fields
+  - Submit validation: Toast error message if any required field is empty
+  - Client-side validation prevents form submission until all required fields filled
+
+- **VAT Type System Enhancement**:
+  - Database migration: Added vat_type column (TEXT with CHECK constraint)
+  - Three options: 'vatable' (40%), 'part-time' (36%), 'non-vatable' (32%)
+  - Default value changed: 'vatable' → 'non-vatable' in form initialization and resetForm()
+  - Backward compatibility: Existing vatable boolean preserved, auto-converted to vat_type
+  - Calculation update: Tax computed based on vat_type (0%, 10%, 20%)
+
+- **API Permission & Calculation Updates**:
+  - PUT /api/revenue: Role-based permission checking for elevated users
+  - Removed user_id restriction for teamleader/manager/boss/admin
+  - Updated calculation logic to match agent's exact formula
+  - vat_type parameter support with backward compatibility
+  - Activity logging: Conditional type (deal_finalized vs revenue_updated)
+
+- **RLS Policy Updates**:
+  - Revenue UPDATE policy: `USING (user_id = auth.uid() OR is_elevated_user())`
+  - Boss/Manager/Teamleader can update ANY revenue record
+  - Normal agents can only update OWN records
+  - SQL migration file: update_revenue_update_policy.sql
+
+- **Push Notification Message Improvements**:
+  - New Deal Added: 🎉 "{Agent} closed a deal for {ref_no} - {client_name} - €{rent_amount}"
+  - Deal Finalized: 💰 "{Agent} finalized the deal for {ref_no} - €{rent_amount}"
+  - Recipients: All elevated users (boss, manager, teamleader)
+  - Notification data includes: type, ref_no, agent_name, rent_amount, client_name, url
+
+**Teknik Detaylar:**
+- **EditDealModal Component**:
+  ```typescript
+  // Location: /app/(app)/teamleader/team-revenue/EditDealModal.tsx
+  // Props: revenue (Revenue object), onClose, onSuccess
+  // State: Form data, dates, calculated fees
+  // Calculation: totalRevenue = landlord_fee + client_fee, agent_gross = totalRevenue * 0.40
+  // Tax: vatable (0%), part-time (10%), non-vatable (20%)
+  ```
+
+- **Manager Notifications Query**:
+  ```typescript
+  supabase.from("activity")
+    .select(`id, type, data, created_at, profiles!activity_user_id_fkey(full_name)`)
+    .in("type", ["new_revenue_added", "deal_finalized"])
+    .order("created_at", { ascending: false })
+  ```
+
+- **Deal Finalized Logic**:
+  ```typescript
+  const isDealFinalized = inform_boss_after_both_sides_paid && landlord_paid_date && client_paid_date;
+  await logActivity(supabase, {
+    user_id,
+    type: isDealFinalized ? 'deal_finalized' : 'new_revenue_added',
+    data: { ref_no, client_name, rent_amount: rentAmountNum }
+  });
+  if (isDealFinalized) await sendBossNotification(supabase, user_id, data);
+  ```
+
+- **Form Validation**:
+  ```typescript
+  if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+    toast({ title: "Validation Error", description: "Please fill in all required fields...", variant: "destructive" });
+    return;
+  }
+  ```
+
+- **VAT Type Database Migration**:
+  ```sql
+  ALTER TABLE revenue ADD COLUMN IF NOT EXISTS vat_type TEXT DEFAULT 'vatable' 
+    CHECK (vat_type IN ('vatable', 'part-time', 'non-vatable'));
+  UPDATE revenue SET vat_type = CASE 
+    WHEN vatable = true THEN 'vatable'
+    WHEN vatable = false THEN 'non-vatable'
+    ELSE 'vatable' END
+  WHERE vat_type IS NULL;
+  ```
+
+**Testing Verified**:
+- ✅ Manager 6th card (Notifications) displays correctly
+- ✅ Notifications filter shows only deal-related activity
+- ✅ Teamleader can edit team member's deals
+- ✅ Manager can edit any team deal
+- ✅ Edit modal calculations match agent's Add Deal form
+- ✅ Deal Finalized notifications sent to all elevated users
+- ✅ Push notifications arrive on mobile with correct emoji and format
+- ✅ Agent cannot submit form without 6 required fields
+- ✅ VAT Type defaults to Non-Vatable (32%)
+- ✅ RLS policies allow elevated users to update any revenue
+- ✅ Backward compatibility: Old vatable boolean still works
+- ✅ Production build successful (105 pages, 17.9s)
+
+**Files Created/Modified**:
+- Created: `/app/(app)/manager/notifications/page.tsx` (245 lines)
+- Created: `/app/(app)/teamleader/team-revenue/EditDealModal.tsx` (637 lines)
+- Created: `/update_revenue_update_policy.sql` (RLS policy update)
+- Created: `/add_vat_type_column.sql` (database migration)
+- Modified: `/app/(app)/manager/page.tsx` (added 6th Notifications card)
+- Modified: `/app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx` (Edit functionality)
+- Modified: `/app/(app)/manager/team-revenue/ManagerTeamRevenueClient.tsx` (Edit functionality)
+- Modified: `/app/(app)/teamleader/notifications/page.tsx` (deal_finalized case)
+- Modified: `/app/api/revenue/route.ts` (permissions, vat_type, calculations, notifications)
+- Modified: `/app/dashboard/revenue/RevenueClient.tsx` (validation, VAT default)
+
 ### 08.12.2025 - Manager Dashboard Implementation COMPLETE ✅
 **Yapılanlar:**
 - **Manager Dashboard**: Card-based UI with 5 main sections

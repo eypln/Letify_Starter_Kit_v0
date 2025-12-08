@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import EditDealModal from "./EditDealModal";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -1032,7 +1033,10 @@ function TeamRevenueTable() {
     "Client Paid",
     "Collaboration",
     "Inform Boss",
+    "Actions",
   ];
+  
+  const [editingRevenue, setEditingRevenue] = useState<Revenue | null>(null);
 
   useEffect(() => {
     async function fetchTeamRevenues() {
@@ -1285,12 +1289,59 @@ function TeamRevenueTable() {
                       className="h-4 w-4"
                     />
                   </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">
+                    <button
+                      onClick={() => setEditingRevenue(revenue)}
+                      className="text-purple-600 hover:text-purple-900 font-medium flex items-center gap-1"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      
+      {/* Edit Deal Modal */}
+      {editingRevenue && (
+        <EditDealModal
+          revenue={editingRevenue}
+          onClose={() => setEditingRevenue(null)}
+          onSuccess={() => {
+            setEditingRevenue(null);
+            // Refresh data
+            async function refreshData() {
+              const { data: revenueData } = await supabase
+                .from("revenue")
+                .select("*")
+                .order("created_at", { ascending: false });
+              
+              if (revenueData) {
+                const userIds = [...new Set(revenueData.map(r => r.user_id))];
+                const { data: profilesData } = await supabase
+                  .from("profiles")
+                  .select("user_id, full_name")
+                  .in("user_id", userIds);
+                
+                const profileMap = new Map(
+                  profilesData?.map(p => [p.user_id, p.full_name]) || []
+                );
+                
+                const mappedData = revenueData.map((revenue: any) => ({
+                  ...revenue,
+                  agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+                }));
+                
+                setAllRevenues(mappedData);
+              }
+            }
+            refreshData();
+          }}
+        />
+      )}
 
       {/* Pagination */}
       {pageCount > 1 && (

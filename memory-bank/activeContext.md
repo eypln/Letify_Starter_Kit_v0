@@ -2,8 +2,19 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (08.12.2025) ✅ COMPLETED
-1. **Manager Dashboard System**:
+### Ana Odak Alanları (08.12.2025) ✅ COMPLETED - LATEST SESSION
+1. **Manager Dashboard Notifications & Deal Management**:
+   - ✅ Manager notifications page (6th card) with deal-only filtering
+   - ✅ Edit Deal functionality for Teamleader & Manager (team revenue pages)
+   - ✅ Deal Finalized notification system (Push + UI + Email)
+   - ✅ Agent revenue form validation (6 required fields)
+   - ✅ VAT Type default changed to Non-Vatable (32%)
+   - ✅ Push notification message improvements with emojis
+   - ✅ Database column migration (vat_type TEXT with CHECK constraint)
+   - ✅ RLS policy updates for elevated user permissions
+   - ✅ Production build successful
+
+2. **Manager Dashboard System** (Previous):
    - ✅ Complete manager dashboard with 5 cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports)
    - ✅ RBAC security on all manager routes
    - ✅ Manager-specific pages without add/edit functions (monitoring only)
@@ -138,6 +149,116 @@ When implementing features that allow users to act on behalf of others (e.g., te
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 08.12.2025 - Manager Notifications & Deal Management - COMPLETE ✅
+**Feature**: Manager notifications page, Edit Deal for elevated users, Deal Finalized system
+**Scope**: 6th dashboard card, EditDealModal, form validation, VAT type system, push notifications
+**Deployment**: Production build başarılı (17.9s with Turbopack, 105 pages)
+**Status**: Tüm features tamamlandı, database migrations executed
+
+#### Manager Notifications Page (6th Card):
+**Requirement**: "Manager dashboarduna 6. kart olarak Notifications sayfası ekle, sadece deal notifications göster"
+
+**Implementation**:
+1. **Dashboard Card**: Bell icon card added to `/app/(app)/manager/page.tsx`
+2. **Notifications Page**: `/app/(app)/manager/notifications/page.tsx` (245 lines)
+3. **Filtering**: Only shows `new_revenue_added` and `deal_finalized` types
+4. **UI Format**: 
+   - New Deal: "{Agent} added a deal for {ref_no} - {client_name}"
+   - Deal Finalized: "{Agent} finalized the deal for {ref_no} - €{rent_amount}"
+5. **Pagination**: 50 records per page with next/previous buttons
+
+#### Edit Deal Functionality for Elevated Users:
+**Requirement**: "Teamleader ve manager team revenue sayfasında deal'leri düzenleyebilsin"
+
+**Implementation**:
+1. **EditDealModal Component**: Standalone modal in `/app/(app)/teamleader/team-revenue/EditDealModal.tsx` (637 lines)
+2. **Integration**:
+   - TeamRevenueClient: Actions column with Edit button
+   - ManagerTeamRevenueClient: Same implementation
+3. **Calculation Logic**: Matches agent's Add Deal form exactly
+   ```typescript
+   landlord_fee = (rent_amount / 2) * (discount ? 0.85 : 1)
+   client_fee = (rent_amount / 2) * (discount ? 0.85 : 1)
+   totalRevenue = landlord_fee + client_fee
+   agent_gross = totalRevenue * 0.40
+   ```
+4. **API Permission Fix**: 
+   - Role-based checking in PUT /api/revenue
+   - Elevated users can update ANY revenue record
+   - Query conditionally applies `.eq('user_id', user_id)` only for non-elevated users
+
+#### Deal Finalized Notification System:
+**Requirement**: "Inform Boss kutucuğu işaretli ve her iki taraf ödediyse Deal Finalized notification gitsin"
+
+**Implementation**:
+1. **Trigger Condition**: `inform_boss_after_both_sides_paid=true AND landlord_paid_date AND client_paid_date`
+2. **Activity Log**: Type changes from `new_revenue_added`/`revenue_updated` to `deal_finalized`
+3. **Recipients**: Boss + Manager + Teamleader (all elevated users)
+4. **Channels**:
+   - Email: Detailed revenue summary with fee breakdowns
+   - Push Notification: "💰 Deal Finalized - {Agent} finalized the deal for {ref_no} - €{rent_amount}"
+   - UI Notification: Shows in Manager & Teamleader notifications pages
+5. **Database Flag**: `boss_notified` prevents duplicate notifications
+
+#### Agent Revenue Form Validation:
+**Requirement**: "Agent revenue formunda Ref No, Client Name, Rent Amount, Date Rented, Date Signed, Date Move In zorunlu olsun"
+
+**Implementation**:
+1. **Required Fields**: 6 fields marked with red asterisk (*)
+2. **Visual Feedback**: Red border on empty required fields
+3. **Submit Validation**: 
+   ```typescript
+   if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+     toast({ title: "Validation Error", description: "Please fill in all required fields...", variant: "destructive" });
+     return;
+   }
+   ```
+4. **User Experience**: Form cannot be submitted until all required fields are filled
+
+#### VAT Type System Enhancement:
+**Requirement**: "VAT Type default'u Non-Vatable (32%) olsun, veritabanında vat_type kolonu olsun"
+
+**Implementation**:
+1. **Database Migration**: 
+   ```sql
+   ALTER TABLE revenue ADD COLUMN vat_type TEXT DEFAULT 'vatable' 
+     CHECK (vat_type IN ('vatable', 'part-time', 'non-vatable'));
+   ```
+2. **Data Migration**: Converted existing vatable boolean to vat_type
+3. **Form Default**: Changed from 'vatable' to 'non-vatable' in both useState and resetForm
+4. **Tax Calculation**:
+   - vatable (40%): tax = 0, net = gross
+   - part-time (36%): tax = gross * 0.10, net = gross * 0.90
+   - non-vatable (32%): tax = gross * 0.20, net = gross * 0.80
+5. **Backward Compatibility**: Old vatable boolean preserved and auto-converted
+
+#### RLS Policy Updates:
+**Implementation**:
+1. **Revenue UPDATE Policy**:
+   ```sql
+   CREATE POLICY "revenue_update_policy" ON revenue FOR UPDATE TO authenticated
+   USING (user_id::uuid = auth.uid() OR is_elevated_user())
+   WITH CHECK (user_id::uuid = auth.uid() OR is_elevated_user());
+   ```
+2. **Permission Structure**: Elevated users (teamleader, manager, boss, admin) can update ANY record
+3. **Security**: Normal agents can only update OWN records
+
+#### Push Notification Improvements:
+**Implementation**:
+1. **New Deal Added**: 
+   - Title: "🎉 New Deal Added"
+   - Body: "{Agent} closed a deal for {ref_no} - {client_name} - €{rent_amount}"
+2. **Deal Finalized**:
+   - Title: "💰 Deal Finalized"
+   - Body: "{Agent} finalized the deal for {ref_no} - €{rent_amount}"
+3. **Recipients**: All elevated users (boss, manager, teamleader) with user_id fetched directly from profiles query
+
+**Technical Details**:
+- **Files Created**: 4 (notifications page, EditDealModal, 2 SQL migrations)
+- **Files Modified**: 6 (manager dashboard, team revenue clients, notifications, API route, agent revenue form)
+- **Database Changes**: 2 (vat_type column + RLS policy update)
+- **API Changes**: PUT method permission logic + vat_type parameter + calculation update
 
 ### 07-08.12.2025 - Team Viewing Agent Management & Revenue Charts - COMPLETE ✅
 **Feature**: Teamleader can add viewings for agents, revenue goal visualization

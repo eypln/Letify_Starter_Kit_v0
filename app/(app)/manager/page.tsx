@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { LogOut, Settings, Users2, Calendar, Euro, FileText } from 'lucide-react'
+import { LogOut, Settings, Users2, Calendar, Euro, FileText, Bell } from 'lucide-react'
 
 export default function ManagerPage() {
   const router = useRouter()
@@ -180,6 +180,24 @@ export default function ManagerPage() {
               </div>
               <div className="p-6 pt-0">
                 <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Reports</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Notifications Card */}
+          <Link href="/manager/notifications" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Bell className="h-6 w-6 text-purple-600" />
+                  <span>Notifications</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Track team deal activities
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
               </div>
             </div>
           </Link>

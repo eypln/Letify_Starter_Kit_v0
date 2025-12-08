@@ -160,15 +160,18 @@ export async function POST(req: Request) {
     .single();
 
   if (!error) {
-    // Log activity
+    // Check if deal is finalized (both sides paid and inform_boss checked)
+    const isDealFinalized = inform_boss_after_both_sides_paid && landlord_paid_date && client_paid_date;
+
+    // Log activity - use deal_finalized if both sides paid and inform_boss checked
     await logActivity(supabase, {
       user_id,
-      type: 'new_revenue_added',
+      type: isDealFinalized ? 'deal_finalized' : 'new_revenue_added',
       data: { ref_no, client_name, rent_amount: rentAmountNum }
     });
 
-    // Send email to boss if both sides paid and inform_boss is checked
-    if (inform_boss_after_both_sides_paid && landlord_paid_date && client_paid_date) {
+    // Send email and push notification to boss if deal is finalized
+    if (isDealFinalized) {
       await sendBossNotification(supabase, user_id, data);
     }
   }
@@ -194,6 +197,7 @@ export async function PUT(req: Request) {
     client_discount,
     has_listing_fee,
     vatable,
+    vat_type,
     date_rented,
     date_signed,
     date_move_in,
@@ -238,41 +242,68 @@ export async function PUT(req: Request) {
   // Listing fee is 5% of rent amount if has_listing_fee is true
   const listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
 
-  // Agent income calculation (always start from 40%)
-  let agent_income = rentAmountNum * 0.40;
+  // Calculate total revenue (with discounts applied)
+  const totalRevenue = landlord_fee + client_fee;
   
-  // Reduce agent income based on discounts
-  // If landlord has 15% discount, reduce agent income by 7.5%
-  // If client has 15% discount, reduce agent income by 7.5%
-  let agent_income_reduction = 0;
-  if (landlord_discount) {
-    agent_income_reduction += 0.075; // 7.5%
-  }
-  if (client_discount) {
-    agent_income_reduction += 0.075; // 7.5%
-  }
+  // Agent income calculation: Always 40% of total revenue (gross)
+  const agent_income_gross = totalRevenue * 0.40;
   
-  if (agent_income_reduction > 0) {
-    agent_income = agent_income * (1 - agent_income_reduction);
-  }
-
-  // Agent TAX calculation
+  // Agent TAX calculation based on VAT type
   let agent_tax = 0;
-  if (!vatable) {
-    // Non-vatable: Agent pays 20% tax on their income
-    agent_tax = agent_income * 0.20;
-    // Reduce agent income by the tax amount (net income)
-    agent_income = agent_income - agent_tax;
+  let agent_income = agent_income_gross;
+  
+  // Determine vat_type (use new vat_type if provided, otherwise convert old vatable boolean)
+  let finalVatType = vat_type;
+  if (!vat_type && vatable !== undefined) {
+    finalVatType = vatable ? 'vatable' : 'non-vatable';
   }
-  // If vatable, no tax deduction needed (already handled by company)
+  if (!finalVatType) {
+    finalVatType = 'vatable'; // default
+  }
+  
+  if (finalVatType === 'vatable') {
+    // Vatable (40%): No tax deduction - agent keeps full 40%
+    agent_tax = 0;
+    agent_income = agent_income_gross;
+  } else if (finalVatType === 'part-time') {
+    // Part Time (36%): 10% tax on gross income
+    agent_tax = agent_income_gross * 0.10;
+    agent_income = agent_income_gross - agent_tax; // Net = 36% of total revenue
+  } else if (finalVatType === 'non-vatable') {
+    // Full Time / Non-Vatable (32%): 20% tax on gross income
+    agent_tax = agent_income_gross * 0.20;
+    agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
+  }
 
-  // Get previous record to check if boss notification is needed
-  const { data: prevRecord } = await supabase
-    .from('revenue')
-    .select('*')
-    .eq('id', id)
+  // Get user role to check permissions
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('role')
     .eq('user_id', user_id)
     .single();
+
+  const userRole = userProfile?.role;
+  const isElevatedUser = ['teamleader', 'manager', 'boss', 'admin'].includes(userRole || '');
+
+  // Get previous record to check if boss notification is needed
+  // Elevated users can update any revenue, normal users can only update their own
+  let prevRecordQuery = supabase
+    .from('revenue')
+    .select('*')
+    .eq('id', id);
+  
+  if (!isElevatedUser) {
+    prevRecordQuery = prevRecordQuery.eq('user_id', user_id);
+  }
+  
+  const { data: prevRecord } = await prevRecordQuery.single();
+
+  if (!prevRecord) {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Revenue record not found or you do not have permission to update it' 
+    }, { status: 404 });
+  }
 
   const updateData = {
     ref_no: ref_no ?? null,
@@ -286,7 +317,8 @@ export async function PUT(req: Request) {
     has_listing_fee: has_listing_fee ?? false,
     agent_income,
     agent_tax,
-    vatable: vatable ?? true,
+    vat_type: finalVatType,
+    vatable: vatable ?? true, // Keep for backward compatibility
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,
     date_move_in: date_move_in ?? null,
@@ -296,25 +328,31 @@ export async function PUT(req: Request) {
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
   };
 
-  const { data, error } = await supabase
+  // Update query - elevated users can update any revenue
+  let updateQuery = supabase
     .from('revenue')
     .update(updateData)
-    .eq('id', id)
-    .eq('user_id', user_id)
+    .eq('id', id);
+  
+  if (!isElevatedUser) {
+    updateQuery = updateQuery.eq('user_id', user_id);
+  }
+
+  const { data, error } = await updateQuery
     .select()
     .single();
 
   if (!error) {
-    // Log activity
-    await logActivity(supabase, {
-      user_id,
-      type: 'revenue_updated',
-      data: { ref_no, client_name }
-    });
-
     // Check if boss notification is needed
     const bothDatesPaid = landlord_paid_date && client_paid_date;
     const shouldNotify = inform_boss_after_both_sides_paid && bothDatesPaid && !prevRecord?.boss_notified;
+
+    // Log activity - use deal_finalized if shouldNotify is true
+    await logActivity(supabase, {
+      user_id,
+      type: shouldNotify ? 'deal_finalized' : 'revenue_updated',
+      data: { ref_no, client_name, rent_amount: rentAmountNum }
+    });
 
     if (shouldNotify) {
       await sendBossNotification(supabase, user_id, data);
@@ -363,18 +401,25 @@ async function sendBossNotification(supabase: SupabaseClient, user_id: string, r
     // Get boss users
     const { data: bossUsers } = await supabase
       .from('profiles')
-      .select('email, full_name')
-      .eq('role', 'Boss');
+      .select('email, full_name, user_id')
+      .eq('role', 'boss');
+
+    // Get manager users
+    const { data: managerUsers } = await supabase
+      .from('profiles')
+      .select('email, full_name, user_id')
+      .eq('role', 'manager');
 
     // Get team leader users
     const { data: teamLeaderUsers } = await supabase
       .from('profiles')
-      .select('email, full_name')
+      .select('email, full_name, user_id')
       .eq('role', 'teamleader');
 
-    // Combine both Boss and Team Leader users
+    // Combine Boss, Manager, and Team Leader users
     const allRecipients = [
       ...(bossUsers || []),
+      ...(managerUsers || []),
       ...(teamLeaderUsers || [])
     ];
 
@@ -402,24 +447,19 @@ async function sendBossNotification(supabase: SupabaseClient, user_id: string, r
             html: emailHtml,
           });
 
-          // Send push notification
-          const { data: recipientProfile } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('email', recipient.email)
-            .single();
-
-          if (recipientProfile?.user_id) {
-            await sendBossNotificationPush(recipientProfile.user_id, {
-              title: '💰 Revenue Completed',
-              body: `${agentName} completed revenue for ${revenueData.ref_no}. Both sides paid!`,
+          // Send push notification (user_id already available from select query)
+          if (recipient.user_id) {
+            await sendBossNotificationPush(recipient.user_id, {
+              title: '💰 Deal Finalized',
+              body: `${agentName} finalized the deal for ${revenueData.ref_no} - €${revenueData.rent_amount || 0}`,
               icon: '/icons/Logo/192.png',
               badge: '/icons/Logo/96.png',
-              tag: 'boss-revenue-notification',
+              tag: 'deal-finalized-notification',
               data: {
-                type: 'boss_revenue_completed',
+                type: 'deal_finalized',
                 ref_no: revenueData.ref_no,
                 agent_name: agentName,
+                rent_amount: revenueData.rent_amount,
                 url: '/dashboard/revenue',
               },
             });
