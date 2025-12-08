@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ErrorShield>{children}</ErrorShield>
           </ErrorBoundary>
         </ToastRoot>
-        <Analytics />
+        <Analytics mode={process.env.NODE_ENV === 'production' ? 'production' : 'development'} />
       </body>
     </html>
   );
