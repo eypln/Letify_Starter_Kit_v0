@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { LogOut, Settings, Users2, Calendar, Euro, FileText, Bell } from 'lucide-react'
 
 export default function BossPage() {
   const router = useRouter()
   const supabase = createClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [profile, setProfile] = useState<{ full_name?: string; email?: string } | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -21,15 +23,21 @@ export default function BossPage() {
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name')
         .eq('user_id', user.id)
         .single()
 
-      if (profile?.role !== 'boss') {
+      if (profileData?.role !== 'boss') {
         router.push('/access-denied')
+        return
       }
+
+      setProfile({
+        full_name: profileData.full_name || undefined,
+        email: user.email || undefined
+      })
     }
 
     checkAccess()
@@ -63,7 +71,7 @@ export default function BossPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Logout Button */}
         <div className="flex justify-end mb-4">
           <button
@@ -76,21 +84,123 @@ export default function BossPage() {
           </button>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Boss Dashboard</h1>
-        <p className="text-gray-600 mb-8">Welcome to your Boss workspace</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            Welcome, {profile?.full_name || profile?.email?.split('@')[0] || 'Boss'}!
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Oversee teams, approve payments, and manage operations
+          </p>
+        </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
-          <div className="text-center">
-            <div className="text-6xl mb-4">💼</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Boss Features Coming Soon</h2>
-            <p className="text-gray-600">This section is under development. Features will include:</p>
-            <ul className="mt-4 space-y-2 text-gray-600 max-w-md mx-auto">
-              <li>• Approve revenue completions</li>
-              <li>• Receive revenue notifications</li>
-              <li>• View business analytics</li>
-              <li>• Monitor financials</li>
-            </ul>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Link href="/boss/profile" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Settings className="h-6 w-6 text-purple-600" />
+                  <span>Profile</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Account settings and integrations
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Teamwork Card */}
+          <Link href="/boss/teamwork" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Users2 className="h-6 w-6 text-purple-600" />
+                  <span>Teamwork</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Collaborate with your teams
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Collaborate</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Team Viewings Card */}
+          <Link href="/boss/team-viewings" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Calendar className="h-6 w-6 text-purple-600" />
+                  <span>Team Viewings</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Track team viewing records and schedule
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Team Revenue Card */}
+          <Link href="/boss/team-revenue" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Euro className="h-6 w-6 text-purple-600" />
+                  <span>Team Revenue</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Monitor team revenue and approve payments
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Reports Card */}
+          <Link href="/boss/reports" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                  <span>Reports</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Generate and view analytical reports
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Reports</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Notifications Card */}
+          <Link href="/boss/notifications" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Bell className="h-6 w-6 text-purple-600" />
+                  <span>Notifications</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Track team deal activities
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

@@ -2,8 +2,21 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (08.12.2025) ✅ COMPLETED - LATEST SESSION
-1. **Manager Dashboard Notifications & Deal Management**:
+### Ana Odak Alanları (08.12.2025) ✅ COMPLETED - BOSS DASHBOARD SESSION
+1. **Boss Dashboard System with Agent Payment Feature**:
+   - ✅ Complete Boss dashboard with 5 cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports, Notifications)
+   - ✅ All pages identical to Manager (UI consistency maintained)
+   - ✅ Agent Payment Status column in Team Revenue table
+   - ✅ Pending/Paid dropdown in each revenue record
+   - ✅ Agent notification system: "Agency fee sent for {ref_no}"
+   - ✅ Push notification to agent when boss changes status to Paid
+   - ✅ Database migration: agent_payment_status column (TEXT CHECK constraint)
+   - ✅ API endpoint: /api/revenue/notify-agent-payment
+   - ✅ EditDealModal updates sync to agent's revenue page
+   - ✅ RBAC security on all boss routes
+   - ✅ Production build successful (113 pages)
+
+2. **Manager Dashboard Notifications & Deal Management** (Previous)::
    - ✅ Manager notifications page (6th card) with deal-only filtering
    - ✅ Edit Deal functionality for Teamleader & Manager (team revenue pages)
    - ✅ Deal Finalized notification system (Push + UI + Email)
@@ -149,6 +162,102 @@ When implementing features that allow users to act on behalf of others (e.g., te
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 08.12.2025 - Boss Dashboard with Agent Payment System - COMPLETE ✅
+**Feature**: Boss dashboard implementation, Agent Payment column, notification system
+**Scope**: Complete boss dashboard suite, payment status tracking, agent notifications
+**Deployment**: Production build başarılı (16.0s with Turbopack, 113 pages)
+**Status**: Tüm features tamamlandı, UI consistency sağlandı
+
+#### Boss Dashboard Implementation:
+**Requirement**: "Boss sayfası Manager gibi olsun, Team Revenue'da Agent Payment kolonu olsun"
+
+**Implementation**:
+1. **Boss Dashboard**: Card-based UI with 5 sections (Profile, Teamwork, Team Viewings, Team Revenue, Reports, Notifications)
+2. **UI Consistency**: All pages copied from Manager to maintain same design language
+3. **RBAC Security**: 
+   - Server-side: `if (profile.role !== 'boss') redirect('/access-denied')`
+   - Client-side: `if (profileData?.role !== 'boss') router.push('/access-denied')`
+   - Middleware: ROLE_ROUTES includes boss: '/boss'
+4. **Dashboard Links**: All pages redirect to `/boss` dashboard
+
+#### Agent Payment Status Column:
+**Requirement**: "Team Revenue tablosuna Agent Payment kolonu ekle, Boss Paid seçince agent'a notification gitsin"
+
+**Implementation**:
+1. **Database Column**: `agent_payment_status TEXT DEFAULT 'pending' CHECK (agent_payment_status IN ('pending', 'paid'))`
+2. **UI Column**: 14th column in Team Revenue table (before Actions)
+3. **AgentPaymentDropdown Component**: 
+   - Inline dropdown in each revenue record
+   - Options: Pending (gray), Paid (green check icon)
+   - Auto-updates on change
+4. **Visual Design**:
+   ```typescript
+   Pending: gray badge, regular text
+   Paid: green badge with CheckCircle icon
+   ```
+
+#### Agent Notification System:
+**Requirement**: "Boss Paid seçtiğinde agent'a 'Agency fee sent for {ref_no}' notification gitsin"
+
+**Implementation**:
+1. **API Endpoint**: POST `/api/revenue/notify-agent-payment`
+2. **Request Body**: `{ revenue_id, agent_user_id, ref_no }`
+3. **Process**:
+   - Update agent_payment_status to 'paid'
+   - Log activity: type = 'agent_payment_sent'
+   - Send push notification to agent
+4. **Push Notification**:
+   - Title: "📧 Agency Fee Notification"
+   - Body: "Agency fee sent for {ref_no}"
+   - Icon: /icons/Logo/192.png
+   - Data: { type, ref_no, url: '/dashboard/revenue' }
+5. **Activity Log**: Tracks when boss sent payment notification
+
+#### EditDealModal Sync:
+**Requirement**: "Boss EditDealModal'da değişiklik yaptığında agent'ın revenue sayfası güncellensin"
+
+**Implementation**:
+1. **Boss Uses EditDealModal**: Same component as Teamleader/Manager
+2. **PUT /api/revenue**: Elevated user permissions allow boss to update any revenue
+3. **Bidirectional Sync**: 
+   - Boss edits → API updates revenue record → Agent sees updated data
+   - No separate sync needed, uses same database record
+4. **Real-time**: Agent page refreshes automatically via Supabase
+
+#### Boss Page Structure:
+**Files Created**:
+1. `/app/(app)/boss/page.tsx` - Main dashboard (209 lines)
+2. `/app/(app)/boss/profile/page.tsx` - Profile settings
+3. `/app/(app)/boss/teamwork/page.tsx` - Team collaboration
+4. `/app/(app)/boss/team-viewings/page.tsx` - Calendar + Records
+5. `/app/(app)/boss/team-revenue/page.tsx + BossTeamRevenueClient.tsx` - Agent Payment feature
+6. `/app/(app)/boss/reports/page.tsx` - Coming soon placeholder
+7. `/app/(app)/boss/notifications/page.tsx` - Deal notifications
+8. `/app/api/revenue/notify-agent-payment/route.ts` - Notification API
+9. `/add_agent_payment_status_column.sql` - Database migration
+
+**Technical Details**:
+- **Database Migration**:
+  ```sql
+  ALTER TABLE revenue ADD COLUMN IF NOT EXISTS agent_payment_status TEXT DEFAULT 'pending' 
+    CHECK (agent_payment_status IN ('pending', 'paid'));
+  UPDATE revenue SET agent_payment_status = 'pending' WHERE agent_payment_status IS NULL;
+  ```
+
+- **Payment Status Change Handler**:
+  ```typescript
+  const handlePaymentStatusChange = async (revenueId, newStatus, agentUserId, refNo) => {
+    await supabase.from('revenue').update({ agent_payment_status: newStatus }).eq('id', revenueId);
+    if (newStatus === 'paid') {
+      await fetch('/api/revenue/notify-agent-payment', {
+        method: 'POST',
+        body: JSON.stringify({ revenue_id: revenueId, agent_user_id: agentUserId, ref_no: refNo })
+      });
+    }
+    await getUserAndRevenues(page); // Refresh
+  };
+  ```
 
 ### 08.12.2025 - Manager Notifications & Deal Management - COMPLETE ✅
 **Feature**: Manager notifications page, Edit Deal for elevated users, Deal Finalized system
