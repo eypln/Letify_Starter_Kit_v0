@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { seoPages, generateOGMetadata } from '@/lib/seo'
+import packageJson from '@/package.json'
 
 export const metadata: Metadata = {
   title: seoPages.home.title,
@@ -32,6 +33,7 @@ export default function HomePage() {
       >
         Start
       </a>
+      <p className="mt-6 text-sm text-gray-400">Version {packageJson.version}</p>
     </main>
   )
 }

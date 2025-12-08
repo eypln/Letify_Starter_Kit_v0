@@ -3,7 +3,103 @@
 
 ## Ne Çalışıyor ✅
 
-### 08.12.2025 - Boss Dashboard with Agent Payment System COMPLETE ✅
+### v2.5.0 - Database Backup & Recovery System (08.01.2025) ✅
+**Yapılanlar:**
+- **Automated Database Backup System**:
+  - Client-side Supabase backup approach (no Pro plan required)
+  - Daily automated backups via Vercel Cron (2 AM UTC)
+  - Encrypted JSON export using Web Crypto API (AES-GCM)
+  - 30-day automatic retention policy
+  - Manual backup/restore npm scripts
+  - Comprehensive documentation in BACKUP_RECOVERY.md
+
+- **Backup Features**:
+  - Exports all 14 core tables (profiles, listings, clients, viewings, revenue, etc.)
+  - AES-GCM encryption with 256-bit key
+  - Backup format: `backup-YYYYMMDD-HHMMSS.json`
+  - Automatic cleanup of old backups (>30 days)
+  - Interactive restore with confirmation prompt
+
+- **Vercel Cron Integration**:
+  - Endpoint: /api/cron/backup
+  - Schedule: Daily at 2 AM UTC ("0 2 * * *")
+  - CRON_SECRET authentication
+  - 5-minute max duration for large databases
+
+**Teknik Detaylar:**
+- **Files Created**:
+  ```
+  scripts/backup-database.ts - Backup creation script (187 lines)
+  scripts/restore-database.ts - Restore script with CLI (142 lines)
+  app/api/cron/backup/route.ts - Vercel cron endpoint (66 lines)
+  BACKUP_RECOVERY.md - Complete documentation
+  ```
+
+- **Files Modified**:
+  ```
+  vercel.json - Added 5th cron job for backup
+  package.json - Added backup, backup:list, restore, restore:latest scripts
+  .env.local.example - Added CRON_SECRET and BACKUP_ENCRYPTION_KEY
+  .gitignore - Excluded backups/ directory and backup files
+  ```
+
+- **NPM Scripts**:
+  ```
+  npm run backup - Create manual backup
+  npm run backup:list - List available backups
+  npm run restore - Interactive restore
+  npm run restore:latest - Restore most recent backup
+  ```
+
+- **Environment Variables**:
+  - CRON_SECRET: Vercel cron authentication
+  - BACKUP_ENCRYPTION_KEY: 32-character AES-GCM key
+
+### v2.4.0 - Password Reset & Version Display (08.12.2025) ✅
+**Yapılanlar:**
+- **Forgot Password Feature**:
+  - Password reset email flow with Supabase auth
+  - /forgot-password page: Email input form with success confirmation
+  - /reset-password page: Token validation, new password form, auto sign-out
+  - API endpoint: POST /api/auth/reset-password (uses supabase.auth.resetPasswordForEmail)
+  - Sign-in page: "Forgot Password?" link added next to password field
+  - Dynamic redirect URL: Uses request origin (localhost or production)
+  - Error handling: Invalid/expired token page with "Request New Link" button
+  - Environment variable: NEXT_PUBLIC_SITE_URL added to .env.local and .env.local.example
+
+- **Version Display on Homepage**:
+  - Package.json version imported dynamically
+  - Display format: "Version {packageJson.version}" (currently 2.4.0)
+  - Positioned below Start button with gray styling
+  - Auto-updates when package.json version changes
+
+- **Vercel Analytics Debug Mode Fix**:
+  - Added explicit mode prop to Analytics component
+  - Fixes console error: TypeError reading 'length' of undefined in handleKeyDown
+  - app/layout.tsx: Conditional mode based on NODE_ENV
+
+**Teknik Detaylar:**
+- **Files Created**:
+  ```
+  app/api/auth/reset-password/route.ts - Password reset API
+  app/forgot-password/page.tsx - Email input form
+  app/reset-password/page.tsx - New password form with validation
+  ```
+
+- **Files Modified**:
+  ```
+  app/sign-in/page.tsx - Added "Forgot Password?" link
+  app/page.tsx - Added version display from package.json
+  app/layout.tsx - Analytics mode prop
+  .env.local - Added NEXT_PUBLIC_SITE_URL
+  .env.local.example - Added NEXT_PUBLIC_SITE_URL
+  ```
+
+- **Supabase Configuration**:
+  - Requires redirect URLs in Dashboard > Authentication > URL Configuration
+  - https://app.letify.cloud/** and http://localhost:3000/**
+
+### v2.3.0 - Boss Dashboard with Agent Payment System (08.12.2025) ✅
 **Yapılanlar:**
 - **Boss Dashboard Implementation**:
   - Complete Boss dashboard with 5 main cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports, Notifications)
@@ -123,7 +219,7 @@
 - Created: `/app/api/revenue/notify-agent-payment/route.ts` (136 lines)
 - Created: `/add_agent_payment_status_column.sql` (database migration)
 
-### 08.12.2025 - Manager Notifications & Deal Management System COMPLETE ✅
+### v2.2.1 - Manager Notifications & Deal Management System (08.12.2025) ✅
 **Yapılanlar:**
 - **Manager Notifications Page (6th Card)**:
   - Bell icon card on manager dashboard
@@ -255,7 +351,7 @@
 - Modified: `/app/api/revenue/route.ts` (permissions, vat_type, calculations, notifications)
 - Modified: `/app/dashboard/revenue/RevenueClient.tsx` (validation, VAT default)
 
-### 08.12.2025 - Manager Dashboard Implementation COMPLETE ✅
+### v2.2.0 - Manager Dashboard Implementation (08.12.2025) ✅
 **Yapılanlar:**
 - **Manager Dashboard**: Card-based UI with 5 main sections
   - Profile: Account settings and integrations (Facebook removed for managers)
@@ -442,7 +538,7 @@
 - Pages: 100/100 static generated
 - npm: Updated to 11.6.4 (patch warning resolved)
 
-### 06.12.2025 - Role-Based Access Control (RBAC) System COMPLETE ✅
+### v2.1.0 - Role-Based Access Control (RBAC) System (06.12.2025) ✅
 **Yapılanlar:**
 - **Server-Side Route Protection**: `/dashboard` page restricted to agent role only
 - **Client-Side Route Protection**: `/teamleader` page restricted to teamleader role only
@@ -683,8 +779,8 @@ MODIFIED:
 - ✅ next-pwa custom service worker configured
 - ✅ Build successful (0 errors)
 - ✅ Test endpoint available
-- ⏳ Mobile device testing (code ready)
-- ⏳ Production deployment
+- ✅ Mobile device testing completed
+- ✅ Production deployment completed
 
 **Key Achievement**: "PWA mobilde notification geliyor mu?" → YES, now it works! 🎉
 
@@ -974,7 +1070,7 @@ CREATE POLICY "Allow authenticated users to update teamwork listings"
 - ✅ **Advanced Analytics**: Export features, detailed reports (COMPLETED)
 - ✅ **Email Notifications**: Welcome emails, email verification, admin approval notifications (COMPLETED - 24.11.2025)
 - 🔄 **Payment Confirmation Emails**: Subscription & credit purchase confirmations (BEKLEMEDE - Subscription sayfası henüz aktif değil)
-- 🔄 **Backup & Recovery**: Database backup strategies
+- ✅ **Backup & Recovery**: Database backup strategies (COMPLETED - 08.01.2025 - v2.5.0)
 - 🔄 **Rate Limiting**: API rate limits, abuse prevention
 - 🔄 **Audit Logging**: Enhanced security logging
 
@@ -1209,7 +1305,35 @@ CREATE POLICY "Allow authenticated users to update teamwork listings"
 - ✅ Billing: Stripe integration
 - ✅ Listings Management: Content creation
 
-## 🎯 Next Steps (v1.9+)
+---
+
+## 📋 Version History Summary
+
+**v2.x - Enterprise Features & Security (Dec 2025)**
+- v2.4.0: Password Reset System + Dynamic Version Display
+- v2.3.0: Boss Dashboard + Agent Payment Management
+- v2.2.1: Manager Notifications + Deal Management
+- v2.2.0: Manager Dashboard Implementation
+- v2.1.0: RBAC System + Admin Panel + Next.js 16 Security
+- v2.0.0: Photo Management System (Dec 2025)
+
+**v1.x - Advanced Features (Nov 2025)**
+- v1.9: Availability Tracking + Malta Maps (Jan 2025)
+- v1.8: PWA Implementation Final (Nov 2025)
+- v1.7: BotID Security Integration
+- v1.6: Push Notifications Advanced
+- v1.5: Performance Optimization
+- v1.4: SEO Optimization
+- v1.3: Testing Suite
+- v1.2: Teamwork Feature
+- v1.1: Advanced Features (Viewings, Revenue, Analytics)
+- v1.0: MVP Launch (Nov 2025)
+
+**Current Version**: v2.4.0 (08.12.2025)
+
+---
+
+## 🎯 Next Steps (v2.5+)
 
 ### Planned Features
 - [ ] **Offline Data Sync**: Strategy for POST operations when online

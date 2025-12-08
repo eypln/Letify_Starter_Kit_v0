@@ -1,6 +1,6 @@
 {
   "name": "letify-nextjs",
-  "version": "0.1.0",
+  "version": "2.5.0",
   "private": true,
   "sideEffects": [
     "*.css",
@@ -18,6 +18,10 @@
     "analyze:browser": "ANALYZE=true npm run build && open .next/analyze/client.html",
     "lighthouse:all": "node scripts/lighthouse-all.js",
     "test": "jest",
+    "backup": "tsx scripts/backup-database.ts",
+    "backup:list": "dir /B backups",
+    "restore": "tsx scripts/restore-database.ts",
+    "restore:latest": "for /f %i in ('dir /b /od backups\\backup-*.json') do set LATEST=%i && tsx scripts/restore-database.ts backups\\%LATEST%",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --maxWorkers=2",
@@ -80,7 +84,7 @@
     "@typescript-eslint/parser": "^8.47.0",
     "autoprefixer": "^10.4.21",
     "critters": "^0.0.23",
-    "dotenv": "^17.2.1",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "^15",
     "eslint-plugin-react-hooks": "6.0.0-rc.2",
@@ -92,6 +96,7 @@
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "web-push": "^3.6.7"
   },

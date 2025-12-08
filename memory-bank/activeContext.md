@@ -2,8 +2,104 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (08.12.2025) ✅ COMPLETED - BOSS DASHBOARD SESSION
-1. **Boss Dashboard System with Agent Payment Feature**:
+### Ana Odak Alanları (08.01.2025) ✅ COMPLETED - v2.5.0 RELEASE
+1. **Database Backup & Recovery System (v2.5.0)**:
+   - ✅ Automated daily backups via Vercel Cron (2 AM UTC)
+   - ✅ Client-side Supabase backup approach (no Pro plan required)
+   - ✅ Encrypted JSON export using Web Crypto API (AES-GCM 256-bit)
+   - ✅ 30-day automatic retention policy with cleanup
+   - ✅ Manual backup/restore npm scripts (backup, restore, backup:list, restore:latest)
+   - ✅ Interactive restore with confirmation prompt ("RESTORE" keyword)
+   - ✅ Comprehensive documentation in BACKUP_RECOVERY.md
+   - ✅ Security: CRON_SECRET authentication for Vercel endpoint
+   - ✅ Backup format: backup-YYYYMMDD-HHMMSS.json
+   - ✅ 14 tables backed up (profiles, listings, clients, viewings, revenue, activity, etc.)
+
+**Teknik Detaylar:**
+- **Backup Architecture**:
+  ```typescript
+  // scripts/backup-database.ts - Manual backup creation
+  // 1. Query all 14 tables via Supabase client
+  // 2. Export as JSON with timestamp
+  // 3. Encrypt using AES-GCM with BACKUP_ENCRYPTION_KEY
+  // 4. Save to backups/backup-YYYYMMDD-HHMMSS.json
+  // 5. Clean up backups older than 30 days
+  
+  // app/api/cron/backup/route.ts - Vercel cron endpoint
+  // 1. Validate CRON_SECRET from Authorization header
+  // 2. Call createBackup() and cleanOldBackups()
+  // 3. Return JSON response with success/error
+  // 4. maxDuration: 300 seconds (5 minutes)
+  ```
+
+- **Environment Variables**:
+  ```
+  CRON_SECRET=your_random_secret_for_cron_authentication
+  BACKUP_ENCRYPTION_KEY=your_32_character_encryption_key_here
+  ```
+
+- **Vercel Cron Configuration**:
+  ```json
+  {
+    "path": "/api/cron/backup",
+    "schedule": "0 2 * * *"
+  }
+  ```
+
+- **NPM Scripts**:
+  ```bash
+  npm run backup         # Create manual backup
+  npm run backup:list    # List available backups
+  npm run restore        # Interactive restore
+  npm run restore:latest # Restore most recent backup
+  ```
+
+### Önceki Odak (08.12.2025) ✅ COMPLETED - v2.4.0 RELEASE
+1. **Forgot Password Feature (v2.4.0)**:
+   - ✅ Password reset flow: /forgot-password → email link → /reset-password
+   - ✅ API endpoint: POST /api/auth/reset-password (sends reset email via Supabase)
+   - ✅ Forgot password page with email form and success confirmation
+   - ✅ Reset password page with token validation and new password form
+   - ✅ Sign-in page updated with "Forgot Password?" link next to password field
+   - ✅ Dynamic redirect URL using request origin (localhost/production aware)
+   - ✅ NEXT_PUBLIC_SITE_URL environment variable added
+   - ✅ Invalid/expired token handling with user-friendly error page
+
+2. **Version Display on Homepage**:
+   - ✅ Package.json version (0.1.0) displayed on home page below Start button
+   - ✅ Dynamic version import from package.json for automatic updates
+   - ✅ Subtle gray styling: "Version {packageJson.version}"
+
+3. **Vercel Analytics Debug Mode Fix**:
+   - ✅ Analytics mode prop added: production/development mode selection
+   - ✅ Fixes handleKeyDown TypeError in console (reading 'length' of undefined)
+   - ✅ app/layout.tsx: `<Analytics mode={process.env.NODE_ENV === 'production' ? 'production' : 'development'} />`
+
+**Teknik Detaylar:**
+- **Password Reset Flow**:
+  ```typescript
+  // API: /api/auth/reset-password
+  // 1. User enters email on /forgot-password
+  // 2. API calls supabase.auth.resetPasswordForEmail(email, { redirectTo: origin/reset-password })
+  // 3. User receives email with magic link
+  // 4. Link redirects to /reset-password with session token
+  // 5. Page validates token, shows password form
+  // 6. User enters new password, calls supabase.auth.updateUser({ password })
+  // 7. Auto sign-out and redirect to /sign-in
+  ```
+
+- **Environment Variables**:
+  ```
+  NEXT_PUBLIC_SITE_URL=https://app.letify.cloud (production)
+  NEXT_PUBLIC_SITE_URL=http://localhost:3000 (development)
+  ```
+
+- **Supabase Configuration Required**:
+  - Dashboard > Authentication > URL Configuration
+  - Add redirect URLs: https://app.letify.cloud/**, http://localhost:3000/**
+
+### Önceki Odak (08.12.2025) ✅ COMPLETED - v2.3.0 RELEASE
+1. **Boss Dashboard System with Agent Payment Feature (v2.3.0)**:
    - ✅ Complete Boss dashboard with 5 cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports, Notifications)
    - ✅ All pages identical to Manager (UI consistency maintained)
    - ✅ Agent Payment Status column in Team Revenue table
@@ -16,7 +112,7 @@
    - ✅ RBAC security on all boss routes
    - ✅ Production build successful (113 pages)
 
-2. **Manager Dashboard Notifications & Deal Management** (Previous)::
+2. **Manager Dashboard Notifications & Deal Management (v2.2.1)** (Previous)::
    - ✅ Manager notifications page (6th card) with deal-only filtering
    - ✅ Edit Deal functionality for Teamleader & Manager (team revenue pages)
    - ✅ Deal Finalized notification system (Push + UI + Email)
@@ -27,7 +123,7 @@
    - ✅ RLS policy updates for elevated user permissions
    - ✅ Production build successful
 
-2. **Manager Dashboard System** (Previous):
+3. **Manager Dashboard System (v2.2.0)** (Previous):
    - ✅ Complete manager dashboard with 5 cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports)
    - ✅ RBAC security on all manager routes
    - ✅ Manager-specific pages without add/edit functions (monitoring only)
@@ -66,8 +162,8 @@
    - ✅ Tanzania, the United Republic of → Tanzania
    - ✅ Filtered out "United States Minor Outlying Islands"
 
-### Önceki Odak (06.12.2025) ✅ COMPLETED
-1. **Role-Based Access Control (RBAC) System**: 
+### Önceki Odak (06.12.2025) ✅ COMPLETED - v2.1.0 RELEASE
+1. **Role-Based Access Control (RBAC) System (v2.1.0)**: 
    - ✅ Server-side route protection (`/dashboard` - agent only)
    - ✅ Client-side route protection (`/teamleader` - teamleader only)
    - ✅ Shared pages with role-aware navigation (8 pages)

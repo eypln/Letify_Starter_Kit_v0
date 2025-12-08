@@ -15,6 +15,10 @@
     {
       "path": "/api/integrations/check-facebook-token",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/backup",
+      "schedule": "0 2 * * *"
     }
   ],
   "headers": [

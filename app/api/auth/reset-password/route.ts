@@ -14,9 +14,12 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    // Get the origin from the request headers
+    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password`,
+      redirectTo: `${origin}/reset-password`,
     })
 
     if (error) {
