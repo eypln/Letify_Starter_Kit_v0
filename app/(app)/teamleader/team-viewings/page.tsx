@@ -8,10 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Filter } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import CreatableSelect from 'react-select/creatable';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 // Viewing form interface
 interface ViewingForm {
@@ -191,12 +197,23 @@ export default function TeamViewingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
   const [currentMonthOffset, setCurrentMonthOffset] = useState(0);
   const supabase = createClient();
+
+  // Filter states for Team Viewings
+  const [filterResult, setFilterResult] = useState('');
+  const [filterAgentName, setFilterAgentName] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [isTeamFilterOpen, setIsTeamFilterOpen] = useState(false);
 
   // Autocomplete suggestions
   const [listingsSuggestions, setListingsSuggestions] = useState<ListingSuggestion[]>([]);
   const [clientsSuggestions, setClientsSuggestions] = useState<ClientSuggestion[]>([]);
+  
+  // Agent list for dropdown
+  const [agents, setAgents] = useState<Array<{ user_id: string; full_name: string }>>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
 
   const [form, setForm] = useState<ViewingForm>({
     id: undefined,
@@ -229,6 +246,19 @@ export default function TeamViewingsPage() {
     }
   }
 
+  // Fetch all agents for dropdown
+  async function fetchAgents() {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .eq("role", "agent")
+      .order("full_name", { ascending: true });
+
+    if (!error && data) {
+      setAgents(data);
+    }
+  }
+
   async function getUserAndViewings(currentPage = page) {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -236,6 +266,17 @@ export default function TeamViewingsPage() {
     setUser(currentUser);
     
     if (currentUser?.id) {
+      // Get user role
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", currentUser.id)
+        .single();
+      
+      if (profileData?.role) {
+        setUserRole(profileData.role.toLowerCase());
+      }
+      
       const { data, error, count } = await supabase
         .from("viewings")
         .select("*", { count: "exact" })
@@ -254,23 +295,37 @@ export default function TeamViewingsPage() {
   async function getTeamViewings(currentPage = teamPage) {
     setTeamLoading(true);
     if (user?.id) {
-      // Get all viewings from all agents with their profile names
-      const { data, error, count } = await supabase
+      // Get all viewings from all agents (without pagination to enable client-side filtering)
+      const { data: viewingsData, error: viewingsError } = await supabase
         .from("viewings")
-        .select(`
-          *,
-          profiles!viewings_user_id_fkey(full_name)
-        `, { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+        .select("*")
+        .order("created_at", { ascending: false });
       
-      if (!error && data) {
-        const mappedData = data.map((viewing: any) => ({
+      if (!viewingsError && viewingsData) {
+        // Get unique user IDs from viewings
+        const userIds = [...new Set(viewingsData.map(v => v.user_id))];
+        
+        // Fetch profile names for these users
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        
+        // Create a map of user_id to full_name
+        const profileMap = new Map(
+          profilesData?.map(p => [p.user_id, p.full_name]) || []
+        );
+        
+        // Map viewings with agent names
+        const mappedData = viewingsData.map((viewing: any) => ({
           ...viewing,
-          agent_name: viewing.profiles?.full_name || 'Unknown Agent'
+          agent_name: profileMap.get(viewing.user_id) || 'Unknown Agent'
         }));
+        
         setTeamViewings(mappedData);
-        setTeamPageCount(Math.ceil((count ?? 0) / pageSize));
+        // Pagination will be calculated after filtering
+      } else if (viewingsError) {
+        console.error("Error fetching team viewings:", viewingsError);
       }
     }
     setTeamLoading(false);
@@ -279,6 +334,7 @@ export default function TeamViewingsPage() {
   useEffect(() => {
     getUserAndViewings();
     fetchSuggestions();
+    fetchAgents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -287,7 +343,78 @@ export default function TeamViewingsPage() {
       getTeamViewings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, teamPage]);
+  }, [user]);
+
+  // Realtime subscription for viewing changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('team-viewing-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'viewings'
+        },
+        (payload) => {
+          console.log('Viewing change detected:', payload);
+          // Refresh team viewings data
+          getTeamViewings();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamPage]);
+
+  // Apply filters to team viewings
+  const filteredTeamViewings = teamViewings.filter(viewing => {
+    // Result filter
+    if (filterResult && viewing.result !== filterResult) {
+      return false;
+    }
+    
+    // Agent Name filter
+    if (filterAgentName && !viewing.agent_name?.toLowerCase().includes(filterAgentName.toLowerCase())) {
+      return false;
+    }
+    
+    // Month filter (format: YYYY-MM)
+    if (filterMonth && viewing.viewing_date) {
+      const viewingMonth = viewing.viewing_date.substring(0, 7); // Get YYYY-MM from YYYY-MM-DD
+      if (viewingMonth !== filterMonth) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
+  // Calculate pagination for filtered results
+  const teamPageCountFiltered = Math.ceil(filteredTeamViewings.length / pageSize);
+  const paginatedTeamViewings = filteredTeamViewings.slice(
+    (teamPage - 1) * pageSize,
+    teamPage * pageSize
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setTeamPage(1);
+  }, [filterResult, filterAgentName, filterMonth]);
+
+  // Check if any filters are active
+  const hasActiveTeamFilters = filterResult || filterAgentName || filterMonth;
+
+  // Clear all team filters
+  const clearTeamFilters = () => {
+    setFilterResult('');
+    setFilterAgentName('');
+    setFilterMonth('');
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -295,7 +422,14 @@ export default function TeamViewingsPage() {
 
   const handleViewingDateChange = (date: Date | null) => {
     setViewingDate(date);
-    setForm({ ...form, viewing_date: date ? date.toISOString().split('T')[0] : "" });
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      setForm({ ...form, viewing_date: `${year}-${month}-${day}` });
+    } else {
+      setForm({ ...form, viewing_date: "" });
+    }
   };
 
   const handleAddViewing = async (e: React.FormEvent) => {
@@ -304,7 +438,9 @@ export default function TeamViewingsPage() {
     setSubmitting(true);
     
     const method = form.id ? 'PUT' : 'POST';
-    const payload = form.id ? form : { ...form, user_id: user.id };
+    // Use selectedAgentId if set (teamleader adding for agent), otherwise use own user.id
+    const targetUserId = selectedAgentId || user.id;
+    const payload = form.id ? form : { ...form, user_id: targetUserId };
     
     const response = await fetch('/api/viewings', {
       method,
@@ -338,6 +474,7 @@ export default function TeamViewingsPage() {
         inform_teamleader: false,
       });
       setViewingDate(null);
+      setSelectedAgentId('');
       await getUserAndViewings(1);
       await getTeamViewings(1);
       setPage(1);
@@ -382,7 +519,13 @@ export default function TeamViewingsPage() {
     
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayViewings = viewings.filter((v) => v.viewing_date === dateStr);
+      
+      // For teamleader: show own viewings + all team viewings
+      // For agent: show only own viewings
+      const isTeamleader = userRole === 'teamleader' || userRole === 'manager' || userRole === 'boss' || userRole === 'admin';
+      const dayViewings = isTeamleader 
+        ? [...viewings.filter((v) => v.viewing_date === dateStr), ...teamViewings.filter((v) => v.viewing_date === dateStr && v.user_id !== user?.id)]
+        : viewings.filter((v) => v.viewing_date === dateStr);
       
       const isToday = 
         day === new Date().getDate() && 
@@ -425,6 +568,9 @@ export default function TeamViewingsPage() {
               <div className="font-bold text-[9px] sm:text-[10px]">#{viewing.id}</div>
               <div className="text-[9px] sm:text-[10px]">{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</div>
               <div className="truncate text-[9px] sm:text-[10px]">{viewing.ref_no}</div>
+              {isTeamleader && viewing.user_id !== user?.id && (
+                <div className="text-[8px] sm:text-[9px] text-gray-600 italic truncate">{(viewing as TeamViewing).agent_name}</div>
+              )}
             </div>
           ))}
           {!isMainMonth && dayViewings.length > 0 && (
@@ -473,7 +619,7 @@ export default function TeamViewingsPage() {
         {/* My Viewings Section */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>My Viewing Records</CardTitle>
+            <CardTitle>Team Viewing Records</CardTitle>
             <Button 
               className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2" 
               onClick={() => {
@@ -504,6 +650,31 @@ export default function TeamViewingsPage() {
                 <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg my-8">
                   <h3 className="text-xl font-bold mb-4">{form.id ? "Edit Viewing" : "Add New Viewing"}</h3>
                   <form onSubmit={handleAddViewing} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Agent Name</label>
+                      <Select
+                        options={[
+                          { label: "Myself (Teamleader)", value: user?.id || "" },
+                          ...agents.map(agent => ({ label: agent.full_name, value: agent.user_id }))
+                        ]}
+                        value={
+                          selectedAgentId 
+                            ? agents.find(a => a.user_id === selectedAgentId)
+                              ? { label: agents.find(a => a.user_id === selectedAgentId)!.full_name, value: selectedAgentId }
+                              : { label: "Myself (Teamleader)", value: user?.id || "" }
+                            : { label: "Myself (Teamleader)", value: user?.id || "" }
+                        }
+                        onChange={(option) => {
+                          if (option) {
+                            const newAgentId = option.value === user?.id ? '' : option.value;
+                            setSelectedAgentId(newAgentId);
+                          }
+                        }}
+                        placeholder="Select agent"
+                        classNamePrefix="react-select"
+                      />
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium mb-1">Ref No</label>
                       <CreatableSelect
@@ -672,7 +843,7 @@ export default function TeamViewingsPage() {
                     </div>
 
                     <div className="flex justify-end gap-2 mt-4">
-                      <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                      <Button type="button" variant="outline" onClick={() => { setShowModal(false); setSelectedAgentId(''); }}>
                         Cancel
                       </Button>
                       <Button 
@@ -809,7 +980,7 @@ export default function TeamViewingsPage() {
         {/* Calendar View */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>My Viewing Calendar</CardTitle>
+            <CardTitle>Team Viewing Calendar</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
@@ -861,7 +1032,128 @@ export default function TeamViewingsPage() {
         {/* Team Viewings Section */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Team Viewing Records</CardTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Team Viewing Records</CardTitle>
+                {hasActiveTeamFilters && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <span className="text-purple-600 font-medium">
+                      ({filteredTeamViewings.length} filtered results)
+                    </span>
+                  </p>
+                )}
+              </div>
+              
+              {/* Filter Button */}
+              <Popover open={isTeamFilterOpen} onOpenChange={setIsTeamFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant={hasActiveTeamFilters ? "default" : "outline"} 
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filter
+                    {hasActiveTeamFilters && (
+                      <span className="ml-1 bg-white text-purple-600 rounded-full px-2 py-0.5 text-xs font-semibold">
+                        {[filterResult, filterAgentName, filterMonth].filter(Boolean).length}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-sm">Filter Team Viewings</h4>
+                      {hasActiveTeamFilters && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={clearTeamFilters}
+                          className="h-auto p-1 text-xs"
+                        >
+                          Clear all
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Result Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="filter-result" className="text-xs">Result</Label>
+                      <select
+                        id="filter-result"
+                        value={filterResult}
+                        onChange={(e) => setFilterResult(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="">All Results</option>
+                        <option value="DEAL">DEAL</option>
+                        <option value="NO DEAL">NO DEAL</option>
+                        <option value="Negotiating">Negotiating</option>
+                        <option value="Scheduled">Scheduled</option>
+                      </select>
+                    </div>
+
+                    {/* Agent Name Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="filter-agent-name" className="text-xs">Agent Name</Label>
+                      <Input
+                        id="filter-agent-name"
+                        placeholder="e.g. John Doe..."
+                        value={filterAgentName}
+                        onChange={(e) => setFilterAgentName(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+
+                    {/* Month Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="filter-month" className="text-xs">Month</Label>
+                      <select
+                        id="filter-month"
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="">All Months</option>
+                        <option value="2025-01">January 2025</option>
+                        <option value="2025-02">February 2025</option>
+                        <option value="2025-03">March 2025</option>
+                        <option value="2025-04">April 2025</option>
+                        <option value="2025-05">May 2025</option>
+                        <option value="2025-06">June 2025</option>
+                        <option value="2025-07">July 2025</option>
+                        <option value="2025-08">August 2025</option>
+                        <option value="2025-09">September 2025</option>
+                        <option value="2025-10">October 2025</option>
+                        <option value="2025-11">November 2025</option>
+                        <option value="2025-12">December 2025</option>
+                        <option value="2026-01">January 2026</option>
+                        <option value="2026-02">February 2026</option>
+                        <option value="2026-03">March 2026</option>
+                        <option value="2026-04">April 2026</option>
+                        <option value="2026-05">May 2026</option>
+                        <option value="2026-06">June 2026</option>
+                        <option value="2026-07">July 2026</option>
+                        <option value="2026-08">August 2026</option>
+                        <option value="2026-09">September 2026</option>
+                        <option value="2026-10">October 2026</option>
+                        <option value="2026-11">November 2026</option>
+                        <option value="2026-12">December 2026</option>
+                      </select>
+                    </div>
+
+                    <Button 
+                      onClick={() => setIsTeamFilterOpen(false)} 
+                      className="w-full"
+                      size="sm"
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-lg border">
@@ -888,8 +1180,17 @@ export default function TeamViewingsPage() {
                         No team viewings found.
                       </td>
                     </tr>
+                  ) : filteredTeamViewings.length === 0 ? (
+                    <tr>
+                      <td colSpan={teamColumns.length} className="text-center py-8">
+                        <p className="text-muted-foreground mb-4">No viewings match your filters</p>
+                        <Button variant="outline" size="sm" onClick={clearTeamFilters}>
+                          Clear Filters
+                        </Button>
+                      </td>
+                    </tr>
                   ) : (
-                    teamViewings.map((viewing, idx: number) => (
+                    paginatedTeamViewings.map((viewing, idx: number) => (
                       <tr 
                         key={viewing.id} 
                         className="border-b hover:bg-blue-50"
@@ -938,9 +1239,9 @@ export default function TeamViewingsPage() {
               <Button variant="outline" size="sm" disabled={teamPage === 1} onClick={() => setTeamPage(teamPage - 1)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Prev
               </Button>
-              {Array.from({ length: Math.min(teamPageCount, 5) }, (_, i) => {
+              {Array.from({ length: Math.min(teamPageCountFiltered, 5) }, (_, i) => {
                 const pageNum = teamPage <= 3 ? i + 1 : teamPage + i - 2;
-                if (pageNum > teamPageCount) return null;
+                if (pageNum > teamPageCountFiltered) return null;
                 return (
                   <Button
                     key={pageNum}
@@ -953,10 +1254,10 @@ export default function TeamViewingsPage() {
                   </Button>
                 );
               })}
-              <Button variant="outline" size="sm" disabled={teamPage === teamPageCount} onClick={() => setTeamPage(teamPage + 1)} className="text-xs sm:text-sm px-2 sm:px-3">
+              <Button variant="outline" size="sm" disabled={teamPage === teamPageCountFiltered} onClick={() => setTeamPage(teamPage + 1)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Next
               </Button>
-              <Button variant="outline" size="sm" disabled={teamPage === teamPageCount} onClick={() => setTeamPage(teamPageCount)} className="text-xs sm:text-sm px-2 sm:px-3">
+              <Button variant="outline" size="sm" disabled={teamPage === teamPageCountFiltered} onClick={() => setTeamPage(teamPageCountFiltered)} className="text-xs sm:text-sm px-2 sm:px-3">
                 Last
               </Button>
             </div>

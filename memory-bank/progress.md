@@ -3,6 +3,107 @@
 
 ## Ne Çalışıyor ✅
 
+### 07-08.12.2025 - Team Viewing Agent Management & Revenue Goal Charts COMPLETE ✅
+**Yapılanlar:**
+- **Agent Management in Viewing Records**: Teamleader can add viewings on behalf of agents
+  - Agent dropdown in add viewing form (first field above Ref No)
+  - Fetches all users with role='agent' from profiles table
+  - Default: "Myself (Teamleader)" option
+  - State management: selectedAgentId for tracking selection
+  - Form reset: Clears agent selection on submit/cancel
+  
+- **API Security Enhancement**: Elevated user permission check
+  - Only teamleader/manager/boss/admin can create viewings for others
+  - Regular agents restricted to creating their own viewings only
+  - Profile role query: `eq('user_id', user.id).select('role')`
+  - 403 Forbidden response for unauthorized attempts
+  
+- **Activity Logging Fix**: Use targetUserId instead of session user
+  - logActivity() now uses correct user_id for agent viewings
+  - Revenue record creation uses targetUserId
+  - Profile queries fixed: `eq('user_id', targetUserId)`
+  
+- **Real-time Sync for Agent Pages**: Supabase Realtime subscription
+  - Agent viewing page updates instantly when teamleader adds viewing
+  - Channel: 'agent-viewing-changes'
+  - Event: '*' (INSERT/UPDATE/DELETE)
+  - Auto-refresh: getUserAndViewings() on any viewings table change
+  
+- **Viewing Date Timezone Fix**: Local date instead of UTC
+  - Problem: toISOString() caused one-day offset
+  - Solution: Manual date formatting (YYYY-MM-DD)
+  - Uses getFullYear(), getMonth() + 1, getDate()
+  - Result: Selected date saved correctly (Dec 7 → Dec 7, not Dec 6)
+  
+- **Revenue Goal Visualization Charts**:
+  - **Team Revenue Chart**: €15,000 monthly goal
+    - Stacked bars: Achieved (purple) + Remaining (light purple)
+    - Line chart: Agent income trend (green)
+    - Filters: Agent Name + Month dropdowns
+    - Data: All team revenue records
+  
+  - **Agent Revenue Chart**: €8,500 personal goal
+    - Same visualization pattern as team chart
+    - Filter: `.eq("user_id", userId)` - agent's own deals only
+    - Library: Recharts (ComposedChart, Bar, Line)
+  
+- **Country Name Customization**: Simplified nationality dropdown
+  - United Kingdom → England
+  - United States of America → America
+  - American Samoa → Samoa
+  - Tanzania, the United Republic of → Tanzania
+  - Filtered out: "United States Minor Outlying Islands"
+  - Location: Clients page nationality dropdown
+
+**Teknik Detaylar:**
+- **Agent Dropdown State**:
+  ```typescript
+  const [agents, setAgents] = useState<Array<{ user_id: string; full_name: string }>>([])
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('')
+  ```
+
+- **Elevated User Check**:
+  ```typescript
+  const elevatedRoles = ['teamleader', 'manager', 'boss', 'admin'];
+  if (profile && elevatedRoles.includes(profile.role)) {
+    targetUserId = requestedUserId;
+  }
+  ```
+
+- **Real-time Subscription**:
+  ```typescript
+  const channel = supabase.channel('agent-viewing-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'viewings' },
+      (payload) => { getUserAndViewings(); })
+    .subscribe();
+  ```
+
+- **Chart Configuration**:
+  ```typescript
+  const TARGET_GOAL = 15000; // Team goal
+  <Bar dataKey="rentAmount" stackId="a" fill="#9333ea" />
+  <Bar dataKey="remaining" stackId="a" fill="#e9d5ff" />
+  <Line type="monotone" dataKey="agentIncome" stroke="#10b981" />
+  domain={[0, TARGET_GOAL]} // Fixed Y-axis
+  ```
+
+**Testing Verified**:
+- ✅ Teamleader can select agents from dropdown
+- ✅ Viewing record created with agent's user_id
+- ✅ Team Viewing Records table shows correct agent name
+- ✅ Agent's viewing page updates in real-time
+- ✅ Selected date (Dec 7) saved correctly as Dec 7
+- ✅ Activity log shows correct user for viewing
+- ✅ Revenue charts display with goal bars
+- ✅ Country dropdown shows simplified names
+- ✅ Normal agents cannot create viewings for others (403)
+
+**Build & Deployment**:
+- Build Time: 53s (Turbopack)
+- TypeScript: 49s (0 errors)
+- Pages: 100/100 static generated
+- npm: Updated to 11.6.4 (patch warning resolved)
+
 ### 06.12.2025 - Role-Based Access Control (RBAC) System COMPLETE ✅
 **Yapılanlar:**
 - **Server-Side Route Protection**: `/dashboard` page restricted to agent role only

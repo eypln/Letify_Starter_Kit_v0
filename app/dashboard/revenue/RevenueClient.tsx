@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -950,6 +951,168 @@ export default function RevenueClient({ user }: { user: User }) {
           </div>
         </div>
       )}
+
+      {/* Monthly Agent Revenue Chart */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Monthly Agent Revenue Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthlyAgentRevenueChart userId={user.id} />
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+// Monthly Agent Revenue Chart Component
+function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchMonthlyData() {
+      setLoading(true);
+
+      // Fetch only this agent's revenue records
+      const { data: revenueData, error } = await supabase
+        .from("revenue")
+        .select("date_rented, rent_amount, agent_income")
+        .eq("user_id", userId)
+        .order("date_rented", { ascending: true });
+
+      if (!error && revenueData) {
+        // Group by month and calculate total rent amount and agent income
+        const monthlyRentMap = new Map<string, number>();
+        const monthlyIncomeMap = new Map<string, number>();
+
+        revenueData.forEach((revenue: any) => {
+          if (revenue.date_rented) {
+            const date = new Date(revenue.date_rented);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Accumulate rent amount
+            if (revenue.rent_amount) {
+              const currentRent = monthlyRentMap.get(monthKey) || 0;
+              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount));
+            }
+            
+            // Accumulate agent income
+            if (revenue.agent_income) {
+              const currentIncome = monthlyIncomeMap.get(monthKey) || 0;
+              monthlyIncomeMap.set(monthKey, currentIncome + parseFloat(revenue.agent_income));
+            }
+          }
+        });
+
+        // Convert to array and format for chart
+        const monthNames = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        const TARGET_GOAL = 8500; // Agent personal goal
+
+        // Get all unique months from both maps
+        const allMonths = new Set([...monthlyRentMap.keys(), ...monthlyIncomeMap.keys()]);
+
+        const formattedData = Array.from(allMonths)
+          .map((monthKey) => {
+            const [year, month] = monthKey.split('-');
+            const monthIndex = parseInt(month) - 1;
+            const rentAmount = Math.round((monthlyRentMap.get(monthKey) || 0) * 100) / 100;
+            const remaining = Math.max(0, TARGET_GOAL - rentAmount);
+            
+            return {
+              month: `${monthNames[monthIndex]} ${year}`,
+              rentAmount: rentAmount,
+              remaining: remaining,
+              agentIncome: Math.round((monthlyIncomeMap.get(monthKey) || 0) * 100) / 100,
+              sortKey: monthKey
+            };
+          })
+          .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+          .map(({ month, rentAmount, remaining, agentIncome }) => ({ month, rentAmount, remaining, agentIncome }));
+
+        setChartData(formattedData);
+      }
+
+      setLoading(false);
+    }
+
+    fetchMonthlyData();
+  }, [supabase, userId]);
+
+  if (loading) {
+    return (
+      <div className="h-[400px] flex items-center justify-center text-gray-500">
+        Loading chart data...
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-[400px] flex items-center justify-center text-gray-500">
+        No revenue data available for chart.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <ComposedChart
+        data={chartData}
+        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis 
+          dataKey="month" 
+          angle={-45}
+          textAnchor="end"
+          height={80}
+          style={{ fontSize: '12px' }}
+        />
+        <YAxis 
+          label={{ value: 'Rent Amount (€)', angle: -90, position: 'insideLeft' }}
+          style={{ fontSize: '12px' }}
+          domain={[0, 8500]}
+        />
+        <Tooltip 
+          formatter={(value: any, name: string) => {
+            if (name === 'Achieved') return [`€${value.toFixed(2)}`, 'Achieved Amount'];
+            if (name === 'Remaining to Goal') return [`€${value.toFixed(2)}`, 'Remaining to €8,500'];
+            if (name === 'Agent Net Income') return [`€${value.toFixed(2)}`, 'My Net Income'];
+            return [`€${value.toFixed(2)}`, name];
+          }}
+          contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
+        />
+        <Legend 
+          wrapperStyle={{ paddingTop: '20px' }}
+        />
+        <Bar 
+          dataKey="rentAmount" 
+          stackId="stack" 
+          fill="#8b5cf6" 
+          name="Achieved"
+        />
+        <Bar 
+          dataKey="remaining" 
+          stackId="stack" 
+          fill="#e9d5ff" 
+          name="Remaining to Goal"
+          radius={[8, 8, 0, 0]}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="agentIncome" 
+          stroke="#ec4899" 
+          strokeWidth={2}
+          name="Agent Net Income"
+          dot={{ fill: '#ec4899', r: 4 }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
   );
 }

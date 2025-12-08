@@ -49,6 +49,7 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   const {
+    user_id: requestedUserId,
     ref_no,
     city,
     viewing_date,
@@ -70,10 +71,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const user_id = user.id;
+  // Check if user is elevated (teamleader, manager, boss, admin)
+  let targetUserId = user.id;
+  
+  if (requestedUserId && requestedUserId !== user.id) {
+    // User is trying to create viewing for another user
+    // Check if they have elevated permissions
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    const elevatedRoles = ['teamleader', 'manager', 'boss', 'admin'];
+    if (profile && elevatedRoles.includes(profile.role)) {
+      targetUserId = requestedUserId;
+    } else {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'You do not have permission to create viewings for other users' 
+      }, { status: 403 });
+    }
+  }
 
   const insertData = {
-    user_id,
+    user_id: targetUserId,
     ref_no: ref_no ?? null,
     city: city ?? null,
     viewing_date: viewing_date ?? null,
@@ -94,7 +116,7 @@ export async function POST(req: Request) {
   if (!error) {
     // Log activity
     await logActivity(supabase, {
-      user_id,
+      user_id: targetUserId,
       type: 'new_viewing_added',
       data: { ref_no, client_name, viewing_date }
     });
@@ -104,7 +126,7 @@ export async function POST(req: Request) {
       await supabase
         .from('revenue')
         .insert([{
-          user_id,
+          user_id: targetUserId,
           ref_no,
           client_name,
           rent_amount: 0,
@@ -128,7 +150,7 @@ export async function POST(req: Request) {
         const { data: userProfile } = await supabase
           .from('profiles')
           .select('full_name, email')
-          .eq('id', user_id)
+          .eq('user_id', targetUserId)
           .single();
 
         // Get team leader(s) email

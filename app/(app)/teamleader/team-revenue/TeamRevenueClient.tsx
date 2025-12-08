@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -105,7 +106,7 @@ interface Client {
 }
 
 interface Profile {
-  id: string;
+  user_id: string;
   full_name: string;
 }
 
@@ -288,13 +289,15 @@ export default function RevenueClient({ user }: { user: User }) {
     }
 
     // Fetch profiles for Collaboration With dropdown (exclude current user)
-    const { data: profilesData } = await supabase
+    const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, full_name")
-      .neq("id", user.id)
+      .select("user_id, full_name")
+      .neq("user_id", user.id)
       .order("full_name", { ascending: true });
 
-    if (profilesData) {
+    if (profilesError) {
+      console.warn("Could not fetch profiles for collaboration dropdown");
+    } else if (profilesData) {
       setProfiles(profilesData);
     }
 
@@ -303,6 +306,32 @@ export default function RevenueClient({ user }: { user: User }) {
 
   useEffect(() => {
     getUserAndRevenues();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  // Realtime subscription for revenue changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('team-revenue-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'revenue'
+        },
+        (payload) => {
+          console.log('Revenue change detected:', payload);
+          // Refresh the current page data
+          getUserAndRevenues();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
@@ -958,6 +987,16 @@ export default function RevenueClient({ user }: { user: User }) {
           <TeamRevenueTable />
         </CardContent>
       </Card>
+
+      {/* Monthly Revenue Chart */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Monthly Team Revenue Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthlyRevenueChart />
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -965,9 +1004,12 @@ export default function RevenueClient({ user }: { user: User }) {
 // Team Revenue Table Component
 function TeamRevenueTable() {
   const [teamRevenues, setTeamRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
+  const [allRevenues, setAllRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
+  const [filterAgentName, setFilterAgentName] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
   const supabase = createClient();
 
   const pageSize = 10;
@@ -996,36 +1038,83 @@ function TeamRevenueTable() {
     async function fetchTeamRevenues() {
       setLoading(true);
       
-      // Get current user to exclude them
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Fetch all revenues from other users
-        const { data, error, count } = await supabase
-          .from("revenue")
-          .select(`
-            *,
-            profiles!revenue_user_id_fkey(full_name)
-          `, { count: "exact" })
-          .neq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .range((page - 1) * pageSize, page * pageSize - 1);
+      // Fetch ALL revenue records from ALL agents (no pagination here, we'll paginate after filtering)
+      const { data: revenueData, error: revenueError } = await supabase
+        .from("revenue")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-        if (!error && data) {
-          const mappedData = data.map((revenue: any) => ({
-            ...revenue,
-            agent_name: revenue.profiles?.full_name || 'Unknown Agent'
-          }));
-          setTeamRevenues(mappedData);
-          setPageCount(Math.ceil((count || 0) / pageSize));
+      if (!revenueError && revenueData) {
+        // Get unique user IDs from revenues
+        const userIds = [...new Set(revenueData.map(r => r.user_id))];
+        
+        // Fetch profile names for these users (silently handle errors)
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        
+        // Suppress profile fetch errors - we'll show "Unknown Agent" for missing profiles
+        if (profilesError) {
+          console.warn("Could not fetch some profile names, using fallback");
         }
+        
+        // Create a map of user_id to full_name
+        const profileMap = new Map(
+          profilesData?.map(p => [p.user_id, p.full_name]) || []
+        );
+        
+        // Map revenues with agent names
+        const mappedData = revenueData.map((revenue: any) => ({
+          ...revenue,
+          agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+        }));
+        
+        setAllRevenues(mappedData);
+      } else if (revenueError) {
+        console.error("Error fetching team revenues:", revenueError);
       }
       
       setLoading(false);
     }
 
     fetchTeamRevenues();
-  }, [page, supabase]);
+  }, [supabase]);
+
+  // Client-side filtering and pagination
+  useEffect(() => {
+    let filtered = [...allRevenues];
+
+    // Filter by agent name
+    if (filterAgentName) {
+      filtered = filtered.filter(r => 
+        r.agent_name.toLowerCase().includes(filterAgentName.toLowerCase())
+      );
+    }
+
+    // Filter by month
+    if (filterMonth) {
+      filtered = filtered.filter(r => {
+        if (!r.date_rented) return false;
+        const date = new Date(r.date_rented);
+        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return yearMonth === filterMonth;
+      });
+    }
+
+    // Update page count
+    setPageCount(Math.ceil(filtered.length / pageSize));
+    
+    // Reset to page 1 if current page is out of bounds
+    if (page > Math.ceil(filtered.length / pageSize)) {
+      setPage(1);
+    }
+
+    // Paginate filtered results
+    const startIdx = (page - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    setTeamRevenues(filtered.slice(startIdx, endIdx));
+  }, [allRevenues, filterAgentName, filterMonth, page]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
@@ -1038,8 +1127,73 @@ function TeamRevenueTable() {
     return `€${amount.toFixed(2)}`;
   };
 
+  // Generate month options (2025-2026)
+  const monthOptions = [];
+  for (let year = 2025; year <= 2026; year++) {
+    for (let month = 1; month <= 12; month++) {
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      monthOptions.push({
+        value: `${year}-${String(month).padStart(2, '0')}`,
+        label: `${monthNames[month - 1]} ${year}`
+      });
+    }
+  }
+
+  // Get unique agent names for dropdown
+  const uniqueAgentNames = [...new Set(allRevenues.map(r => r.agent_name))].sort();
+
   return (
     <>
+      {/* Filter Section */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Agent Name Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filter by Agent Name
+          </label>
+          <select
+            value={filterAgentName}
+            onChange={(e) => {
+              setFilterAgentName(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">All Agents</option>
+            {uniqueAgentNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Month Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filter by Month
+          </label>
+          <select
+            value={filterMonth}
+            onChange={(e) => {
+              setFilterMonth(e.target.value);
+              setPage(1);
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="">All Months</option>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-blue-50">
@@ -1204,5 +1358,156 @@ function TeamRevenueTable() {
         </div>
       )}
     </>
+  );
+}
+
+// Monthly Revenue Chart Component
+function MonthlyRevenueChart() {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchMonthlyData() {
+      setLoading(true);
+
+      // Fetch all revenue records
+      const { data: revenueData, error } = await supabase
+        .from("revenue")
+        .select("date_rented, rent_amount, agent_income")
+        .order("date_rented", { ascending: true });
+
+      if (!error && revenueData) {
+        // Group by month and calculate total rent amount and agent income
+        const monthlyRentMap = new Map<string, number>();
+        const monthlyIncomeMap = new Map<string, number>();
+
+        revenueData.forEach((revenue: any) => {
+          if (revenue.date_rented) {
+            const date = new Date(revenue.date_rented);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Accumulate rent amount
+            if (revenue.rent_amount) {
+              const currentRent = monthlyRentMap.get(monthKey) || 0;
+              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount));
+            }
+            
+            // Accumulate agent income
+            if (revenue.agent_income) {
+              const currentIncome = monthlyIncomeMap.get(monthKey) || 0;
+              monthlyIncomeMap.set(monthKey, currentIncome + parseFloat(revenue.agent_income));
+            }
+          }
+        });
+
+        // Convert to array and format for chart
+        const monthNames = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        // Get all unique months from both maps
+        const allMonths = new Set([...monthlyRentMap.keys(), ...monthlyIncomeMap.keys()]);
+
+        const TARGET_GOAL = 15000;
+
+        const formattedData = Array.from(allMonths)
+          .map((monthKey) => {
+            const [year, month] = monthKey.split('-');
+            const monthIndex = parseInt(month) - 1;
+            const rentAmount = Math.round((monthlyRentMap.get(monthKey) || 0) * 100) / 100;
+            const remaining = Math.max(0, TARGET_GOAL - rentAmount);
+            
+            return {
+              month: `${monthNames[monthIndex]} ${year}`,
+              rentAmount: rentAmount,
+              remaining: remaining,
+              agentIncome: Math.round((monthlyIncomeMap.get(monthKey) || 0) * 100) / 100,
+              sortKey: monthKey
+            };
+          })
+          .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+          .map(({ month, rentAmount, remaining, agentIncome }) => ({ month, rentAmount, remaining, agentIncome }));
+
+        setChartData(formattedData);
+      }
+
+      setLoading(false);
+    }
+
+    fetchMonthlyData();
+  }, [supabase]);
+
+  if (loading) {
+    return (
+      <div className="h-[400px] flex items-center justify-center text-gray-500">
+        Loading chart data...
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-[400px] flex items-center justify-center text-gray-500">
+        No revenue data available for chart.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <ComposedChart
+        data={chartData}
+        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis 
+          dataKey="month" 
+          angle={-45}
+          textAnchor="end"
+          height={80}
+          style={{ fontSize: '12px' }}
+        />
+        <YAxis 
+          label={{ value: 'Rent Amount (€)', angle: -90, position: 'insideLeft' }}
+          style={{ fontSize: '12px' }}
+          domain={[0, 15000]}
+        />
+        <Tooltip 
+          formatter={(value: any, name: string) => {
+            if (name === 'Achieved') return [`€${value.toFixed(2)}`, 'Achieved Amount'];
+            if (name === 'Remaining to Goal') return [`€${value.toFixed(2)}`, 'Remaining to €15,000'];
+            if (name === 'Agent Net Income') return [`€${value.toFixed(2)}`, 'Total Agent Net Income'];
+            return [`€${value.toFixed(2)}`, name];
+          }}
+          contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
+        />
+        <Legend 
+          wrapperStyle={{ paddingTop: '20px' }}
+        />
+        <Bar 
+          dataKey="rentAmount" 
+          stackId="stack" 
+          fill="#8b5cf6" 
+          name="Achieved"
+        />
+        <Bar 
+          dataKey="remaining" 
+          stackId="stack" 
+          fill="#e9d5ff" 
+          name="Remaining to Goal"
+          radius={[8, 8, 0, 0]}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="agentIncome" 
+          stroke="#ec4899" 
+          strokeWidth={2}
+          name="Agent Net Income"
+          dot={{ fill: '#ec4899', r: 4 }}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
   );
 }

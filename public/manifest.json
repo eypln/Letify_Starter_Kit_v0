@@ -55,20 +55,6 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "label": "Dashboard view"
-    },
-    {
-      "src": "/screenshots/listings.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "label": "Listings management"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Dashboard",

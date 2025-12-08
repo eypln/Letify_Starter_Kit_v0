@@ -178,15 +178,40 @@ export default function ClientsPage() {
       // Parantez içindeki ifadeleri kaldır: "Saint Martin (French part)" -> "Saint Martin"
       let cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
       
+      // Custom country name replacements
+      const lowerName = cleanName.toLowerCase();
+      
+      // United Kingdom of Great Britain and Northern Ireland -> England
+      if (lowerName.includes('united kingdom') || lowerName.includes('great britain')) {
+        cleanName = 'England';
+      }
+      // United States of America -> America
+      else if (lowerName.includes('united states of america')) {
+        cleanName = 'America';
+      }
+      // American Samoa -> Samoa
+      else if (lowerName === 'american samoa') {
+        cleanName = 'Samoa';
+      }
+      // Tanzania, the United Republic of -> Tanzania
+      else if (lowerName.includes('tanzania')) {
+        cleanName = 'Tanzania';
+      }
       // French ile başlayan tüm ülkeleri "France" yap
-      if (cleanName.toLowerCase().startsWith('french')) {
+      else if (lowerName.startsWith('french')) {
         cleanName = 'France';
       }
       
       return cleanName;
     })
-    // Tekrar edenleri kaldır ve sırala
-    .filter((name, index, self) => self.indexOf(name) === index)
+    // United States Minor Outlying Islands'ı kaldır ve tekrar edenleri kaldır
+    .filter((name, index, self) => {
+      const lowerName = name.toLowerCase();
+      // United States Minor Outlying Islands'ı filtrele
+      if (lowerName.includes('minor outlying')) return false;
+      // Tekrar edenleri kaldır
+      return self.indexOf(name) === index;
+    })
     .sort()
     .map((name: string) => ({ label: name, value: name }));
   const [clients, setClients] = useState<Client[]>([]);

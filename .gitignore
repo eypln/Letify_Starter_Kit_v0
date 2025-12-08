@@ -167,3 +167,8 @@ temp/
 # Supabase
 .branches
 .temp
+
+# SQL debug and test files
+*.sql
+!supabase/migrations/*.sql
+TEAMLEADER_VIEWINGS_FIX_DOCUMENTATION.md

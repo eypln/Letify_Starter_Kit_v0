@@ -2,7 +2,35 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (06.12.2025) ✅ COMPLETED
+### Ana Odak Alanları (07-08.12.2025) ✅ COMPLETED
+1. **Team Viewing Records - Agent Management System**:
+   - ✅ Agent dropdown in add viewing form (teamleader can add viewings for agents)
+   - ✅ Real-time sync for agent viewing pages
+   - ✅ Viewing date timezone fix (local date instead of UTC)
+   - ✅ API security: Elevated user permission check
+   - ✅ Activity logging with correct user_id
+   - ✅ npm 11.6.4 update (patch version)
+
+2. **Team Revenue Dashboard**:
+   - ✅ Agent Name filter dropdown
+   - ✅ Month filter dropdown
+   - ✅ Monthly revenue chart with €15,000 goal visualization
+   - ✅ Stacked bars (achieved + remaining to goal)
+   - ✅ Agent income trend line
+
+3. **Agent Revenue Page**:
+   - ✅ Monthly agent revenue chart with €8,500 personal goal
+   - ✅ Filter by user_id (agent's own data only)
+   - ✅ Goal visualization with stacked bars
+
+4. **Country Name Customization**:
+   - ✅ United Kingdom → England
+   - ✅ United States of America → America
+   - ✅ American Samoa → Samoa
+   - ✅ Tanzania, the United Republic of → Tanzania
+   - ✅ Filtered out "United States Minor Outlying Islands"
+
+### Önceki Odak (06.12.2025) ✅ COMPLETED
 1. **Role-Based Access Control (RBAC) System**: 
    - ✅ Server-side route protection (`/dashboard` - agent only)
    - ✅ Client-side route protection (`/teamleader` - teamleader only)
@@ -22,7 +50,7 @@
    - ✅ Memory Bank updated with RBAC patterns
    - ✅ Test scenarios documented and verified
 
-### Önceki Odak (06.12.2025)
+### Önceki Odak (06.12.2025 - Admin Panel)
 1. **Admin Panel User Management System**: Approved users table, block/unblock functionality
 2. **Next.js 16.0.7 Security Migration**: CVE-2025-55182 (React2Shell) vulnerability patched
 3. **Role-based UI Enhancement**: Color-coded role badges (admin, boss, teamleader, manager, agent)
@@ -41,6 +69,29 @@ All shared pages MUST use `useDashboardUrl()` hook for "Back to Dashboard" links
 
 ### State Management for Auth
 Initialize dashboard URL as `null`, not default string. Prevents race condition redirects.
+
+### Date Handling Policy
+**NEVER use `toISOString()` for date-only values** - It converts to UTC causing timezone offset. Use manual formatting:
+```typescript
+const year = date.getFullYear();
+const month = String(date.getMonth() + 1).padStart(2, '0');
+const day = String(date.getDate()).padStart(2, '0');
+const dateString = `${year}-${month}-${day}`;
+```
+
+### Elevated User Permissions
+When implementing features that allow users to act on behalf of others (e.g., teamleader adding viewings for agents):
+1. **Always check role permissions** in API route:
+   ```typescript
+   const elevatedRoles = ['teamleader', 'manager', 'boss', 'admin'];
+   if (profile && elevatedRoles.includes(profile.role)) {
+     targetUserId = requestedUserId;
+   } else {
+     return 403 error;
+   }
+   ```
+2. **Use targetUserId consistently** for all related operations (insert, logging, notifications)
+3. **Test security**: Verify non-elevated users cannot exploit the endpoint
 
 ### Önceki Odak (05.12.2025)
 1. **PWA Mobile Push Notification System**: Kritik discovery - Service Worker push event handling eksikti ✅
@@ -75,6 +126,194 @@ Initialize dashboard URL as `null`, not default string. Prevents race condition 
 5. **Production Features**: Canlı ortamda kullanıcıya değer katan özellikler ✅
 
 ## Son Değişiklikler (Tarih Sırası)
+
+### 07-08.12.2025 - Team Viewing Agent Management & Revenue Charts - COMPLETE ✅
+**Feature**: Teamleader can add viewings for agents, revenue goal visualization
+**Scope**: Agent dropdown, real-time sync, charts, timezone fix, API security
+**Deployment**: Production build başarılı (53s with Turbopack)
+**Status**: Tüm features tamamlandı, npm updated to 11.6.4
+
+#### Team Viewing Records - Agent Management System:
+**Requirement**: "Teamleader başka agent'lar için viewing kaydı ekleyebilmeli"
+
+**Implementation**:
+
+1. **Agent Dropdown in Add Form**:
+   - **Location**: First field above Ref No in add viewing modal
+   - **Options**: "Myself (Teamleader)" + all agents from profiles table
+   - **Data Source**: `fetchAgents()` - queries profiles where role='agent'
+   - **State Management**: 
+     ```typescript
+     const [agents, setAgents] = useState<Array<{ user_id: string; full_name: string }>>([])
+     const [selectedAgentId, setSelectedAgentId] = useState<string>('')
+     ```
+   - **Default Value**: Teamleader's own ID (empty string means self)
+   - **Reset**: Clears on form submit and cancel
+
+2. **API Security Enhancement**:
+   - **Problem**: API ignored `body.user_id`, always used session user
+   - **Solution**: Elevated user permission check
+   - **Code**:
+     ```typescript
+     // Check if user is elevated (teamleader, manager, boss, admin)
+     if (requestedUserId && requestedUserId !== user.id) {
+       const { data: profile } = await supabase
+         .from('profiles')
+         .select('role')
+         .eq('user_id', user.id)
+         .single();
+       
+       const elevatedRoles = ['teamleader', 'manager', 'boss', 'admin'];
+       if (profile && elevatedRoles.includes(profile.role)) {
+         targetUserId = requestedUserId;
+       } else {
+         return 403 error
+       }
+     }
+     ```
+   - **Security**: Only elevated users can create viewings for others
+   - **Usage**: Normal agents can only create for themselves
+
+3. **Activity Logging Fix**:
+   - **Problem**: `logActivity()` used `user_id` instead of `targetUserId`
+   - **Impact**: Activity log showed wrong user for teamleader-created viewings
+   - **Fix**: Changed to `user_id: targetUserId` in logActivity call
+   - **Also Fixed**: Revenue record creation uses `targetUserId`
+
+4. **Profile Query Fix**:
+   - **Problem**: Email notification query used `eq('id', user_id)`
+   - **Correct**: Should be `eq('user_id', targetUserId)`
+   - **Impact**: Email notifications work correctly for agent viewings
+
+5. **Real-time Sync for Agent Pages**:
+   - **Problem**: Agent's viewing page didn't update when teamleader added viewing
+   - **Solution**: Added Supabase Realtime subscription
+   - **Code**:
+     ```typescript
+     useEffect(() => {
+       const channel = supabase
+         .channel('agent-viewing-changes')
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'viewings' },
+           (payload) => { getUserAndViewings(); })
+         .subscribe();
+       return () => { supabase.removeChannel(channel); };
+     }, [page]);
+     ```
+   - **Result**: Agent sees new viewing instantly without refresh
+
+6. **Viewing Date Timezone Fix**:
+   - **Problem**: DatePicker date saved as previous day (UTC timezone issue)
+   - **Root Cause**: `toISOString()` converts to UTC, losing local timezone
+   - **Solution**: Manual date formatting with local timezone
+   - **Code**:
+     ```typescript
+     const year = date.getFullYear();
+     const month = String(date.getMonth() + 1).padStart(2, '0');
+     const day = String(date.getDate()).padStart(2, '0');
+     setForm({ ...form, viewing_date: `${year}-${month}-${day}` });
+     ```
+   - **Result**: Selected date (e.g., Dec 7) saved correctly as Dec 7
+
+#### Revenue Dashboard Charts:
+**Requirement**: "Aylara göre takımın gelir barlarını göstersin, 15bin euro hedef"
+
+**Implementation**:
+
+1. **Team Revenue Chart**:
+   - **Library**: Recharts (ComposedChart, Bar, Line)
+   - **Goal**: €15,000 monthly target
+   - **Visualization**: 
+     - Purple bars: Achieved rent amount
+     - Light purple bars: Remaining to goal (stacked)
+     - Line chart: Agent income trend
+   - **Filters**: Agent Name dropdown + Month dropdown
+   - **Data**: All team revenue records, filtered by selection
+
+2. **Agent Revenue Chart**:
+   - **Goal**: €8,500 personal target
+   - **Filter**: `eq("user_id", userId)` - only agent's own deals
+   - **Same visualization pattern**: Stacked bars + trend line
+
+3. **Chart Code Pattern**:
+   ```typescript
+   const TARGET_GOAL = 15000;
+   <Bar dataKey="rentAmount" stackId="a" fill="#9333ea" name="Rent Amount" />
+   <Bar dataKey="remaining" stackId="a" fill="#e9d5ff" name="Remaining to Goal" />
+   <Line type="monotone" dataKey="agentIncome" stroke="#10b981" />
+   domain={[0, TARGET_GOAL]} // Fixed Y-axis range
+   ```
+
+#### Country Name Customization:
+**Requirement**: "United Kingdom yerine England kullanalım"
+
+**Implementation**:
+- **Location**: `app/dashboard/clients/page.tsx`
+- **Method**: Custom mapping with `country-list` package
+- **Logic**:
+  ```typescript
+  const countryOptions = getNames().map((name: string) => {
+    let cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
+    const lowerName = cleanName.toLowerCase();
+    if (lowerName.includes('united kingdom')) cleanName = 'England';
+    else if (lowerName.includes('united states of america')) cleanName = 'America';
+    // ... more replacements
+    return cleanName;
+  }).filter(name => !lowerName.includes('minor outlying'));
+  ```
+
+**Files Created**: None (all modifications)
+
+**Files Modified**:
+```
+MODIFIED:
+  - app/(app)/teamleader/team-viewings/page.tsx:
+    * Added agents state and selectedAgentId state
+    * Added fetchAgents() function
+    * Added Agent Name dropdown in modal (first field)
+    * Modified handleAddViewing to use selectedAgentId
+    * Added form reset for selectedAgentId
+    * Fixed handleViewingDateChange timezone logic
+    * Added console.log debugging (to be removed)
+  
+  - app/api/viewings/route.ts:
+    * Added requestedUserId from body
+    * Added elevated user permission check
+    * Changed user_id to targetUserId for insert
+    * Fixed logActivity to use targetUserId
+    * Fixed revenue creation to use targetUserId
+    * Fixed profile query: eq('user_id', targetUserId)
+  
+  - app/dashboard/viewings/page.tsx:
+    * Added Realtime subscription for agent viewing changes
+    * Channel: 'agent-viewing-changes'
+    * Event: '*' (INSERT/UPDATE/DELETE)
+    * Callback: getUserAndViewings()
+  
+  - app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx:
+    * Added MonthlyRevenueChart component
+    * Added TARGET_GOAL constant (15000)
+    * Added Agent Name filter dropdown
+    * Added Month filter dropdown
+    * Stacked bars with achieved + remaining
+    * Agent income trend line
+  
+  - app/dashboard/revenue/RevenueClient.tsx:
+    * Added MonthlyAgentRevenueChart component
+    * Personal goal: €8,500
+    * Filter: .eq("user_id", userId)
+    * Same chart pattern as team revenue
+  
+  - app/dashboard/clients/page.tsx:
+    * Modified getNames() mapping logic
+    * Added country name replacements
+    * Added filter for minor outlying islands
+```
+
+**Build Results**:
+- ✅ Compile: 53s (Turbopack)
+- ✅ TypeScript: 49s (zero errors)
+- ✅ Static Generation: 100/100 pages
+- ✅ npm: Updated to 11.6.4 (patch warning resolved)
 
 ### 06.12.2025 - Admin Panel Enhancement & Next.js 16 Security Migration - COMPLETE ✅
 **Feature**: Admin panel user management system ve CVE-2025-55182 security fix
