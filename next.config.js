@@ -185,6 +185,14 @@ const nextConfig = {
       config.optimization.chunkIds = 'deterministic'
     }
 
+    // Ignore source map warnings in development
+    if (dev) {
+      config.ignoreWarnings = [
+        { module: /node_modules/ },
+        /Failed to parse source map/,
+      ]
+    }
+
     return config;
   },
   

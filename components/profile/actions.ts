@@ -78,8 +78,10 @@ export async function updateProfile(data: ProfileUpdateFormData) {
     // Activity log: profile update
     await logActivity(supabase, { user_id: user.id, type: 'profile_update' });
 
-    // Revalidate the profile page
+    // Revalidate all profile pages
     revalidatePath('/dashboard/profile')
+    revalidatePath('/teamleader/profile')
+    revalidatePath('/manager/profile')
 
     return { success: true }
   } catch (error) {

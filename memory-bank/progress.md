@@ -3,6 +3,92 @@
 
 ## Ne Çalışıyor ✅
 
+### 08.12.2025 - Manager Dashboard Implementation COMPLETE ✅
+**Yapılanlar:**
+- **Manager Dashboard**: Card-based UI with 5 main sections
+  - Profile: Account settings and integrations (Facebook removed for managers)
+  - Teamwork: Team collaboration features (reuses existing component)
+  - Team Viewings: Calendar + Team Records table (no add function)
+  - Team Revenue: Records table + Monthly chart (no add deal function)
+  - Reports: Coming soon placeholder page
+
+- **RBAC Security Implementation**:
+  - All manager pages have server-side role check (`role !== 'manager'` → redirect)
+  - `useDashboardUrl` hook updated for all roles (manager, boss, admin)
+  - Profile actions revalidate all role-specific paths
+  - Manager cannot add viewings or deals (monitoring only)
+
+- **Phone Validation Fix**:
+  - Phone field now optional in ProfileUpdateSchema
+  - Minimum length reduced from 10 to 7 digits
+  - Empty phone numbers accepted
+  - Regex: `/^[+]?[0-9\s\-\(\)]{7,}$/`
+
+- **Source Map Warnings Suppressed**:
+  - Next.js webpack config ignores node_modules source map warnings
+  - Cleaner development console output
+
+- **Manager Team Viewings Page**:
+  - Team Viewing Calendar: 3-month slider view with all team viewings
+  - Team Viewing Records: Simplified table without Ref No and Client Mobile No
+  - Columns: #, Agent Name, Created Date, City, Viewing Date, Viewing Time, Client Name, Result, Comments
+  - Filters: Result, Agent Name, Month
+  - Pagination: 30 records per page
+
+- **Manager Team Revenue Page**:
+  - Team Revenue Records: Full team revenue data table
+  - Filters: Agent Name, Month
+  - Monthly Team Revenue Overview: Chart with €15,000 goal visualization
+  - No "Add Deal" or "Revenue Overview" sections (manager is observer only)
+
+- **CSS Conflict Fix**:
+  - Removed duplicate `text-gray-900` class from agent income cell
+  - Only `text-green-600` class applied for proper green color
+
+**Teknik Detaylar:**
+- **Manager Page Structure**:
+  ```
+  /manager/page.tsx - Main dashboard with 5 cards
+  /manager/profile/page.tsx - Profile without Facebook integration
+  /manager/teamwork/page.tsx - Reuses dashboard teamwork component
+  /manager/team-viewings/page.tsx + ManagerTeamViewingsClient.tsx
+  /manager/team-revenue/page.tsx + ManagerTeamRevenueClient.tsx
+  /manager/reports/page.tsx - Coming soon placeholder
+  ```
+
+- **RBAC Pattern**:
+  ```typescript
+  // Server-side check in every manager page
+  if (profile.role !== 'manager') {
+    redirect('/access-denied')
+  }
+  ```
+
+- **useDashboardUrl Hook Enhancement**:
+  ```typescript
+  if (profile?.role === 'manager') setDashboardUrl('/manager');
+  else if (profile?.role === 'boss') setDashboardUrl('/boss');
+  else if (profile?.role === 'admin') setDashboardUrl('/admin');
+  ```
+
+- **Profile Validation**:
+  ```typescript
+  phone: z.string().optional().refine(
+    (val) => !val || val.trim() === '' || /^[+]?[0-9\s\-\(\)]{7,}$/.test(val),
+    'Please enter a valid phone number (minimum 7 digits)'
+  )
+  ```
+
+**Testing Verified**:
+- ✅ Manager dashboard loads with all 5 cards
+- ✅ Profile page updates without phone validation errors
+- ✅ Team viewings calendar displays all team data
+- ✅ Team revenue chart shows with goal bars
+- ✅ Dashboard button in teamwork page redirects to /manager
+- ✅ Facebook integration removed from manager profile
+- ✅ Production build successful (105 pages compiled)
+- ✅ All manager routes protected by RBAC
+
 ### 07-08.12.2025 - Team Viewing Agent Management & Revenue Goal Charts COMPLETE ✅
 **Yapılanlar:**
 - **Agent Management in Viewing Records**: Teamleader can add viewings on behalf of agents

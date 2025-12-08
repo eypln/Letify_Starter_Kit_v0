@@ -19,6 +19,12 @@ export function useDashboardUrl() {
         
         if (profile?.role === 'teamleader') {
           setDashboardUrl('/teamleader');
+        } else if (profile?.role === 'manager') {
+          setDashboardUrl('/manager');
+        } else if (profile?.role === 'boss') {
+          setDashboardUrl('/boss');
+        } else if (profile?.role === 'admin') {
+          setDashboardUrl('/admin');
         } else {
           setDashboardUrl('/dashboard');
         }

@@ -300,9 +300,45 @@ Redirect to correct role dashboard
   - Team Viewings (own + team table)
   - Team Revenue (own + team table)
   - Notifications (activity log)
-- ✅ `/manager` - Manager only (placeholder)
+- ✅ `/manager` - Manager Dashboard (08.12.2025) - 5-card monitoring system
+  - Profile (no Facebook integration)
+  - Teamwork (shared component)
+  - Team Viewings (calendar + records, no add function)
+  - Team Revenue (records + chart, no add deal)
+  - Reports (coming soon)
 - ✅ `/boss` - Boss only (placeholder)
 - ✅ Shared pages - All roles (Profile, Clients, Listings, etc.)
+
+**Manager Dashboard Pattern (08.12.2025):**
+```typescript
+// Manager is observer-only (no create/edit permissions)
+// Structure: /manager/[feature]/page.tsx + ManagerClient.tsx
+// Features:
+- profile: Simplified profile without Facebook integration
+- teamwork: Reuses /dashboard/teamwork/TeamworkClient.tsx
+- team-viewings: Custom ManagerTeamViewingsClient.tsx
+  - Calendar: 3-month view with all team viewings
+  - Table: Simplified columns (removed Ref No, Client Mobile No)
+  - Filters: Result, Agent Name, Month
+- team-revenue: Custom ManagerTeamRevenueClient.tsx
+  - Table: All team revenue records
+  - Chart: Monthly overview with €15,000 goal
+  - Filters: Agent Name, Month
+- reports: Placeholder for future analytics
+```
+
+**useDashboardUrl Hook (08.12.2025):**
+```typescript
+// Auto-detects user role and returns correct dashboard URL
+export function useDashboardUrl() {
+  // Checks profile.role and returns:
+  // manager → '/manager'
+  // teamleader → '/teamleader'
+  // boss → '/boss'
+  // admin → '/admin'
+  // agent → '/dashboard'
+}
+```
 
 **Documentation:** See `RBAC_SECURITY.md` for complete architecture
 

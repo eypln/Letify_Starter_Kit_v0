@@ -58,8 +58,11 @@ export const ProfileUpdateSchema = z.object({
     .max(100, 'Full name cannot exceed 100 characters'),
   phone: z
     .string()
-    .min(1, 'Phone number is required')
-    .regex(/^[+]?[0-9\s\-\(\)]{10,}$/, 'Please enter a valid phone number'),
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === '' || /^[+]?[0-9\s\-\(\)]{7,}$/.test(val),
+      'Please enter a valid phone number (minimum 7 digits)'
+    ),
 })
 
 export type ProfileUpdateFormData = z.infer<typeof ProfileUpdateSchema>

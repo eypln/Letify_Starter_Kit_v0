@@ -90,14 +90,13 @@ export default function ProfileInfoForm({ profile }: Omit<ProfileInfoFormProps, 
               />
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone (optional)</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+1 555 555 5555"
-                required
               />
             </div>
           </div>

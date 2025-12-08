@@ -47,11 +47,26 @@ Sistemde 5 ana rol bulunmaktadır:
 - **Erişim Seviyesi:** Yüksek
 - **Ana Dashboard:** `/manager`
 - **Yetkiler:**
-  - Team Leader'ların tüm yetkileri
-  - Çoklu takım yönetimi
-  - Şirket geneli raporlama
-  - Organizasyon ayarları
-  - _Not: Geliştirme aşamasında_
+  - **Gözlemci Rolü**: Ekleme/düzenleme yetkisi YOK
+  - Çoklu takım performans izleme
+  - Tüm takım görüşmelerini görüntüleme (takvim + tablo)
+  - Tüm takım gelirlerini görüntüleme (tablo + grafik)
+  - Takım işbirliği takibi
+  - Profil yönetimi (Facebook entegrasyonu yok)
+  - Raporlama (gelecekte eklenecek)
+- **Kısıtlamalar:**
+  - ❌ Viewing kaydı ekleyemez
+  - ❌ Revenue kaydı (deal) ekleyemez
+  - ❌ Facebook entegrasyonu yok
+  - ✅ Sadece takip ve raporlama
+- **Sayfalar:**
+  - `/manager` - Ana dashboard (5 kart)
+  - `/manager/profile` - Profil (Facebook olmadan)
+  - `/manager/teamwork` - Takım işbirliği
+  - `/manager/team-viewings` - Takım görüşmeleri (takvim + tablo)
+  - `/manager/team-revenue` - Takım gelirleri (tablo + grafik)
+  - `/manager/reports` - Raporlar (yakında)
+- **Durum:** ✅ Aktif (08.12.2025)
 
 ### 4. **Boss** (Üst Yönetim)
 - **Erişim Seviyesi:** Maksimum

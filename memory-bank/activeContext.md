@@ -2,7 +2,19 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (07-08.12.2025) ✅ COMPLETED
+### Ana Odak Alanları (08.12.2025) ✅ COMPLETED
+1. **Manager Dashboard System**:
+   - ✅ Complete manager dashboard with 5 cards (Profile, Teamwork, Team Viewings, Team Revenue, Reports)
+   - ✅ RBAC security on all manager routes
+   - ✅ Manager-specific pages without add/edit functions (monitoring only)
+   - ✅ Phone validation fix (optional field, 7+ digits)
+   - ✅ Dashboard URL routing for all roles
+   - ✅ Source map warnings suppressed in development
+   - ✅ Facebook integration removed from manager profile
+   - ✅ Simplified viewing records table (removed Ref No & Client Mobile No)
+   - ✅ Production build successful
+
+### Önceki Odak (07-08.12.2025) ✅ COMPLETED
 1. **Team Viewing Records - Agent Management System**:
    - ✅ Agent dropdown in add viewing form (teamleader can add viewings for agents)
    - ✅ Real-time sync for agent viewing pages
