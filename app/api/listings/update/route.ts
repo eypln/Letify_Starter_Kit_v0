@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logActivity } from '@/lib/activity';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,9 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   try {
     const body = await req.json();
     const {

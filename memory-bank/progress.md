@@ -3,9 +3,11 @@
 
 ## Ne Çalışıyor ✅
 
-### v2.5.0 - Database Backup & Recovery System (08.01.2025) ✅
+### v2.5.0 - Database Backup & Rate Limiting System (08.01.2025) ✅
 **Yapılanlar:**
-- **Automated Database Backup System**:
+
+#### 1. Automated Database Backup System ✅
+- **Backup System**:
   - Client-side Supabase backup approach (no Pro plan required)
   - Daily automated backups via Vercel Cron (2 AM UTC)
   - Encrypted JSON export using Web Crypto API (AES-GCM)
@@ -26,16 +28,67 @@
   - CRON_SECRET authentication
   - 5-minute max duration for large databases
 
+#### 2. Comprehensive API Rate Limiting System ✅
+- **Rate Limiting Features**:
+  - In-memory rate limiting with automatic cleanup
+  - IP-based rate limiting for anonymous requests
+  - User-based rate limiting for authenticated requests
+  - 5 configurable presets: AUTH (5/min), STRICT (10/min), MEDIUM (60/min), LOOSE (120/min), VERY_LOOSE (300/min)
+  - Standard rate limit headers (X-RateLimit-*)
+  - Retry-After header in 429 responses
+  - Frontend API client with automatic error handling
+
+- **Protected Endpoints (25+)**:
+  - **AUTH (5 req/min)**: /api/auth/reset-password, /api/auth/send-admin-approval
+  - **STRICT (10 req/min)**: /api/auth/logout, /api/stripe/*, /api/webhooks/* (IP-based)
+  - **MEDIUM (60 req/min)**: /api/listings/*, /api/clients, /api/viewings, /api/revenue
+  - **LOOSE (120 req/min)**: /api/admin/* (trusted users)
+  - **Unprotected**: /api/stripe/webhook (signature validation), /api/cron/backup (CRON_SECRET)
+
+- **Frontend Integration**:
+  - lib/api-client.ts: apiFetch() and apiFetchWithRetry() utilities
+  - Automatic 429 error handling with toast notifications
+  - Turkish error messages for better UX
+  - Retry logic with exponential backoff
+
 **Teknik Detaylar:**
 - **Files Created**:
   ```
+  lib/rate-limit.ts - Rate limiting utility (220 lines)
+  lib/api-client.ts - Frontend API client (100 lines)
+  RATE_LIMITING.md - Complete documentation
   scripts/backup-database.ts - Backup creation script (187 lines)
   scripts/restore-database.ts - Restore script with CLI (142 lines)
   app/api/cron/backup/route.ts - Vercel cron endpoint (66 lines)
   BACKUP_RECOVERY.md - Complete documentation
   ```
 
-- **Files Modified**:
+- **Files Modified (Rate Limiting)**:
+  ```
+  app/api/auth/reset-password/route.ts - Added AUTH rate limit
+  app/api/auth/logout/route.ts - Added STRICT rate limit
+  app/api/auth/send-admin-approval/route.ts - Added AUTH rate limit
+  app/api/stripe/billing-portal/route.ts - Added STRICT rate limit
+  app/api/stripe/checkout/credits/route.ts - Added STRICT rate limit
+  app/api/stripe/checkout/subscription/route.ts - Added STRICT rate limit
+  app/api/listings/list/route.ts - Added MEDIUM rate limit
+  app/api/listings/manual/route.ts - Added MEDIUM rate limit
+  app/api/listings/update/route.ts - Added MEDIUM rate limit
+  app/api/clients/route.ts - Added MEDIUM rate limit
+  app/api/viewings/route.ts - Added MEDIUM rate limit (GET, POST, PUT, DELETE)
+  app/api/revenue/route.ts - Added MEDIUM rate limit (GET, POST, PUT)
+  app/api/admin/approve-user/route.ts - Added LOOSE rate limit
+  app/api/admin/pending-users/route.ts - Added LOOSE rate limit
+  app/api/admin/blocked-users/route.ts - Added LOOSE rate limit
+  app/api/admin/approved-users/route.ts - Added LOOSE rate limit
+  app/api/webhooks/fb-post/route.ts - Added STRICT IP-based rate limit
+  app/api/webhooks/fb-reels/route.ts - Added STRICT IP-based rate limit
+  app/api/webhooks/content/route.ts - Added STRICT IP-based rate limit
+  app/api/webhooks/video-create/route.ts - Added STRICT IP-based rate limit
+  app/api/webhooks/save/route.ts - Added STRICT IP-based rate limit
+  ```
+
+- **Files Modified (Backup System)**:
   ```
   vercel.json - Added 5th cron job for backup
   package.json - Added backup, backup:list, restore, restore:latest scripts
@@ -54,6 +107,8 @@
 - **Environment Variables**:
   - CRON_SECRET: Vercel cron authentication
   - BACKUP_ENCRYPTION_KEY: 32-character AES-GCM key
+
+**Build Status**: ✅ Production build successful (116 routes, 0 errors, 0 warnings)
 
 ### v2.4.0 - Password Reset & Version Display (08.12.2025) ✅
 **Yapılanlar:**
@@ -1071,7 +1126,7 @@ CREATE POLICY "Allow authenticated users to update teamwork listings"
 - ✅ **Email Notifications**: Welcome emails, email verification, admin approval notifications (COMPLETED - 24.11.2025)
 - 🔄 **Payment Confirmation Emails**: Subscription & credit purchase confirmations (BEKLEMEDE - Subscription sayfası henüz aktif değil)
 - ✅ **Backup & Recovery**: Database backup strategies (COMPLETED - 08.01.2025 - v2.5.0)
-- 🔄 **Rate Limiting**: API rate limits, abuse prevention
+- ✅ **Rate Limiting**: API rate limits, abuse prevention (COMPLETED - 08.01.2025 - v2.5.0)
 - 🔄 **Audit Logging**: Enhanced security logging
 
 ### Low Priority

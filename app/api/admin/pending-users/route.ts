@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 
 /**
  * GET /api/admin/pending-users
  * Fetch all pending users awaiting admin approval
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 120 requests per minute per admin (loose - trusted users)
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.LOOSE);
+  if (rateLimitResult) return rateLimitResult;
   try {
     const supabase = await createClient()
 

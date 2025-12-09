@@ -4,6 +4,7 @@ import { stripe, PRICES, CreditAmount } from '@/lib/stripe';
 import { getOrCreateStripeCustomer } from '@/lib/billing';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 const CheckoutSchema = z.object({
   credits: z.enum(['10', '20', '50', '100', '200']),
@@ -12,6 +13,9 @@ const CheckoutSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 10 requests per minute per user
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.STRICT);
+  if (rateLimitResult) return rateLimitResult;
   try {
     console.log("Stripe checkout credits POST request received");
     

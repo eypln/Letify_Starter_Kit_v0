@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 120 requests per minute per admin (loose - trusted users)
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.LOOSE);
+  if (rateLimitResult) return rateLimitResult;
   try {
     console.log('[Approved Users API] Request received')
 

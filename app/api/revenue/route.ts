@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import { sendEmail } from '@/lib/email';
 import webpush from 'web-push';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 // Configure VAPID keys
 if (
@@ -18,7 +19,10 @@ if (
 }
 
 // GET - Fetch all revenue records for authenticated user
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   const supabase = await createClient();
 
   const {
@@ -44,7 +48,10 @@ export async function GET() {
 }
 
 // POST - Create new revenue record
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   const supabase = await createClient();
   const body = await req.json();
 
@@ -184,7 +191,10 @@ export async function POST(req: Request) {
 }
 
 // PUT - Update existing revenue record
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   const supabase = await createClient();
   const body = await req.json();
 

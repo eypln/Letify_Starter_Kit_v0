@@ -1,11 +1,15 @@
 export const runtime = 'nodejs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
 import { createClient } from '@/lib/supabase/server'; // mevcut user'ı okumak için
 import { logActivity } from '@/lib/activity';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   // multipart/form-data
   const form = await req.formData();
 

@@ -1,9 +1,13 @@
 export const runtime = 'nodejs';
 // app/api/webhooks/fb-reels/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
+import { rateLimitByIP, RateLimitPresets } from '@/lib/rate-limit';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP (prevent spam)
+  const rateLimitResult = await rateLimitByIP(req, RateLimitPresets.STRICT);
+  if (rateLimitResult) return rateLimitResult;
   const body = await req.json();
   console.log('FB REELS PAYLOAD:', body);
   const listingId = body.listingId ?? body.listing_id;

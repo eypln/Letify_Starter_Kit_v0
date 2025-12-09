@@ -23,10 +23,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CRON_SECRET authentication for Vercel endpoint
   - BACKUP_ENCRYPTION_KEY for secure backup files
   - Automatic cleanup of backups older than 30 days
-- **Documentation**: Complete BACKUP_RECOVERY.md guide
+- **Comprehensive API Rate Limiting System**: Enterprise-grade protection against abuse
+  - In-memory rate limiting with automatic cleanup (5-minute intervals)
+  - IP-based rate limiting for anonymous/webhook endpoints
+  - User-based rate limiting for authenticated requests
+  - 5 configurable presets: AUTH (5/min), STRICT (10/min), MEDIUM (60/min), LOOSE (120/min), VERY_LOOSE (300/min)
+  - Standard rate limit headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+  - Retry-After header in 429 Too Many Requests responses
+  - 25+ protected endpoints across auth, payments, CRUD, admin, and webhooks
+- **Rate Limiting Presets**:
+  - **AUTH (5 req/min)**: Password reset, admin approval email (prevent brute force)
+  - **STRICT (10 req/min)**: Logout, Stripe checkout, billing portal, webhooks
+  - **MEDIUM (60 req/min)**: Listings, clients, viewings, revenue CRUD operations
+  - **LOOSE (120 req/min)**: Admin panel operations (trusted users)
+  - **Unprotected**: Stripe webhook (signature validation), cron jobs (CRON_SECRET)
+- **Frontend Rate Limit Integration**:
+  - lib/api-client.ts: apiFetch() and apiFetchWithRetry() utilities
+  - Automatic 429 error handling with toast notifications
+  - Turkish error messages for better user experience
+  - Exponential backoff retry logic for rate-limited requests
+  - Helper functions: isRateLimitError(), getRetryDelay()
+- **Documentation**: Complete RATE_LIMITING.md and BACKUP_RECOVERY.md guides
   - Setup instructions with environment variables
-  - Usage examples for all npm scripts
-  - Disaster recovery procedures
+  - Backend implementation examples
+  - Frontend usage patterns
+  - Testing strategies
+  - Monitoring and scaling considerations
   - Security best practices
   - Troubleshooting guide
 
@@ -38,6 +60,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Environment Configuration**: Added backup-related variables
   - CRON_SECRET (Vercel cron authentication)
   - BACKUP_ENCRYPTION_KEY (32-character AES key)
+- **API Security**: 25+ endpoints now protected with rate limiting
+  - Auth endpoints: Reset password, admin approval, logout
+  - Payment endpoints: Stripe checkout (credits & subscription), billing portal
+  - CRUD endpoints: Listings, clients, viewings, revenue (GET, POST, PUT, DELETE)
+  - Admin endpoints: User approval, pending/blocked/approved users list
+  - Webhook endpoints: Facebook posts/reels, content generation, video creation
+
+### Security
+- **Rate Limiting**: Multi-layer protection against API abuse
+  - Prevents brute force attacks on auth endpoints (5 req/min limit)
+  - Protects payment endpoints from abuse (10 req/min limit)
+  - Fair usage for CRUD operations (60 req/min per user)
+  - IP-based limits for anonymous webhooks (10 req/min per IP)
+- **Fail-safe Design**: Rate limiter fails open on errors (allows requests if rate limit check fails)
 - **Git Configuration**: Excluded backup files from version control
   - `backups/` directory
   - `*.sql` files

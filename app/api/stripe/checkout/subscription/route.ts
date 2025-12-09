@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 import { logActivity } from '@/lib/activity';
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,10 @@ function pickPrice(plan: "mini" | "full", cycle: "monthly" | "yearly") {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per user
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.STRICT);
+  if (rateLimitResult) return rateLimitResult;
   try {
     // 1) Auth: kullanıcıyı cookie üzerinden al (client token'a gerek yok)
   const cookieStore = await cookies();

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { sendEmail, generateAdminApprovalEmail } from '@/lib/email'
 import { ADMIN_EMAIL } from '@/lib/validation'
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 
 /**
  * POST /api/auth/send-admin-approval
@@ -8,6 +9,9 @@ import { ADMIN_EMAIL } from '@/lib/validation'
  * Called from the sign-up process via a trigger or webhook
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting: 5 requests per minute per IP (prevent spam)
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.AUTH);
+  if (rateLimitResult) return rateLimitResult;
   try {
     const { fullName, email, phone } = await request.json()
 

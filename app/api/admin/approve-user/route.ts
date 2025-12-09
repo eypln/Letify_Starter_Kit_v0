@@ -2,12 +2,16 @@ import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { sendEmail, generateUserApprovalEmail } from '@/lib/email'
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 
 /**
  * PUT /api/admin/approve-user
  * Approve or deny a user registration
  */
 export async function PUT(request: NextRequest) {
+  // Rate limiting: 120 requests per minute per admin (loose - trusted users)
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.LOOSE);
+  if (rateLimitResult) return rateLimitResult;
   try {
     const supabase = await createClient()
 

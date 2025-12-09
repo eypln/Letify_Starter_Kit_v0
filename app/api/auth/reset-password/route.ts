@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Rate limiting: 5 requests per minute per IP
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.AUTH);
+  if (rateLimitResult) return rateLimitResult;
   try {
     const { email } = await request.json()
 

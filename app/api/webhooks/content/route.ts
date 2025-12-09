@@ -1,12 +1,16 @@
 export const runtime = 'nodejs';
 // app/api/webhooks/content/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceSupabase } from '@/lib/supabaseServerService';
 import { sendToN8n } from '@/lib/n8n';
 import crypto from 'crypto';
+import { rateLimitByIP, RateLimitPresets } from '@/lib/rate-limit';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP (prevent spam)
+  const rateLimitResult = await rateLimitByIP(req, RateLimitPresets.STRICT);
+  if (rateLimitResult) return rateLimitResult;
   const body = await req.json().catch(() => ({}));
   // n8n trigger: job insert + n8n gönder + listings upsert
   if (body?.trigger === 'n8n') {

@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
 const PAGE_SIZE = 10;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // Rate limiting: 60 requests per minute per user
+  const rateLimitResult = await rateLimit(request, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, Number(searchParams.get('page') || '1'));
   

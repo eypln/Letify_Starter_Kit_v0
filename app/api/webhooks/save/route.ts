@@ -1,10 +1,14 @@
 // app/api/webhooks/save/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { sendToN8n } from '@/lib/n8n';
+import { rateLimitByIP, RateLimitPresets } from '@/lib/rate-limit';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limiting: 10 requests per minute per IP (prevent spam)
+  const rateLimitResult = await rateLimitByIP(req, RateLimitPresets.STRICT);
+  if (rateLimitResult) return rateLimitResult;
   const body = await req.json().catch(() => ({}));
   const { jobId, description } = body ?? {};
 
