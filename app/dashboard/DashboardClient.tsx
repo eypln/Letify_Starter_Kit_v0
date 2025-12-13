@@ -121,8 +121,8 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           </div>
         </div>
       )}
-      <div className="relative min-h-screen">
-      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
+      <main className="relative min-h-screen">
+      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16 pb-8">
         {/* Çıkış butonu sağ üstte, container padding içinde */}
         <div className="flex justify-end mb-4">
           <button
@@ -148,10 +148,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/new-post" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Plus className="h-6 w-6 text-purple-600" />
                   <span>Create New Post</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Generate content automatically from a listing link and share on Facebook
                 </p>
@@ -164,10 +164,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/listings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <FileText className="h-6 w-6 text-purple-600" />
                   <span>Listings</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   View your created content and shares
                 </p>
@@ -180,10 +180,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/analytics" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <BarChart3 className="h-6 w-6 text-purple-600" />
                   <span>Analytics</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Analyze your sharing performance and statistics
                 </p>
@@ -196,10 +196,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/clients" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Users className="h-6 w-6 text-purple-600" />
                   <span>Clients</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Client management and reporting
                 </p>
@@ -212,10 +212,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <div className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm opacity-50 cursor-not-allowed h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <BarChart3 className="h-6 w-6 text-purple-400" />
                   <span>Subscription</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Manage your plan and billing information
                 </p>
@@ -228,10 +228,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/profile" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Settings className="h-6 w-6 text-purple-600" />
                   <span>Profile</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Account settings and Facebook integration
                 </p>
@@ -244,10 +244,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/teamwork" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Users2 className="h-6 w-6 text-purple-600" />
                   <span>Teamwork</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Collaborate with your teammate if you have only a client or property in hand
                 </p>
@@ -260,10 +260,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/viewings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Calendar className="h-6 w-6 text-purple-600" />
                   <span>Viewings</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Follow up your viewings with your calendar
                 </p>
@@ -276,10 +276,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           <Link href="/dashboard/revenue" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Euro className="h-6 w-6 text-purple-600" />
                   <span>Revenue</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Rented records, contract dates, commission income include listing fee and bonuses
                 </p>
@@ -293,7 +293,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-6 pb-4">
-              <h3 className="text-2xl font-semibold leading-none tracking-tight">Quick Stats</h3>
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">Quick Stats</h2>
             </div>
             <div className="p-6 pt-0">
               <div className="space-y-2">
@@ -330,7 +330,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           </div>
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-6 pb-4">
-              <h3 className="text-2xl font-semibold leading-none tracking-tight">Recent Activities</h3>
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">Recent Activities</h2>
             </div>
             <div className="p-6 pt-0">
               {stats.recentActivities.length === 0 ? (
@@ -372,7 +372,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           </div>
         </div>
       </div>
-    </div>
+    </main>
     </>
   );
 }

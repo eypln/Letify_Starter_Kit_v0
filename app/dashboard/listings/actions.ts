@@ -18,7 +18,7 @@ interface ListingRow {
   fbPostUrl: string | null;
   fbReelsUrl: string | null;
   title: string;
-  availability: string;
+  availability: 'Available' | 'Rented' | 'Soon';
   available_date: string | null;
   isSharedInTeamwork: boolean;
   photos: { url: string }[];
@@ -119,6 +119,10 @@ export async function getListings({ page }: { page: number }): Promise<{
 
       const allPhotos: { url: string }[] = [...photosFromAssets, ...photosFromImages];
 
+      const availability = (listing?.availability as string) ?? 'Available';
+      const validAvailability: 'Available' | 'Rented' | 'Soon' = 
+        availability === 'Rented' || availability === 'Soon' ? availability : 'Available';
+
       const row: ListingRow = {
         id: listingId,
         addingDate: (listing?.created_at as string) ?? '',
@@ -132,7 +136,7 @@ export async function getListings({ page }: { page: number }): Promise<{
         fbPostUrl: (listing?.facebook_post_url as string) ?? (listing?.fb_post_url as string) ?? null,
         fbReelsUrl: (listing?.facebook_reel_url as string) ?? (listing?.fb_reels_url as string) ?? null,
         title: (listing?.title as string) ?? '',
-        availability: (listing?.availability as string) ?? 'Available',
+        availability: validAvailability,
         available_date: (listing?.available_date as string) ?? null,
         isSharedInTeamwork: sharedListingIds.has(listingId),
         photos: JSON.parse(JSON.stringify(allPhotos)),
@@ -151,6 +155,130 @@ export async function getListings({ page }: { page: number }): Promise<{
     const error = err as Error;
     console.error('getListings error:', err);
     throw new Error(error?.message || 'getListings error');
+  }
+}
+
+// Get all listings without pagination for filtering
+export async function getAllListings(): Promise<{
+  rows: ListingRow[];
+}> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('listings')
+      .select(`
+        id,
+        created_at,
+        property_url,
+        city, location,
+        price,
+        bedrooms, bathrooms,
+        property_type,
+        description,
+        fb_post_url,
+        fb_reels_url,
+        facebook_post_url,
+        facebook_reel_url,
+        title,
+        availability::text,
+        available_date,
+        images
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase listings fetch error:', error);
+      throw new Error(error.message || 'Supabase listings fetch error');
+    }
+
+    const listingIds = (Array.isArray(data) ? data : []).map((d: unknown) => (d as Record<string, unknown>)?.id as string).filter(Boolean);
+    
+    const { data: sharedListings } = await supabase
+      .from('teamwork_listings')
+      .select('listing_id')
+      .in('listing_id', listingIds);
+
+    const sharedListingIds = new Set((sharedListings || []).map((item: { listing_id: string }) => item.listing_id));
+
+    const { data: jobsData } = await supabase
+      .from('jobs')
+      .select('id, listing_id')
+      .in('listing_id', listingIds);
+
+    const jobIds = (jobsData || []).map((j: { id: string }) => j.id);
+    const listingToJobsMap = new Map<string, string[]>();
+    (jobsData || []).forEach((j: { id: string; listing_id: string | null }) => {
+      if (j.listing_id) {
+        if (!listingToJobsMap.has(j.listing_id)) {
+          listingToJobsMap.set(j.listing_id, []);
+        }
+        listingToJobsMap.get(j.listing_id)!.push(j.id);
+      }
+    });
+
+    const { data: uploadedAssets } = await supabase
+      .from('uploaded_assets')
+      .select('job_id, public_url')
+      .in('job_id', jobIds);
+
+    const jobToPhotosMap = new Map<string, string[]>();
+    (uploadedAssets || []).forEach((asset: { job_id: string; public_url: string }) => {
+      if (!jobToPhotosMap.has(asset.job_id)) {
+        jobToPhotosMap.set(asset.job_id, []);
+      }
+      jobToPhotosMap.get(asset.job_id)!.push(asset.public_url);
+    });
+
+    const rows: ListingRow[] = (Array.isArray(data) ? data : []).map((d: unknown): ListingRow => {
+      const listing = d as Record<string, unknown>;
+      const listingId = listing?.id as string;
+      const jobIdsForListing = listingToJobsMap.get(listingId) || [];
+      
+      const photosFromAssets: { url: string }[] = [];
+      jobIdsForListing.forEach(jobId => {
+        const urls = jobToPhotosMap.get(jobId) || [];
+        urls.forEach(url => photosFromAssets.push({ url }));
+      });
+
+      const imagesFromListing = Array.isArray(listing?.images) ? listing.images : [];
+      const photosFromImages: { url: string }[] = (imagesFromListing as Array<string | { url: string }>).map((img: string | { url: string }) => 
+        typeof img === 'string' ? { url: img } : img
+      );
+
+      const allPhotos: { url: string }[] = [...photosFromAssets, ...photosFromImages];
+
+      const availability = (listing?.availability as string) ?? 'Available';
+      const validAvailability: 'Available' | 'Rented' | 'Soon' = 
+        availability === 'Rented' || availability === 'Soon' ? availability : 'Available';
+
+      const row: ListingRow = {
+        id: listingId,
+        addingDate: (listing?.created_at as string) ?? '',
+        sourceUrl: (listing?.property_url as string) ?? '',
+        city: (listing?.city as string) ?? (listing?.location as string) ?? null,
+        price: (listing?.price as number) ?? null,
+        bedroom: (listing?.bedrooms as number) ?? null,
+        bathroom: (listing?.bathrooms as number) ?? null,
+        propertyType: (listing?.property_type as string) ?? null,
+        description: (listing?.description as string) ?? '',
+        fbPostUrl: (listing?.facebook_post_url as string) ?? (listing?.fb_post_url as string) ?? null,
+        fbReelsUrl: (listing?.facebook_reel_url as string) ?? (listing?.fb_reels_url as string) ?? null,
+        title: (listing?.title as string) ?? '',
+        availability: validAvailability,
+        available_date: (listing?.available_date as string) ?? null,
+        isSharedInTeamwork: sharedListingIds.has(listingId),
+        photos: JSON.parse(JSON.stringify(allPhotos)),
+      };
+      
+      return row;
+    });
+
+    return { rows };
+  } catch (err) {
+    const error = err as Error;
+    console.error('getAllListings error:', err);
+    throw new Error(error?.message || 'getAllListings error');
   }
 }
 

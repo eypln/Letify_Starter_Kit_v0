@@ -70,8 +70,8 @@ export default function ManagerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
+    <main className="min-h-screen bg-gray-50">
+      <div className="pt-8 pb-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Logout Button */}
         <div className="flex justify-end mb-4">
           <button
@@ -98,10 +98,10 @@ export default function ManagerPage() {
           <Link href="/manager/profile" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Settings className="h-6 w-6 text-purple-600" />
                   <span>Profile</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Account settings and integrations
                 </p>
@@ -116,10 +116,10 @@ export default function ManagerPage() {
           <Link href="/manager/teamwork" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Users2 className="h-6 w-6 text-purple-600" />
                   <span>Teamwork</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Collaborate with your teams
                 </p>
@@ -134,10 +134,10 @@ export default function ManagerPage() {
           <Link href="/manager/team-viewings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Calendar className="h-6 w-6 text-purple-600" />
                   <span>Team Viewings</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Track team viewing records and schedule
                 </p>
@@ -152,10 +152,10 @@ export default function ManagerPage() {
           <Link href="/manager/team-revenue" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Euro className="h-6 w-6 text-purple-600" />
                   <span>Team Revenue</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Monitor team revenue and deals
                 </p>
@@ -170,10 +170,10 @@ export default function ManagerPage() {
           <Link href="/manager/reports" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <FileText className="h-6 w-6 text-purple-600" />
                   <span>Reports</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Generate and view analytical reports
                 </p>
@@ -188,10 +188,10 @@ export default function ManagerPage() {
           <Link href="/manager/notifications" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Bell className="h-6 w-6 text-purple-600" />
                   <span>Notifications</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Track team deal activities
                 </p>
@@ -203,6 +203,6 @@ export default function ManagerPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

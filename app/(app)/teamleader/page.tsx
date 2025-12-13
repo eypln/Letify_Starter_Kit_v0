@@ -70,8 +70,8 @@ export default function TeamLeaderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16">
+    <main className="min-h-screen bg-gray-50">
+      <div className="pt-8 pb-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Logout Button */}
         <div className="flex justify-end mb-4">
           <button
@@ -98,10 +98,10 @@ export default function TeamLeaderPage() {
           <Link href="/dashboard/profile" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Settings className="h-6 w-6 text-purple-600" />
                   <span>Profile</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Account settings and integrations
                 </p>
@@ -116,10 +116,10 @@ export default function TeamLeaderPage() {
           <Link href="/dashboard/new-post" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Plus className="h-6 w-6 text-purple-600" />
                   <span>Create New Post</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Generate content and share on Facebook
                 </p>
@@ -134,10 +134,10 @@ export default function TeamLeaderPage() {
           <Link href="/dashboard/clients" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Users className="h-6 w-6 text-purple-600" />
                   <span>Clients</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Client management and reporting
                 </p>
@@ -152,10 +152,10 @@ export default function TeamLeaderPage() {
           <Link href="/dashboard/listings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <FileText className="h-6 w-6 text-purple-600" />
                   <span>Listings</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   View created content and shares
                 </p>
@@ -170,10 +170,10 @@ export default function TeamLeaderPage() {
           <Link href="/dashboard/teamwork" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Users2 className="h-6 w-6 text-purple-600" />
                   <span>Teamwork</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Collaborate with your teammates
                 </p>
@@ -188,10 +188,10 @@ export default function TeamLeaderPage() {
           <Link href="/teamleader/team-viewings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Calendar className="h-6 w-6 text-purple-600" />
                   <span>Team Viewings</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your viewings and team viewing records
                 </p>
@@ -206,10 +206,10 @@ export default function TeamLeaderPage() {
           <Link href="/teamleader/team-revenue" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Euro className="h-6 w-6 text-purple-600" />
                   <span>Team Revenue</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   Your deals and team revenue records
                 </p>
@@ -224,10 +224,10 @@ export default function TeamLeaderPage() {
           <Link href="/teamleader/notifications" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <Bell className="h-6 w-6 text-purple-600" />
                   <span>Notifications</span>
-                </h3>
+                </h2>
                 <p className="text-sm text-muted-foreground mt-2">
                   All system notifications and alerts
                 </p>
@@ -239,6 +239,6 @@ export default function TeamLeaderPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

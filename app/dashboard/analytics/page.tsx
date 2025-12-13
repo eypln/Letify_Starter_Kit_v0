@@ -7,12 +7,34 @@ import { ExportButton } from '@/components/system/AnalyticsComponents'
 import { Calendar, Download } from 'lucide-react'
 import { useDashboardUrl } from '@/lib/hooks/useDashboardUrl'
 
-const GroupedBarChart = dynamic(() => import('@/components/ui/grouped-bar-chart'), { ssr: false });
-const HistogramBarChart = dynamic(() => import('@/components/ui/histogram-bar-chart'), { ssr: false });
+// Loading placeholder component for charts
+const ChartSkeleton = () => (
+  <div className="w-full h-[300px] bg-gray-100 animate-pulse rounded-md flex items-center justify-center">
+    <div className="text-gray-400">Loading chart...</div>
+  </div>
+);
 
-const BarChart = dynamic(() => import('@/components/ui/bar-chart'), { ssr: false });
-const LineChart = dynamic(() => import('@/components/ui/line-chart'), { ssr: false });
-const PieChart = dynamic(() => import('@/components/ui/pie-chart'), { ssr: false });
+const GroupedBarChart = dynamic(() => import('@/components/ui/grouped-bar-chart'), { 
+  ssr: false,
+  loading: () => <ChartSkeleton />
+});
+const HistogramBarChart = dynamic(() => import('@/components/ui/histogram-bar-chart'), { 
+  ssr: false,
+  loading: () => <ChartSkeleton />
+});
+
+const BarChart = dynamic(() => import('@/components/ui/bar-chart'), { 
+  ssr: false,
+  loading: () => <ChartSkeleton />
+});
+const LineChart = dynamic(() => import('@/components/ui/line-chart'), { 
+  ssr: false,
+  loading: () => <ChartSkeleton />
+});
+const PieChart = dynamic(() => import('@/components/ui/pie-chart'), { 
+  ssr: false,
+  loading: () => <ChartSkeleton />
+});
 
 interface Listing {
   city?: string;
@@ -297,7 +319,7 @@ export default function AnalyticsPage() {
   const budgetHistogramData = budgetHistogramLabels.map(label => ({ range: label, count: budgetHistogram[label] || 0 }));
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <main className="max-w-7xl mx-auto p-6 space-y-8 min-h-screen">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Analytics & Reports</h1>
@@ -316,10 +338,10 @@ export default function AnalyticsPage() {
       {/* Date Range Filter */}
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <div className="p-6 pb-4">
-          <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Date Range
-          </h3>
+          </h2>
         </div>
         <div className="p-6 pt-0">
           <div className="flex flex-col gap-4 md:flex-row md:items-end">
@@ -391,10 +413,10 @@ export default function AnalyticsPage() {
           {/* Export Summary */}
           <div className="rounded-lg border bg-muted text-card-foreground shadow-sm">
             <div className="p-6 pb-4">
-              <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+              <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                 <Download className="w-5 h-5" />
                 Advanced Export Options
-              </h3>
+              </h2>
               <p className="text-sm text-muted-foreground mt-2">Export your data in multiple formats</p>
             </div>
             <div className="p-6 pt-0">
@@ -428,46 +450,62 @@ export default function AnalyticsPage() {
       )}
       {!loading && (listings.length > 0 || clients.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Listings by City</h2>
-            <BarChart data={Object.entries(cityCounts).map(([city, count]) => ({ city, count }))} />
+            <div className="min-h-[300px]">
+              <BarChart data={Object.entries(cityCounts).map(([city, count]) => ({ city, count }))} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Average Price by City</h2>
-            <LineChart data={cityAvgPrices} />
+            <div className="min-h-[300px]">
+              <LineChart data={cityAvgPrices} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Listings by Bedroom Count</h2>
-            <PieChart data={Object.entries(bedroomCounts).map(([bedroom, count]) => ({ bedroom, count }))} />
+            <div className="min-h-[300px]">
+              <PieChart data={Object.entries(bedroomCounts).map(([bedroom, count]) => ({ bedroom, count }))} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Average Price by Bedroom Count</h2>
-            <BarChart data={avgPriceByBedroom.map(({ bedrooms, avgPrice }) => ({ city: bedrooms, count: avgPrice }))} />
+            <div className="min-h-[300px]">
+              <BarChart data={avgPriceByBedroom.map(({ bedrooms, avgPrice }) => ({ city: bedrooms, count: avgPrice }))} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
             <h2 className="font-semibold mb-4">Listings by City & Bedroom</h2>
-            <GroupedBarChart data={groupedBarData} />
+            <div className="min-h-[300px]">
+              <GroupedBarChart data={groupedBarData} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
             <h2 className="font-semibold mb-4">Price Distribution Histogram</h2>
-            <HistogramBarChart data={histogramData} />
+            <div className="min-h-[300px]">
+              <HistogramBarChart data={histogramData} />
+            </div>
           </div>
           
           {/* Client Analytics Charts */}
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Clients by City</h2>
-            <PieChart data={Object.entries(clientCityCounts).map(([city, count]) => ({ bedroom: city, count }))} />
+            <div className="min-h-[300px]">
+              <PieChart data={Object.entries(clientCityCounts).map(([city, count]) => ({ bedroom: city, count }))} />
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8">
+          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
             <h2 className="font-semibold mb-4">Clients by Budget Range</h2>
-            <HistogramBarChart data={budgetHistogramData} />
+            <div className="min-h-[300px]">
+              <HistogramBarChart data={budgetHistogramData} />
+            </div>
           </div>
 
           {/* Monthly Posts & Clients - Combined Histogram */}
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
             <h2 className="font-semibold mb-4">Monthly Activity: Posts vs Clients</h2>
             {monthlyPostUsage.length > 0 || monthlyClientsAdded.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-h-[300px]">
                 <GroupedBarChart 
                   data={(() => {
                     // Combine both datasets by month
@@ -492,10 +530,10 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Daily Viewings Chart */}
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2">
+          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
             <h2 className="font-semibold mb-4">Monthly Activity: Viewings</h2>
             {dailyViewings.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-h-[300px]">
                 <BarChart 
                   data={dailyViewings.map(({ day, count }) => ({ 
                     city: `Day ${day}`, 
@@ -509,6 +547,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

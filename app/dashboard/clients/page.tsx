@@ -215,6 +215,7 @@ export default function ClientsPage() {
     .sort()
     .map((name: string) => ({ label: name, value: name }));
   const [clients, setClients] = useState<Client[]>([]);
+  const [foundClients, setFoundClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -350,15 +351,16 @@ export default function ClientsPage() {
     const currentUser = session?.user || null;
     setUser(currentUser);
     if (currentUser?.id) {
-      const { data, error, count } = await supabase
+      // Get all clients first
+      const { data: allData, error: allError } = await supabase
         .from("clients")
-        .select("*", { count: "exact" })
+        .select("*")
         .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-        .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
-      if (!error && data) {
+        .order("created_at", { ascending: false });
+
+      if (!allError && allData) {
         // Get all client IDs that are shared in teamwork
-        const clientIds = data.map(c => c.id).filter(Boolean);
+        const clientIds = allData.map(c => c.id).filter(Boolean);
         const { data: sharedClients } = await supabase
           .from('teamwork_clients')
           .select('client_id')
@@ -367,13 +369,25 @@ export default function ClientsPage() {
         const sharedClientIds = new Set((sharedClients || []).map((item: { client_id: number }) => item.client_id));
 
         // Add isSharedInTeamwork property to each client
-        const clientsWithSharedStatus = data.map(client => ({
+        const clientsWithSharedStatus = allData.map(client => ({
           ...client,
           isSharedInTeamwork: sharedClientIds.has(client.id),
         }));
 
-        setClients(clientsWithSharedStatus);
-        setPageCount(Math.ceil((count ?? 0) / pageSize));
+        // Separate active and found clients
+        const activeClientsList = clientsWithSharedStatus.filter(c => 
+          c.status === 'Looking' || c.status === 'Urgent' || !c.status
+        );
+        const foundClientsList = clientsWithSharedStatus.filter(c => c.status === 'Found');
+
+        // Pagination for active clients
+        const activeStart = (currentPage - 1) * pageSize;
+        const activeEnd = currentPage * pageSize;
+        const paginatedActive = activeClientsList.slice(activeStart, activeEnd);
+
+        setClients(paginatedActive);
+        setFoundClients(foundClientsList); // No pagination for found clients
+        setPageCount(Math.ceil(activeClientsList.length / pageSize));
       }
     }
     setLoading(false);
@@ -700,120 +714,219 @@ export default function ClientsPage() {
               </div>
             </Dialog>
           )}
-          <div className="overflow-x-auto">
-            <table className="min-w-full border rounded-lg">
-              <thead>
-                <tr className="bg-purple-50">
-                  {columns.map((col) => (
-                    <th key={col} className="px-3 py-2 text-left font-semibold text-purple-700 border-b">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">Loading...</td>
+          
+          {/* Active Clients Table (Looking & Urgent) */}
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-3 text-purple-700">Active Clients (Looking & Urgent)</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border rounded-lg">
+                <thead>
+                  <tr className="bg-purple-50">
+                    {columns.map((col) => (
+                      <th key={col} className="px-3 py-2 text-left font-semibold text-purple-700 border-b">
+                        {col}
+                      </th>
+                    ))}
                   </tr>
-                ) : clients.length === 0 ? (
-                  <tr>
-                    <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">No clients found.</td>
-                  </tr>
-                ) : (
-                  clients.map((client: Client, idx: number) => (
-                    <tr key={client.id} className="border-b hover:bg-purple-50 cursor-pointer" onClick={() => {
-                      setForm({
-                        id: client.id,
-                        user_id: client.user_id,
-                        adding_date: typeof client.adding_date === 'string' ? client.adding_date : (client.adding_date instanceof Date ? client.adding_date.toISOString() : '') || client.created_at || "",
-                        name: client.name || "",
-                        people: client.people || "",
-                        bedroom: client.bedroom || "",
-                        cities: client.cities || "",
-                        family_sharing: client.family_sharing || "",
-                        nationalities: client.nationalities || "",
-                        jobs: client.jobs || "",
-                        pet: client.pet || "",
-                        budget: client.budget || "",
-                        move_in: typeof client.move_in === 'string' ? client.move_in : (client.move_in instanceof Date ? client.move_in.toISOString() : '') || "",
-                        phone: client.phone || "",
-                        status: client.status || "Looking",
-                      });
-                      setMoveInDate(client.move_in ? new Date(client.move_in) : null);
-                      setShowModal(true);
-                    }}>
-                      <td className="px-3 py-2">{(page - 1) * pageSize + idx + 1}</td>
-                      <td className="px-3 py-2">
-                        {typeof client.adding_date === "string"
-                          ? client.adding_date.slice(0, 10)
-                          : client.adding_date instanceof Date
-                            ? client.adding_date.toISOString().slice(0, 10)
-                            : String(client.adding_date || '').slice(0, 10)}
-                      </td>
-                      <td className="px-3 py-2">{client.name}</td>
-                      <td className="px-3 py-2">{client.people}</td>
-                      <td className="px-3 py-2">{client.bedroom}</td>
-                      <td className="px-3 py-2">{client.cities}</td>
-                      <td className="px-3 py-2">{client.family_sharing}</td>
-                      <td className="px-3 py-2">{client.nationalities}</td>
-                      <td 
-                        className="px-3 py-2 max-w-[80px] truncate cursor-pointer hover:text-purple-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (client.jobs) setJobsModal(client.jobs);
-                        }}
-                      >
-                        {client.jobs}
-                      </td>
-                      <td className="px-3 py-2">{client.pet}</td>
-                      <td className="px-3 py-2">{client.budget}</td>
-                      <td className="px-3 py-2">
-                        {typeof client.move_in === "string"
-                          ? client.move_in.slice(0, 10)
-                          : client.move_in instanceof Date
-                            ? client.move_in.toISOString().slice(0, 10)
-                            : String(client.move_in || '').slice(0, 10)}
-                      </td>
-                      <td className="px-3 py-2">{client.phone}</td>
-                      <td className="px-3 py-2">
-                        <span 
-                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            client.status === 'Found' ? 'bg-red-100 text-red-800' :
-                            client.status === 'Looking' ? 'bg-blue-100 text-blue-800' :
-                            client.status === 'Urgent' ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {client.status || 'Looking'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <ClientTeamworkShareButton clientId={client.id} clientName={client.name} isShared={client.isSharedInTeamwork} />
-                      </td>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">Loading...</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">No active clients found.</td>
+                    </tr>
+                  ) : (
+                    clients.map((client: Client, idx: number) => (
+                      <tr key={client.id} className="border-b hover:bg-purple-50 cursor-pointer" onClick={() => {
+                        setForm({
+                          id: client.id,
+                          user_id: client.user_id,
+                          adding_date: typeof client.adding_date === 'string' ? client.adding_date : (client.adding_date instanceof Date ? client.adding_date.toISOString() : '') || client.created_at || "",
+                          name: client.name || "",
+                          people: client.people || "",
+                          bedroom: client.bedroom || "",
+                          cities: client.cities || "",
+                          family_sharing: client.family_sharing || "",
+                          nationalities: client.nationalities || "",
+                          jobs: client.jobs || "",
+                          pet: client.pet || "",
+                          budget: client.budget || "",
+                          move_in: typeof client.move_in === 'string' ? client.move_in : (client.move_in instanceof Date ? client.move_in.toISOString() : '') || "",
+                          phone: client.phone || "",
+                          status: client.status || "Looking",
+                        });
+                        setMoveInDate(client.move_in ? new Date(client.move_in) : null);
+                        setShowModal(true);
+                      }}>
+                        <td className="px-3 py-2">{(page - 1) * pageSize + idx + 1}</td>
+                        <td className="px-3 py-2">
+                          {typeof client.adding_date === "string"
+                            ? client.adding_date.slice(0, 10)
+                            : client.adding_date instanceof Date
+                              ? client.adding_date.toISOString().slice(0, 10)
+                              : String(client.adding_date || '').slice(0, 10)}
+                        </td>
+                        <td className="px-3 py-2">{client.name}</td>
+                        <td className="px-3 py-2">{client.people}</td>
+                        <td className="px-3 py-2">{client.bedroom}</td>
+                        <td className="px-3 py-2">{client.cities}</td>
+                        <td className="px-3 py-2">{client.family_sharing}</td>
+                        <td className="px-3 py-2">{client.nationalities}</td>
+                        <td 
+                          className="px-3 py-2 max-w-[80px] truncate cursor-pointer hover:text-purple-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (client.jobs) setJobsModal(client.jobs);
+                          }}
+                        >
+                          {client.jobs}
+                        </td>
+                        <td className="px-3 py-2">{client.pet}</td>
+                        <td className="px-3 py-2">{client.budget}</td>
+                        <td className="px-3 py-2">
+                          {typeof client.move_in === "string"
+                            ? client.move_in.slice(0, 10)
+                            : client.move_in instanceof Date
+                              ? client.move_in.toISOString().slice(0, 10)
+                              : String(client.move_in || '').slice(0, 10)}
+                        </td>
+                        <td className="px-3 py-2">{client.phone}</td>
+                        <td className="px-3 py-2">
+                          <span 
+                            className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                              client.status === 'Found' ? 'bg-red-100 text-red-800' :
+                              client.status === 'Looking' ? 'bg-blue-100 text-blue-800' :
+                              client.status === 'Urgent' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {client.status || 'Looking'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <ClientTeamworkShareButton clientId={client.id} clientName={client.name} isShared={client.isSharedInTeamwork} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center space-x-2 mt-4">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(1)}>First</Button>
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={page === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              ))}
+              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(page + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(pageCount)}>Last</Button>
+            </div>
           </div>
-          {/* Pagination Controls */}
-          <div className="flex justify-center items-center space-x-2 mt-4">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(1)}>First</Button>
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</Button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).map((pageNum) => (
-              <Button
-                key={pageNum}
-                variant={page === pageNum ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPage(pageNum)}
-              >
-                {pageNum}
-              </Button>
-            ))}
-            <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(page + 1)}>Next</Button>
-            <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(pageCount)}>Last</Button>
-          </div>
+
+          {/* Found Clients Table */}
+          {foundClients.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-3 text-gray-700">Found Clients</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border rounded-lg">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      {columns.map((col) => (
+                        <th key={col} className="px-3 py-2 text-left font-semibold text-gray-700 border-b">
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {foundClients.map((client: Client, idx: number) => (
+                      <tr key={client.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => {
+                        setForm({
+                          id: client.id,
+                          user_id: client.user_id,
+                          adding_date: typeof client.adding_date === 'string' ? client.adding_date : (client.adding_date instanceof Date ? client.adding_date.toISOString() : '') || client.created_at || "",
+                          name: client.name || "",
+                          people: client.people || "",
+                          bedroom: client.bedroom || "",
+                          cities: client.cities || "",
+                          family_sharing: client.family_sharing || "",
+                          nationalities: client.nationalities || "",
+                          jobs: client.jobs || "",
+                          pet: client.pet || "",
+                          budget: client.budget || "",
+                          move_in: typeof client.move_in === 'string' ? client.move_in : (client.move_in instanceof Date ? client.move_in.toISOString() : '') || "",
+                          phone: client.phone || "",
+                          status: client.status || "Looking",
+                        });
+                        setMoveInDate(client.move_in ? new Date(client.move_in) : null);
+                        setShowModal(true);
+                      }}>
+                        <td className="px-3 py-2">{idx + 1}</td>
+                        <td className="px-3 py-2">
+                          {typeof client.adding_date === "string"
+                            ? client.adding_date.slice(0, 10)
+                            : client.adding_date instanceof Date
+                              ? client.adding_date.toISOString().slice(0, 10)
+                              : String(client.adding_date || '').slice(0, 10)}
+                        </td>
+                        <td className="px-3 py-2">{client.name}</td>
+                        <td className="px-3 py-2">{client.people}</td>
+                        <td className="px-3 py-2">{client.bedroom}</td>
+                        <td className="px-3 py-2">{client.cities}</td>
+                        <td className="px-3 py-2">{client.family_sharing}</td>
+                        <td className="px-3 py-2">{client.nationalities}</td>
+                        <td 
+                          className="px-3 py-2 max-w-[80px] truncate cursor-pointer hover:text-purple-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (client.jobs) setJobsModal(client.jobs);
+                          }}
+                        >
+                          {client.jobs}
+                        </td>
+                        <td className="px-3 py-2">{client.pet}</td>
+                        <td className="px-3 py-2">{client.budget}</td>
+                        <td className="px-3 py-2">
+                          {typeof client.move_in === "string"
+                            ? client.move_in.slice(0, 10)
+                            : client.move_in instanceof Date
+                              ? client.move_in.toISOString().slice(0, 10)
+                              : String(client.move_in || '').slice(0, 10)}
+                        </td>
+                        <td className="px-3 py-2">{client.phone}</td>
+                        <td className="px-3 py-2">
+                          <span 
+                            className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                              client.status === 'Found' ? 'bg-red-100 text-red-800' :
+                              client.status === 'Looking' ? 'bg-blue-100 text-blue-800' :
+                              client.status === 'Urgent' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {client.status || 'Looking'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <ClientTeamworkShareButton clientId={client.id} clientName={client.name} isShared={client.isSharedInTeamwork} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       </div>
