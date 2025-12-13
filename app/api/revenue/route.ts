@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     client_discount,
     has_listing_fee,
     vatable,
+    deal_type,
     date_rented,
     date_signed,
     date_move_in,
@@ -87,26 +88,50 @@ export async function POST(req: NextRequest) {
   // Calculate fees
   const rentAmountNum = parseFloat(rent_amount) || 0;
   
-  // Landlord fee: half of rent amount, with optional 15% discount
-  let landlord_fee = rentAmountNum / 2;
-  if (landlord_discount) {
-    landlord_fee = landlord_fee * 0.85; // 15% discount
+  let landlord_fee = 0;
+  let client_fee = 0;
+  let listing_fee = 0;
+  
+  if (deal_type === 'shortlet') {
+    // Shortlet: Total Owner Rent Income calculation
+    // Base landlord fee: 10% of total owner rent income
+    landlord_fee = rentAmountNum * 0.10;
+    if (landlord_discount) {
+      landlord_fee = landlord_fee * 0.85; // 15% discount
+    }
+
+    // Base client fee: 10% of total owner rent income
+    client_fee = rentAmountNum * 0.10;
+    if (client_discount) {
+      client_fee = client_fee * 0.85; // 15% discount
+    }
+    
+    // No listing fee for shortlet
+    listing_fee = 0;
+  } else {
+    // Longlet: Rent Amount calculation (original logic)
+    // Landlord fee: half of rent amount, with optional 15% discount
+    landlord_fee = rentAmountNum / 2;
+    if (landlord_discount) {
+      landlord_fee = landlord_fee * 0.85; // 15% discount
+    }
+
+    // Client fee: half of rent amount, with optional 15% discount
+    client_fee = rentAmountNum / 2;
+    if (client_discount) {
+      client_fee = client_fee * 0.85; // 15% discount
+    }
+    
+    // Listing fee is 5% of rent amount if has_listing_fee is true
+    listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
   }
+  
   // Add 18% VAT
   const landlord_fee_vat = landlord_fee * 0.18;
   const landlord_fee_total = landlord_fee + landlord_fee_vat;
 
-  // Client fee: half of rent amount, with optional 15% discount
-  let client_fee = rentAmountNum / 2;
-  if (client_discount) {
-    client_fee = client_fee * 0.85; // 15% discount
-  }
-  // Add 18% VAT
   const client_fee_vat = client_fee * 0.18;
   const client_fee_total = client_fee + client_fee_vat;
-
-  // Listing fee is 5% of rent amount if has_listing_fee is true
-  const listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
 
   // Agent income calculation (always start from 40%)
   let agent_income = rentAmountNum * 0.40;
@@ -150,6 +175,7 @@ export async function POST(req: NextRequest) {
     agent_income,
     agent_tax,
     vatable: vatable ?? true,
+    deal_type: deal_type ?? 'longlet',
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,
     date_move_in: date_move_in ?? null,
@@ -208,6 +234,7 @@ export async function PUT(req: NextRequest) {
     has_listing_fee,
     vatable,
     vat_type,
+    deal_type,
     date_rented,
     date_signed,
     date_move_in,
@@ -231,26 +258,50 @@ export async function PUT(req: NextRequest) {
   // Calculate fees
   const rentAmountNum = parseFloat(rent_amount) || 0;
   
-  // Landlord fee: half of rent amount, with optional 15% discount
-  let landlord_fee = rentAmountNum / 2;
-  if (landlord_discount) {
-    landlord_fee = landlord_fee * 0.85; // 15% discount
+  let landlord_fee = 0;
+  let client_fee = 0;
+  let listing_fee = 0;
+  
+  if (deal_type === 'shortlet') {
+    // Shortlet: Total Owner Rent Income calculation
+    // Base landlord fee: 10% of total owner rent income
+    landlord_fee = rentAmountNum * 0.10;
+    if (landlord_discount) {
+      landlord_fee = landlord_fee * 0.85; // 15% discount
+    }
+
+    // Base client fee: 10% of total owner rent income
+    client_fee = rentAmountNum * 0.10;
+    if (client_discount) {
+      client_fee = client_fee * 0.85; // 15% discount
+    }
+    
+    // No listing fee for shortlet
+    listing_fee = 0;
+  } else {
+    // Longlet: Rent Amount calculation (original logic)
+    // Landlord fee: half of rent amount, with optional 15% discount
+    landlord_fee = rentAmountNum / 2;
+    if (landlord_discount) {
+      landlord_fee = landlord_fee * 0.85; // 15% discount
+    }
+
+    // Client fee: half of rent amount, with optional 15% discount
+    client_fee = rentAmountNum / 2;
+    if (client_discount) {
+      client_fee = client_fee * 0.85; // 15% discount
+    }
+    
+    // Listing fee is 5% of rent amount if has_listing_fee is true
+    listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
   }
+  
   // Add 18% VAT
   const landlord_fee_vat = landlord_fee * 0.18;
   const landlord_fee_total = landlord_fee + landlord_fee_vat;
 
-  // Client fee: half of rent amount, with optional 15% discount
-  let client_fee = rentAmountNum / 2;
-  if (client_discount) {
-    client_fee = client_fee * 0.85; // 15% discount
-  }
-  // Add 18% VAT
   const client_fee_vat = client_fee * 0.18;
   const client_fee_total = client_fee + client_fee_vat;
-
-  // Listing fee is 5% of rent amount if has_listing_fee is true
-  const listing_fee = has_listing_fee ? rentAmountNum * 0.05 : 0;
 
   // Calculate total revenue (with discounts applied)
   const totalRevenue = landlord_fee + client_fee;
@@ -329,6 +380,7 @@ export async function PUT(req: NextRequest) {
     agent_tax,
     vat_type: finalVatType,
     vatable: vatable ?? true, // Keep for backward compatibility
+    deal_type: deal_type ?? 'longlet',
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,
     date_move_in: date_move_in ?? null,

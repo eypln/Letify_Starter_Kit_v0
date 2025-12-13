@@ -17,6 +17,9 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
 
+// Deal Type enum
+type DealType = 'longlet' | 'shortlet';
+
 // Revenue form interface
 interface RevenueForm {
   id?: number | null;
@@ -28,6 +31,7 @@ interface RevenueForm {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type: DealType;
   date_rented: string;
   date_signed: string;
   date_move_in: string;
@@ -85,6 +89,7 @@ interface Revenue {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type?: DealType; // Optional for backward compatibility
   vatable?: boolean; // Backward compatibility
   date_rented: string | null;
   date_signed: string | null;
@@ -135,6 +140,7 @@ export default function RevenueClient({ user }: { user: User }) {
     client_discount: false,
     has_listing_fee: false,
     vat_type: 'non-vatable',
+    deal_type: 'longlet',
     date_rented: "",
     date_signed: "",
     date_move_in: "",
@@ -190,14 +196,39 @@ export default function RevenueClient({ user }: { user: User }) {
   useEffect(() => {
     const rentAmount = parseFloat(form.rent_amount) || 0;
     
-    let landlord_fee = rentAmount / 2;
-    if (form.landlord_discount) {
-      landlord_fee = landlord_fee * 0.85; // 15% discount
-    }
+    let landlord_fee = 0;
+    let client_fee = 0;
+    let listing_fee = 0;
+    
+    if (form.deal_type === 'shortlet') {
+      // Shortlet: Total Owner Rent Income calculation
+      // Base landlord fee: 10% of total owner rent income
+      landlord_fee = rentAmount * 0.10;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85; // 15% discount
+      }
 
-    let client_fee = rentAmount / 2;
-    if (form.client_discount) {
-      client_fee = client_fee * 0.85; // 15% discount
+      // Base client fee: 10% of total owner rent income
+      client_fee = rentAmount * 0.10;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85; // 15% discount
+      }
+      
+      // No listing fee for shortlet
+      listing_fee = 0;
+    } else {
+      // Longlet: Rent Amount calculation (original logic)
+      landlord_fee = rentAmount / 2;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85; // 15% discount
+      }
+
+      client_fee = rentAmount / 2;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85; // 15% discount
+      }
+      
+      listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     }
 
     // Calculate VAT (18%) for landlord and client fees
@@ -206,8 +237,6 @@ export default function RevenueClient({ user }: { user: User }) {
 
     const client_fee_vat = client_fee * 0.18;
     const client_fee_total = client_fee + client_fee_vat;
-
-    const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
     // Calculate total revenue (with discounts applied)
     const totalRevenue = landlord_fee + client_fee;
@@ -244,7 +273,7 @@ export default function RevenueClient({ user }: { user: User }) {
       agent_income,
       agent_tax,
     });
-  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type]);
+  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type, form.deal_type]);
 
   // Auto-uncheck inform_boss if payment dates become invalid
   useEffect(() => {
@@ -320,6 +349,7 @@ export default function RevenueClient({ user }: { user: User }) {
       client_discount: false,
       has_listing_fee: false,
       vat_type: 'non-vatable',
+      deal_type: 'longlet',
       date_rented: "",
       date_signed: "",
       date_move_in: "",
@@ -359,6 +389,7 @@ export default function RevenueClient({ user }: { user: User }) {
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
       vat_type: vatType,
+      deal_type: revenue.deal_type || 'longlet', // Use stored deal_type or default to longlet
       date_rented: revenue.date_rented || "",
       date_signed: revenue.date_signed || "",
       date_move_in: revenue.date_move_in || "",
@@ -667,6 +698,34 @@ export default function RevenueClient({ user }: { user: User }) {
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Deal Type Toggle */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Deal Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, deal_type: 'longlet', has_listing_fee: false })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        form.deal_type === 'longlet'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Longlet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, deal_type: 'shortlet', has_listing_fee: false })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        form.deal_type === 'shortlet'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Shortlet
+                    </button>
+                  </div>
+                </div>
                 {/* Row 1: Ref No, Client Name */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -736,13 +795,15 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 2: Rent Amount, VAT Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Rent Amount (€) *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                    </label>
                     <Input
                       type="number"
                       step="0.01"
                       value={form.rent_amount}
                       onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                      placeholder="Enter rent amount"
+                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
                       required
                     />
                   </div>
@@ -789,9 +850,12 @@ export default function RevenueClient({ user }: { user: User }) {
                       id="has_listing_fee"
                       checked={form.has_listing_fee}
                       onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
-                      className="h-4 w-4 mr-2"
+                      disabled={form.deal_type === 'shortlet'}
+                      className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    <label htmlFor="has_listing_fee" className="text-sm font-medium">
+                    <label htmlFor="has_listing_fee" className={`text-sm font-medium ${
+                      form.deal_type === 'shortlet' ? 'text-gray-400' : ''
+                    }`}>
                       Listing Fee (5%)
                     </label>
                   </div>
