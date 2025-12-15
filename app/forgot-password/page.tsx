@@ -56,7 +56,7 @@ function ForgotPasswordForm() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold mb-4">Check Your Email</h1>
+            <h1 className="text-2xl font-bold mb-4 text-gray-900">Check Your Email</h1>
             <p className="text-gray-600 mb-2">
               We&apos;ve sent password reset instructions to:
             </p>
@@ -86,7 +86,7 @@ function ForgotPasswordForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-center mb-2">Forgot Password?</h1>
+        <h1 className="text-2xl font-bold text-center mb-2 text-gray-900">Forgot Password?</h1>
         <p className="text-center text-gray-600 mb-6 text-sm">
           Enter your email address and we&apos;ll send you instructions to reset your password.
         </p>
@@ -104,7 +104,7 @@ function ForgotPasswordForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               placeholder="you@example.com"
             />
           </div>

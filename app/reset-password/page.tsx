@@ -121,7 +121,7 @@ function ResetPasswordForm() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold mb-4">Invalid or Expired Link</h1>
+            <h1 className="text-2xl font-bold mb-4 text-gray-900">Invalid or Expired Link</h1>
             <p className="text-gray-600 mb-6">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
@@ -140,7 +140,7 @@ function ResetPasswordForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-center mb-2">Reset Your Password</h1>
+        <h1 className="text-2xl font-bold text-center mb-2 text-gray-900">Reset Your Password</h1>
         <p className="text-center text-gray-600 mb-6 text-sm">
           Enter your new password below.
         </p>
@@ -160,7 +160,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
                 required
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="auth-input w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 placeholder="Enter new password"
               />
               <button
@@ -197,7 +197,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={6}
                 required
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="auth-input w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 placeholder="Confirm new password"
               />
               <button

@@ -32,26 +32,53 @@
   }
 }
 
+@layer utilities {
+  /* Table row hover - light background in light mode, darker in dark mode */
+  .table-row-hover {
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800/40;
+  }
+  
+  /* Card/Button hover - subtle background change */
+  .card-hover {
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800/30;
+  }
+  
+  /* Text color that works in both modes */
+  .text-adaptive {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+  
+  /* Secondary text */
+  .text-adaptive-muted {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+  
+  /* Border color */
+  .border-adaptive {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+}
+
 .dark {
-  --background: 222.2 84% 4.9%;
+  --background: 222.2 47% 11%;
   --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
+  --card: 222.2 47% 11%;
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --popover: 222.2 47% 11%;
   --popover-foreground: 210 40% 98%;
-  --primary: 270 91% 60%;
-  --primary-foreground: 222.2 84% 4.9%;
-  --secondary: 217.2 32.6% 17.5%;
+  --primary: 270 91% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217.2 32.6% 20%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
+  --muted: 217.2 32.6% 25%;
+  --muted-foreground: 215 20.2% 75%;
+  --accent: 217.2 32.6% 25%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 62.8% 50%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 94.1%;
+  --border: 217.2 32.6% 25%;
+  --input: 217.2 32.6% 20%;
+  --ring: 270 91% 65%;
 }
 
 /* PWA Install Prompt Animation */
@@ -68,4 +95,225 @@
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* Dark mode styles for react-select */
+.dark .react-select__control {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  border-color: hsl(217.2 32.6% 25%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+/* Fix for white backgrounds in dark mode */
+.dark .react-select__value-container {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__control:hover {
+  border-color: hsl(270 91% 65%) !important;
+}
+
+.dark .react-select__control--is-focused {
+  border-color: hsl(270 91% 65%) !important;
+  box-shadow: 0 0 0 1px hsl(270 91% 65%) !important;
+}
+
+.dark .react-select__menu {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  border: 1px solid hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-select__option {
+  background-color: transparent !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__option:hover,
+.dark .react-select__option--is-focused {
+  background-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-select__option--is-selected {
+  background-color: hsl(270 91% 65%) !important;
+  color: white !important;
+}
+
+.dark .react-select__single-value {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__input-container,
+.dark .react-select__input,
+.dark .react-select__input input {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__placeholder {
+  color: hsl(215 20.2% 55%) !important;
+  opacity: 0.7 !important;
+}
+
+.dark .react-select__indicator-separator {
+  background-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-select__dropdown-indicator,
+.dark .react-select__clear-indicator {
+  color: hsl(215 20.2% 65%) !important;
+}
+
+.dark .react-select__multi-value {
+  background-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-select__multi-value__label {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__multi-value__remove {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-select__multi-value__remove:hover {
+  background-color: hsl(0 62.8% 50%) !important;
+  color: white !important;
+}
+
+/* Dark mode styles for react-datepicker */
+.dark .react-datepicker {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  border-color: hsl(217.2 32.6% 25%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__header {
+  background-color: hsl(217.2 32.6% 20%) !important;
+  border-bottom-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name,
+.dark .react-datepicker-time__header {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__day {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__day:hover {
+  background-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--keyboard-selected {
+  background-color: hsl(270 91% 65%) !important;
+  color: white !important;
+}
+
+.dark .react-datepicker__day--today {
+  background-color: hsl(217.2 32.6% 30%) !important;
+}
+
+.dark .react-datepicker__day--outside-month {
+  color: hsl(215 20.2% 50%) !important;
+}
+
+.dark .react-datepicker__day--disabled {
+  color: hsl(215 20.2% 40%) !important;
+}
+
+.dark .react-datepicker__navigation-icon::before {
+  border-color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__triangle {
+  display: none;
+}
+
+.dark .react-datepicker__year-dropdown,
+.dark .react-datepicker__month-dropdown {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  border-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-datepicker__year-option,
+.dark .react-datepicker__month-option {
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__year-option:hover,
+.dark .react-datepicker__month-option:hover {
+  background-color: hsl(217.2 32.6% 25%) !important;
+}
+
+.dark .react-datepicker__today-button {
+  background-color: hsl(217.2 32.6% 20%) !important;
+  border-top-color: hsl(217.2 32.6% 25%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark .react-datepicker__today-button:hover {
+  background-color: hsl(270 91% 65%) !important;
+}
+
+/* Dark mode for native input, textarea, and datepicker input */
+/* Exclude auth pages (sign-in, sign-up) from dark mode styling */
+.dark input:not([type="checkbox"]):not([type="radio"]):not(.auth-input),
+.dark textarea:not(.auth-input),
+.dark select:not(.availability-select):not(.auth-input) {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  border-color: hsl(217.2 32.6% 25%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+/* Keep auth page inputs in light theme */
+.dark .auth-input {
+  background-color: white !important;
+  border-color: rgb(209, 213, 219) !important;
+  color: rgb(17, 24, 39) !important;
+}
+
+.dark .auth-input::placeholder {
+  color: rgb(156, 163, 175) !important;
+  opacity: 1 !important;
+}
+
+.dark .auth-input:focus {
+  border-color: rgb(168, 85, 247) !important;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+}
+
+/* Dark mode for select options */
+.dark select:not(.availability-select) option {
+  background-color: hsl(217.2 32.6% 17.5%) !important;
+  color: hsl(210 40% 98%) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(215 20.2% 55%) !important;
+  opacity: 0.7 !important;
+}
+
+/* Ensure text is visible in inputs */
+.dark input[type="text"],
+.dark input[type="number"] {
+  color: hsl(210 40% 98%) !important;
+  -webkit-text-fill-color: hsl(210 40% 98%) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: hsl(270 91% 65%) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px hsl(270 91% 65%) !important;
+}
+
+/* Dark mode modal/dialog backgrounds */
+.dark .modal-content,
+.dark .dialog-content {
+  background-color: hsl(222.2 47% 11%) !important;
+  color: hsl(210 40% 98%) !important;
 }

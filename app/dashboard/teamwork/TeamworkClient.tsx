@@ -250,7 +250,7 @@ export default function TeamworkClient() {
 
         {/* Teamwork Listings Table */}
         <div className="mb-8 relative">
-          <Link href={dashboardUrl} className="absolute -top-14 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+          <Link href={dashboardUrl} className="absolute -top-14 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
             <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
               <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
             </svg>

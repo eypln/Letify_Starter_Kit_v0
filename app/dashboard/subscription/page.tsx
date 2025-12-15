@@ -163,7 +163,7 @@ function SubscriptionContent({
         <div className="absolute top-6 right-8 z-10">
           <a
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50"
+            className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
               <path

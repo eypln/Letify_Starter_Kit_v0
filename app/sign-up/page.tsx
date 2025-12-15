@@ -231,7 +231,7 @@ function SignUpForm() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
         <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h1 className="text-2xl font-bold text-center mb-6">Already Signed In</h1>
+          <h1 className="text-2xl font-bold text-center mb-6 text-gray-900">Already Signed In</h1>
           
           <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
             <p className="text-sm text-gray-700 mb-2">
@@ -272,7 +272,7 @@ function SignUpForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12" suppressHydrationWarning>
       <div className="w-full max-w-md bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-center mb-6">Sign Up for Letify</h1>
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-900">Sign Up for Letify</h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -285,7 +285,7 @@ function SignUpForm() {
               onChange={(e) => setFullName(e.target.value)}
               required
               suppressHydrationWarning
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
           <div>
@@ -300,7 +300,7 @@ function SignUpForm() {
               placeholder="+1 xxx xxx xxxx"
               required
               suppressHydrationWarning
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
           <div>
@@ -314,7 +314,7 @@ function SignUpForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               suppressHydrationWarning
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
           <div>
@@ -326,7 +326,7 @@ function SignUpForm() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               suppressHydrationWarning
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             >
               <option value={UserRole.AGENT}>Agent</option>
               <option value={UserRole.TEAMLEADER}>Team Leader</option>
@@ -347,7 +347,7 @@ function SignUpForm() {
                 minLength={6}
                 required
                 suppressHydrationWarning
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="auth-input w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
               <button
                 type="button"
@@ -381,7 +381,7 @@ function SignUpForm() {
                 minLength={6}
                 required
                 suppressHydrationWarning
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="auth-input w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
               <button
                 type="button"

@@ -327,7 +327,7 @@ export default function AnalyticsPage() {
             Track your performance and export detailed reports
           </p>
         </div>
-        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
+        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -450,60 +450,60 @@ export default function AnalyticsPage() {
       )}
       {!loading && (listings.length > 0 || clients.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Listings by City</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Listings by City</h2>
             <div className="min-h-[300px]">
               <BarChart data={Object.entries(cityCounts).map(([city, count]) => ({ city, count }))} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Average Price by City</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Average Price by City</h2>
             <div className="min-h-[300px]">
               <LineChart data={cityAvgPrices} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Listings by Bedroom Count</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Listings by Bedroom Count</h2>
             <div className="min-h-[300px]">
               <PieChart data={Object.entries(bedroomCounts).map(([bedroom, count]) => ({ bedroom, count }))} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Average Price by Bedroom Count</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Average Price by Bedroom Count</h2>
             <div className="min-h-[300px]">
               <BarChart data={avgPriceByBedroom.map(({ bedrooms, avgPrice }) => ({ city: bedrooms, count: avgPrice }))} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Listings by City & Bedroom</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Listings by City & Bedroom</h2>
             <div className="min-h-[300px]">
               <GroupedBarChart data={groupedBarData} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Price Distribution Histogram</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Price Distribution Histogram</h2>
             <div className="min-h-[300px]">
               <HistogramBarChart data={histogramData} />
             </div>
           </div>
           
           {/* Client Analytics Charts */}
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Clients by City</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Clients by City</h2>
             <div className="min-h-[300px]">
               <PieChart data={Object.entries(clientCityCounts).map(([city, count]) => ({ bedroom: city, count }))} />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-8 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Clients by Budget Range</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Clients by Budget Range</h2>
             <div className="min-h-[300px]">
               <HistogramBarChart data={budgetHistogramData} />
             </div>
           </div>
 
           {/* Monthly Posts & Clients - Combined Histogram */}
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Monthly Activity: Posts vs Clients</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Monthly Activity: Posts vs Clients</h2>
             {monthlyPostUsage.length > 0 || monthlyClientsAdded.length > 0 ? (
               <div className="overflow-x-auto min-h-[300px]">
                 <GroupedBarChart 
@@ -530,8 +530,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Daily Viewings Chart */}
-          <div className="bg-white rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
-            <h2 className="font-semibold mb-4">Monthly Activity: Viewings</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 md:col-span-2 min-h-[400px]">
+            <h2 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Monthly Activity: Viewings</h2>
             {dailyViewings.length > 0 ? (
               <div className="overflow-x-auto min-h-[300px]">
                 <BarChart 

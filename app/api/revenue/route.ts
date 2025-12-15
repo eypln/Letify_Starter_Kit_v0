@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     client_discount,
     has_listing_fee,
     vatable,
+    vat_type,
     deal_type,
     date_rented,
     date_signed,
@@ -133,33 +134,38 @@ export async function POST(req: NextRequest) {
   const client_fee_vat = client_fee * 0.18;
   const client_fee_total = client_fee + client_fee_vat;
 
-  // Agent income calculation (always start from 40%)
-  let agent_income = rentAmountNum * 0.40;
+  // Calculate total revenue (with discounts applied)
+  const totalRevenue = landlord_fee + client_fee;
   
-  // Reduce agent income based on discounts
-  // If landlord has 15% discount, reduce agent income by 7.5%
-  // If client has 15% discount, reduce agent income by 7.5%
-  let agent_income_reduction = 0;
-  if (landlord_discount) {
-    agent_income_reduction += 0.075; // 7.5%
-  }
-  if (client_discount) {
-    agent_income_reduction += 0.075; // 7.5%
-  }
+  // Agent income calculation: Always 40% of total revenue (gross)
+  const agent_income_gross = totalRevenue * 0.40;
   
-  if (agent_income_reduction > 0) {
-    agent_income = agent_income * (1 - agent_income_reduction);
-  }
-
-  // Agent TAX calculation
+  // Agent TAX calculation based on VAT type
   let agent_tax = 0;
-  if (!vatable) {
-    // Non-vatable: Agent pays 20% tax on their income
-    agent_tax = agent_income * 0.20;
-    // Reduce agent income by the tax amount (net income)
-    agent_income = agent_income - agent_tax;
+  let agent_income = agent_income_gross;
+  
+  // Determine vat_type (use new vat_type if provided, otherwise convert old vatable boolean)
+  let finalVatType = vat_type;
+  if (!vat_type && vatable !== undefined) {
+    finalVatType = vatable ? 'vatable' : 'non-vatable';
   }
-  // If vatable, no tax deduction needed (already handled by company)
+  if (!finalVatType) {
+    finalVatType = 'non-vatable'; // default for new records
+  }
+  
+  if (finalVatType === 'vatable') {
+    // Vatable (40%): No tax deduction - agent keeps full 40%
+    agent_tax = 0;
+    agent_income = agent_income_gross;
+  } else if (finalVatType === 'part-time') {
+    // Part Time (36%): 10% tax on gross income
+    agent_tax = agent_income_gross * 0.10;
+    agent_income = agent_income_gross - agent_tax; // Net = 36% of total revenue
+  } else if (finalVatType === 'non-vatable') {
+    // Full Time / Non-Vatable (32%): 20% tax on gross income
+    agent_tax = agent_income_gross * 0.20;
+    agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
+  }
 
   const insertData = {
     user_id,
@@ -174,7 +180,8 @@ export async function POST(req: NextRequest) {
     has_listing_fee: has_listing_fee ?? false,
     agent_income,
     agent_tax,
-    vatable: vatable ?? true,
+    vat_type: finalVatType,
+    vatable: vatable ?? true, // Keep for backward compatibility
     deal_type: deal_type ?? 'longlet',
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,

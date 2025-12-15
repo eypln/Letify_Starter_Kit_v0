@@ -2,7 +2,114 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (08.01.2025) ✅ COMPLETED - v2.5.0 RELEASE
+### Ana Odak Alanları (14.12.2025) ✅ COMPLETED - v2.6.0 RELEASE
+1. **Dark Mode Theme & Revenue Management Improvements (v2.6.0)**:
+   - ✅ Dark mode theme persistence per user (localStorage cleanup on logout)
+   - ✅ Sign-in/Sign-up pages always use light theme (not affected by dark mode)
+   - ✅ Deal Type toggle (Longlet/Shortlet) with conditional calculation
+   - ✅ Shortlet deals: 10% landlord fee + 10% client fee (on Total Owner Rent Income)
+   - ✅ Longlet deals: 50% landlord fee + 50% client fee (on Rent Amount)
+   - ✅ Listing Fee disabled for shortlet deals
+   - ✅ VAT Type percentage display fixed (shows correct 32%, 36%, or 40%)
+   - ✅ Required field validation: Ref No, Client Name, Date Rented, Date Signed, Date Move In
+   - ✅ Red asterisk (*) marks and red border for empty required fields
+   - ✅ Validation applied to both /dashboard/revenue and /teamleader/team-revenue pages
+   - ✅ Boss Team Revenue table split: Pending Deals and Paid Deals (separate tables)
+   - ✅ Automatic record transfer between tables when agent_payment_status changes
+   - ✅ Role-based logout redirect: all roles redirect to homepage (/) not /sign-in
+   - ✅ Production build successful
+
+**Teknik Detaylar:**
+- **Dark Mode Theme Management**:
+  ```typescript
+  // All dashboard pages (boss, manager, teamleader, admin, dashboard)
+  const handleLogout = async () => {
+    // Reset theme preference to light for new user
+    localStorage.removeItem('theme');
+    document.documentElement.classList.remove('dark');
+    
+    await fetch('/api/auth/logout', ...);
+    router.push('/'); // Redirect to homepage
+  };
+  ```
+
+- **Revenue Calculation Logic**:
+  ```typescript
+  // Shortlet calculation (Total Owner Rent Income)
+  landlord_fee = rentAmount * 0.10; // 10%
+  client_fee = rentAmount * 0.10;   // 10%
+  listing_fee = 0;                  // No listing fee
+  
+  // Longlet calculation (Rent Amount)
+  landlord_fee = rentAmount / 2;    // 50%
+  client_fee = rentAmount / 2;      // 50%
+  listing_fee = has_listing_fee ? rentAmount * 0.05 : 0; // 5% optional
+  ```
+
+- **VAT Type Integration**:
+  ```typescript
+  // POST /api/revenue now properly receives and saves vat_type
+  const finalVatType = vat_type || (vatable ? 'vatable' : 'non-vatable');
+  insertData.vat_type = finalVatType; // Saved to database
+  
+  // UI displays correct percentage
+  ({revenue.vat_type === 'vatable' ? "40%" : 
+    revenue.vat_type === 'part-time' ? "36%" : "32%"})
+  ```
+
+- **Required Field Validation**:
+  ```typescript
+  if (!form.ref_no || !form.client_name || !form.rent_amount || 
+      !dateRented || !dateSigned || !dateMoveIn) {
+    toast({
+      title: "Validation Error",
+      description: "Please fill in all required fields...",
+      variant: "destructive",
+    });
+    return;
+  }
+  ```
+
+- **Boss Team Revenue Table Split**:
+  ```typescript
+  // State lifted to parent component
+  const pendingRevenues = allRevenues.filter(
+    r => r.agent_payment_status !== 'paid'
+  );
+  const paidRevenues = allRevenues.filter(
+    r => r.agent_payment_status === 'paid'
+  );
+  
+  // Automatic transfer when status changes
+  const handleStatusChange = (revenueId, newStatus) => {
+    setAllRevenues(prev => 
+      prev.map(r => r.id === revenueId 
+        ? { ...r, agent_payment_status: newStatus } 
+        : r
+      )
+    );
+  };
+  ```
+
+- **Modified Files**:
+  ```
+  app/api/revenue/route.ts (VAT type fix in POST)
+  app/dashboard/revenue/RevenueClient.tsx (Deal type, validation)
+  app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (Deal type, validation)
+  app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx (Table split)
+  app/(app)/boss/page.tsx (Logout redirect)
+  app/(app)/manager/page.tsx (Logout redirect)
+  app/(app)/teamleader/page.tsx (Logout redirect)
+  app/(app)/admin/page.tsx (Logout redirect)
+  app/globals.css (Auth input dark mode exception)
+  app/sign-in/page.tsx (Light theme enforcement)
+  app/sign-up/page.tsx (Light theme enforcement)
+  app/forgot-password/page.tsx (Light theme enforcement)
+  app/reset-password/page.tsx (Light theme enforcement)
+  package.json (Version 2.6.0)
+  ```
+
+### Önceki Odak (08.01.2025) ✅ COMPLETED - v2.5.0 RELEASE
 1. **Database Backup & Recovery System (v2.5.0)**:
    - ✅ Automated daily backups via Vercel Cron (2 AM UTC)
    - ✅ Client-side Supabase backup approach (no Pro plan required)

@@ -46,6 +46,10 @@ export default function ManagerPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
+      // Reset theme preference to light for new user
+      localStorage.removeItem('theme')
+      document.documentElement.classList.remove('dark')
+      
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
@@ -58,7 +62,7 @@ export default function ManagerPage() {
         throw new Error(errorData.error || 'An error occurred during logout')
       }
 
-      router.push('/sign-in')
+      router.push('/')
       router.refresh()
     } catch (error) {
       const err = error as Error

@@ -63,10 +63,94 @@ export default function BossTeamRevenueClient({ user }: { user: User }) {
     return `€${amount.toFixed(2)}`;
   };
 
+  // Shared state for revenues between tables
+  const [allRevenues, setAllRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchTeamRevenues() {
+      setLoading(true);
+      
+      const { data: revenueData, error: revenueError } = await supabase
+        .from("revenue")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!revenueError && revenueData) {
+        const userIds = [...new Set(revenueData.map(r => r.user_id))];
+        
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        
+        if (profilesError) {
+          console.warn("Could not fetch some profile names, using fallback");
+        }
+        
+        const profileMap = new Map(
+          profilesData?.map(p => [p.user_id, p.full_name]) || []
+        );
+        
+        const mappedData = revenueData.map((revenue: Revenue) => ({
+          ...revenue,
+          agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+        }));
+        
+        setAllRevenues(mappedData);
+      } else if (revenueError) {
+        console.error("Error fetching team revenues:", revenueError);
+      }
+      
+      setLoading(false);
+    }
+
+    fetchTeamRevenues();
+  }, [supabase]);
+
+  // Update revenue status in shared state
+  const handleStatusChange = (revenueId: number, newStatus: string) => {
+    setAllRevenues(prev => 
+      prev.map(r => r.id === revenueId ? { ...r, agent_payment_status: newStatus } : r)
+    );
+  };
+
+  // Refresh data after edit
+  const refreshData = async () => {
+    const { data: revenueData } = await supabase
+      .from("revenue")
+      .select("*")
+      .order("created_at", { ascending: false });
+    
+    if (revenueData) {
+      const userIds = [...new Set(revenueData.map(r => r.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      
+      const profileMap = new Map(
+        profilesData?.map(p => [p.user_id, p.full_name]) || []
+      );
+      
+      const mappedData = revenueData.map((revenue: any) => ({
+        ...revenue,
+        agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+      }));
+      
+      setAllRevenues(mappedData);
+    }
+  };
+
+  // Filter pending and paid revenues
+  const pendingRevenues = allRevenues.filter(r => r.agent_payment_status !== 'paid');
+  const paidRevenues = allRevenues.filter(r => r.agent_payment_status === 'paid');
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href="/boss" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href="/boss" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -74,13 +158,47 @@ export default function BossTeamRevenueClient({ user }: { user: User }) {
         </Link>
       </div>
 
-      {/* Team Revenue Records */}
+      {/* Pending Deals Table */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Team Revenue Records</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-yellow-400"></span>
+            Pending Deals
+            <span className="text-sm font-normal text-muted-foreground">({pendingRevenues.length} deals)</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <TeamRevenueTable formatDate={formatDate} formatCurrency={formatCurrency} />
+          <TeamRevenueTable 
+            revenues={pendingRevenues}
+            loading={loading}
+            formatDate={formatDate} 
+            formatCurrency={formatCurrency}
+            onStatusChange={handleStatusChange}
+            onRefresh={refreshData}
+            tableType="pending"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Paid Deals Table */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+            Paid Deals
+            <span className="text-sm font-normal text-muted-foreground">({paidRevenues.length} deals)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TeamRevenueTable 
+            revenues={paidRevenues}
+            loading={loading}
+            formatDate={formatDate} 
+            formatCurrency={formatCurrency}
+            onStatusChange={handleStatusChange}
+            onRefresh={refreshData}
+            tableType="paid"
+          />
         </CardContent>
       </Card>
 
@@ -170,10 +288,24 @@ function AgentPaymentDropdown({
 }
 
 // Team Revenue Table Component
-function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: string | null) => string, formatCurrency: (amount: number | null) => string }) {
+function TeamRevenueTable({ 
+  revenues: allRevenues,
+  loading,
+  formatDate, 
+  formatCurrency,
+  onStatusChange,
+  onRefresh,
+  tableType
+}: { 
+  revenues: (Revenue & { agent_name: string })[];
+  loading: boolean;
+  formatDate: (date: string | null) => string;
+  formatCurrency: (amount: number | null) => string;
+  onStatusChange: (revenueId: number, newStatus: string) => void;
+  onRefresh: () => Promise<void>;
+  tableType: 'pending' | 'paid';
+}) {
   const [teamRevenues, setTeamRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
-  const [allRevenues, setAllRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [filterAgentName, setFilterAgentName] = useState('');
@@ -205,47 +337,6 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
   ];
   
   const [editingRevenue, setEditingRevenue] = useState<Revenue | null>(null);
-
-  useEffect(() => {
-    async function fetchTeamRevenues() {
-      setLoading(true);
-      
-      const { data: revenueData, error: revenueError } = await supabase
-        .from("revenue")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!revenueError && revenueData) {
-        const userIds = [...new Set(revenueData.map(r => r.user_id))];
-        
-        const { data: profilesData, error: profilesError } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", userIds);
-        
-        if (profilesError) {
-          console.warn("Could not fetch some profile names, using fallback");
-        }
-        
-        const profileMap = new Map(
-          profilesData?.map(p => [p.user_id, p.full_name]) || []
-        );
-        
-        const mappedData = revenueData.map((revenue: Revenue) => ({
-          ...revenue,
-          agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
-        }));
-        
-        setAllRevenues(mappedData);
-      } else if (revenueError) {
-        console.error("Error fetching team revenues:", revenueError);
-      }
-      
-      setLoading(false);
-    }
-
-    fetchTeamRevenues();
-  }, [supabase]);
 
   useEffect(() => {
     let filtered = [...allRevenues];
@@ -424,7 +515,7 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
               </tr>
             ) : (
               paginatedRevenues.map((rev, idx) => (
-                <tr key={rev.id} className="hover:bg-gray-50">
+                <tr key={rev.id} className="hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-4 py-3 text-sm text-gray-900">{(page - 1) * pageSize + idx + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{rev.agent_name}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatDate(rev.date_rented)}</td>
@@ -455,10 +546,8 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
                       refNo={rev.ref_no}
                       currentStatus={rev.agent_payment_status || 'pending'}
                       onStatusChange={(newStatus) => {
-                        // Update local state
-                        setAllRevenues(prev => 
-                          prev.map(r => r.id === rev.id ? { ...r, agent_payment_status: newStatus } : r)
-                        );
+                        // Update parent state
+                        onStatusChange(rev.id, newStatus);
                       }}
                     />
                   </td>
@@ -485,33 +574,8 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
           onClose={() => setEditingRevenue(null)}
           onSuccess={() => {
             setEditingRevenue(null);
-            // Refresh data
-            async function refreshData() {
-              const { data: revenueData } = await supabase
-                .from("revenue")
-                .select("*")
-                .order("created_at", { ascending: false });
-              
-              if (revenueData) {
-                const userIds = [...new Set(revenueData.map(r => r.user_id))];
-                const { data: profilesData } = await supabase
-                  .from("profiles")
-                  .select("user_id, full_name")
-                  .in("user_id", userIds);
-                
-                const profileMap = new Map(
-                  profilesData?.map(p => [p.user_id, p.full_name]) || []
-                );
-                
-                const mappedData = revenueData.map((revenue: any) => ({
-                  ...revenue,
-                  agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
-                }));
-                
-                setAllRevenues(mappedData);
-              }
-            }
-            refreshData();
+            // Refresh data via parent
+            onRefresh();
           }}
         />
       )}

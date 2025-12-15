@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useBillingController } from './subscription/useBillingController';
 import { useRouter } from 'next/navigation';
 import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 interface Activity {
   id: string;
@@ -67,6 +68,10 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
     try {
       console.log("Initiating logout request");
       
+      // Reset theme preference to light for new user
+      localStorage.removeItem('theme');
+      document.documentElement.classList.remove('dark');
+      
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
@@ -85,7 +90,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
       const data = await response.json();
       console.log("Logout successful:", data);
       
-      router.push('/sign-in');
+      router.push('/');
       router.refresh();
     } catch (error) {
       const err = error as Error;
@@ -123,8 +128,9 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
       )}
       <main className="relative min-h-screen">
       <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16 pb-8">
-        {/* Çıkış butonu sağ üstte, container padding içinde */}
-        <div className="flex justify-end mb-4">
+        {/* Çıkış butonu ve theme toggle sağ üstte, container padding içinde */}
+        <div className="flex justify-end items-center gap-2 mb-4">
+          <ThemeToggle />
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}

@@ -114,12 +114,30 @@ function AvailabilitySelector({
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Rented': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Soon': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  const getBgColor = () => {
+    switch (currentValue) {
+      case 'Available': return 'rgb(220, 252, 231)';
+      case 'Rented': return 'rgb(254, 226, 226)';
+      case 'Soon': return 'rgb(219, 234, 254)';
+      default: return 'rgb(243, 244, 246)';
+    }
+  };
+
+  const getTextColor = () => {
+    switch (currentValue) {
+      case 'Available': return 'rgb(21, 128, 61)';
+      case 'Rented': return 'rgb(185, 28, 28)';
+      case 'Soon': return 'rgb(29, 78, 216)';
+      default: return 'rgb(55, 65, 81)';
+    }
+  };
+
+  const getBorderColor = () => {
+    switch (currentValue) {
+      case 'Available': return 'rgb(187, 247, 208)';
+      case 'Rented': return 'rgb(254, 202, 202)';
+      case 'Soon': return 'rgb(191, 219, 254)';
+      default: return 'rgb(209, 213, 219)';
     }
   };
 
@@ -128,7 +146,12 @@ function AvailabilitySelector({
       value={currentValue}
       onChange={(e) => handleChange(e.target.value as 'Available' | 'Rented' | 'Soon')}
       disabled={loading}
-      className={`px-2 py-1 rounded-md text-xs font-medium border ${getStatusColor(currentValue)} disabled:opacity-50 cursor-pointer`}
+      className="availability-select px-2 py-1 rounded-md text-xs font-medium border disabled:opacity-50 cursor-pointer"
+      style={{
+        backgroundColor: getBgColor(),
+        color: getTextColor(),
+        borderColor: getBorderColor()
+      }}
     >
       <option value="Available">Available</option>
       <option value="Rented">Rented</option>
@@ -256,7 +279,7 @@ function ListingsContent() {
       {/* Header */}
       <div className="mb-6 relative">
         {/* Dashboard button - top right */}
-        <Link href={dashboardUrl} className="absolute -top-2 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-2 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -271,11 +294,11 @@ function ListingsContent() {
       </div>
       {/* Active Listings Table (Available & Soon) */}
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-3 text-purple-700">Active Listings (Available & Soon)</h2>
-        <div className="overflow-x-auto rounded-xl border">
+        <h2 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-400">Active Listings (Available & Soon)</h2>
+        <div className="overflow-x-auto rounded-xl border border-adaptive">
           <table className="min-w-[900px] w-full text-sm">
-            <thead className="bg-purple-50">
-              <tr className="[&>th]:px-3 [&>th]:py-2 text-left">
+            <thead className="bg-purple-50 dark:bg-purple-950/30">
+              <tr className="[&>th]:px-3 [&>th]:py-2 text-left text-adaptive">
                 <th className="w-12">#</th>
                 <th>Adding date</th>
                 <th>Source URL</th>
@@ -296,7 +319,7 @@ function ListingsContent() {
             </thead>
           <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
             {rows.map((r: Listing, i: number) => (
-              <tr key={r.id} className="border-t hover:bg-purple-50">
+              <tr key={r.id} className="border-t border-adaptive table-row-hover">
                 <td className="text-right text-gray-500">{startIndex + i + 1}</td>
                 <td className="whitespace-nowrap">{new Date(r.addingDate).toLocaleString()}</td>
                 <td className="max-w-[220px] truncate">
@@ -417,8 +440,8 @@ function ListingsContent() {
           <h2 className="text-lg font-semibold mb-3 text-gray-700">Rented Listings</h2>
           <div className="overflow-x-auto rounded-xl border">
             <table className="min-w-[900px] w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr className="[&>th]:px-3 [&>th]:py-2 text-left">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr className="[&>th]:px-3 [&>th]:py-2 text-left text-adaptive">
                   <th className="w-12">#</th>
                   <th>Adding date</th>
                   <th>Source URL</th>
@@ -439,7 +462,7 @@ function ListingsContent() {
               </thead>
               <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
                 {paginatedRentedListings.map((r: Listing, i: number) => (
-                  <tr key={r.id} className="border-t hover:bg-gray-50">
+                  <tr key={r.id} className="border-t border-adaptive table-row-hover">
                     <td className="text-right text-gray-500">{startIndex + i + 1}</td>
                     <td className="whitespace-nowrap">{new Date(r.addingDate).toLocaleString()}</td>
                     <td className="max-w-[220px] truncate">
@@ -513,13 +536,13 @@ function ListingsContent() {
       {/* Description Modal */}
       {descModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-lg w-full p-6 relative">
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-black"
+              className="absolute top-2 right-2 text-gray-500 hover:text-black dark:hover:text-white"
               onClick={() => setDescModal(null)}
               aria-label="Close"
             >✕</button>
-            <div className="text-base whitespace-pre-line max-h-[60vh] overflow-auto">
+            <div className="text-base whitespace-pre-line max-h-[60vh] overflow-auto text-gray-900 dark:text-gray-100">
               {descModal}
             </div>
           </div>

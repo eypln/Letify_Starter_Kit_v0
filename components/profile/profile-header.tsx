@@ -91,7 +91,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
             <div className="border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium">Account Status</p>
-                <Badge variant={statusVariant as 'default' | 'secondary' | 'destructive' | 'outline'} className="bg-purple-500 text-white">
+                <Badge variant={statusVariant as 'default' | 'secondary' | 'destructive' | 'outline'} className={profile.status === 'approved' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-purple-500 text-white'}>
                   {statusLabel}
                 </Badge>
               </div>
@@ -101,7 +101,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
                 </p>
               )}
               {profile.status === 'approved' && (
-                <p className="text-xs text-purple-600">
+                <p className="text-xs text-green-600">
                   Your account is approved! You can use all features.
                 </p>
               )}
@@ -115,7 +115,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
             <div className="border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium">Email Verification</p>
-                <Badge variant={user.email_confirmed_at ? 'default' : 'secondary'} className={user.email_confirmed_at ? 'bg-purple-500 text-white' : 'bg-purple-200 text-purple-900'}>
+                <Badge variant={user.email_confirmed_at ? 'default' : 'secondary'} className={user.email_confirmed_at ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-purple-200 text-purple-900'}>
                   {user.email_confirmed_at ? 'Verified' : 'Pending'}
                 </Badge>
               </div>

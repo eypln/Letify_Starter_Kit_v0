@@ -104,11 +104,11 @@ function NewPostContent() {
       <ExpiredBannerFromQuery />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">Create New Post</h1>
+          <h1 className="text-3xl font-bold text-adaptive">Create New Post</h1>
           {/* HeaderTTL: her zaman göster */}
           <HeaderTTL />
         </div>
-        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50">
+        <a href={dashboardUrl} className="inline-flex items-center gap-2 rounded-xl border border-adaptive px-3 py-1.5 text-sm card-hover text-adaptive">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -119,14 +119,14 @@ function NewPostContent() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between text-adaptive">
                 <span>Create New Post</span>
-                <Badge className="bg-green-100 text-green-800">
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Access Approved
                 </Badge>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-adaptive-muted">
                 Start with a listing URL, generate AI-powered content
               </CardDescription>
             </CardHeader>
@@ -136,7 +136,9 @@ function NewPostContent() {
                   <div
                     key={item.step}
                     className={`border rounded-lg p-4 ${
-                      item.status === 'active' ? 'border-purple-200 bg-purple-50' : 'border-gray-200'
+                      item.status === 'active' 
+                        ? 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/30' 
+                        : 'border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
@@ -144,14 +146,14 @@ function NewPostContent() {
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                           item.status === 'active'
                             ? 'bg-purple-600 text-white'
-                            : 'bg-gray-200 text-gray-600'
+                            : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                         }`}
                       >
                         {item.step}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <h3 className="font-medium text-adaptive">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground text-adaptive-muted mt-1">
                           {item.description}
                         </p>
                       </div>

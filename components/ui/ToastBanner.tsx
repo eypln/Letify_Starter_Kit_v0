@@ -14,7 +14,7 @@ function Banner({ message, onClose }: { message: string; onClose?: () => void })
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium">⚠️ {message}</div>
           <button 
-            className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50" 
+            className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800/40" 
             onClick={onClose}
           >
             Close

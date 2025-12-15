@@ -584,9 +584,9 @@ export default function AddDialog({}: AddDialogProps) {
       <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-purple-600 text-white">+ Add</button>
       {open && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <form onSubmit={handleCreate} className="w-full max-w-[640px] bg-white rounded-2xl p-5 space-y-3 shadow-lg my-8">
+          <form onSubmit={handleCreate} className="w-full max-w-[640px] bg-white dark:bg-gray-900 rounded-2xl p-5 space-y-3 shadow-lg my-8">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Add listing</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add listing</h3>
               <button type="button" onClick={() => {
                 setOpen(false);
                 setReferenceNo("");
@@ -619,7 +619,7 @@ export default function AddDialog({}: AddDialogProps) {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="text-xs text-gray-600">Reference No</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Reference No</label>
                 
                 <input 
                   className="w-full border rounded-md px-3 py-2 mb-2" 
@@ -638,7 +638,7 @@ export default function AddDialog({}: AddDialogProps) {
                 )}
               </div>
               <div>
-                <label className="text-xs text-gray-600">City</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">City</label>
                 <Select
                   options={maltaCitiesOptions}
                   value={maltaCitiesOptions.find(opt => opt.value === city) || null}
@@ -650,11 +650,11 @@ export default function AddDialog({}: AddDialogProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-600">Price</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Price</label>
                 <input type="number" className="w-full border rounded-md px-3 py-2" value={price} onChange={e=>setPrice(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs text-gray-600">Bedroom</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Bedroom</label>
                 <Select
                   options={[1,2,3,4,5].map(n => ({ label: n.toString(), value: n.toString() }))}
                   value={bedroom ? { label: bedroom, value: bedroom } : null}
@@ -666,7 +666,7 @@ export default function AddDialog({}: AddDialogProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-600">Bathroom</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Bathroom</label>
                 <Select
                   options={[1,2,3,4,5].map(n => ({ label: n.toString(), value: n.toString() }))}
                   value={bathroom ? { label: bathroom, value: bathroom } : null}
@@ -678,7 +678,7 @@ export default function AddDialog({}: AddDialogProps) {
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-xs text-gray-600">Property type</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Property type</label>
                 <Select
                   options={propertyTypeOptions}
                   value={propertyTypeOptions.find(opt => opt.value === propertyType) || null}
@@ -690,7 +690,7 @@ export default function AddDialog({}: AddDialogProps) {
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-xs text-gray-600">Available Date</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Available Date</label>
                 <DatePicker
                   selected={availableDate}
                   onChange={(date) => setAvailableDate(date)}
@@ -701,7 +701,7 @@ export default function AddDialog({}: AddDialogProps) {
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-xs text-gray-600">Description</label>
+                <label className="text-xs text-gray-600 dark:text-gray-400">Description</label>
                 <textarea rows={6} className="w-full border rounded-md px-3 py-2 resize-y"
                   value={description} onChange={e=>setDescription(e.target.value)} />
               </div>

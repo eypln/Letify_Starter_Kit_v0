@@ -17,6 +17,9 @@ import EditDealModal from "./EditDealModal";
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
 
+// Deal Type enum
+type DealType = 'longlet' | 'shortlet';
+
 // Revenue form interface
 interface RevenueForm {
   id?: number | null;
@@ -28,6 +31,7 @@ interface RevenueForm {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type: DealType;
   date_rented: string;
   date_signed: string;
   date_move_in: string;
@@ -85,6 +89,7 @@ interface Revenue {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type?: DealType; // Optional for backward compatibility
   vatable?: boolean; // Backward compatibility
   date_rented: string | null;
   date_signed: string | null;
@@ -133,7 +138,8 @@ export default function RevenueClient({ user }: { user: User }) {
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
-    vat_type: 'vatable',
+    vat_type: 'non-vatable',
+    deal_type: 'longlet',
     date_rented: "",
     date_signed: "",
     date_move_in: "",
@@ -189,14 +195,40 @@ export default function RevenueClient({ user }: { user: User }) {
   useEffect(() => {
     const rentAmount = parseFloat(form.rent_amount) || 0;
     
-    let landlord_fee = rentAmount / 2;
-    if (form.landlord_discount) {
-      landlord_fee = landlord_fee * 0.85; // 15% discount
-    }
+    let landlord_fee = 0;
+    let client_fee = 0;
+    let listing_fee = 0;
+    
+    if (form.deal_type === 'shortlet') {
+      // Shortlet: Total Owner Rent Income calculation
+      // Base landlord fee: 10% of total owner rent income
+      landlord_fee = rentAmount * 0.10;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85; // 15% discount
+      }
 
-    let client_fee = rentAmount / 2;
-    if (form.client_discount) {
-      client_fee = client_fee * 0.85; // 15% discount
+      // Base client fee: 10% of total owner rent income
+      client_fee = rentAmount * 0.10;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85; // 15% discount
+      }
+      
+      // No listing fee for shortlet
+      listing_fee = 0;
+    } else {
+      // Longlet: Rent Amount calculation (original logic)
+      landlord_fee = rentAmount / 2;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85; // 15% discount
+      }
+
+      client_fee = rentAmount / 2;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85; // 15% discount
+      }
+      
+      // Listing fee is 5% of rent amount if has_listing_fee is true
+      listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0;
     }
 
     // Calculate VAT (18%) for landlord and client fees
@@ -205,8 +237,6 @@ export default function RevenueClient({ user }: { user: User }) {
 
     const client_fee_vat = client_fee * 0.18;
     const client_fee_total = client_fee + client_fee_vat;
-
-    const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
     // Calculate total revenue (with discounts applied)
     const totalRevenue = landlord_fee + client_fee;
@@ -243,7 +273,7 @@ export default function RevenueClient({ user }: { user: User }) {
       agent_income,
       agent_tax,
     });
-  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type]);
+  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type, form.deal_type]);
 
   // Auto-uncheck inform_boss if payment dates become invalid
   useEffect(() => {
@@ -346,7 +376,8 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
-      vat_type: 'vatable',
+      vat_type: 'non-vatable',
+      deal_type: 'longlet',
       date_rented: "",
       date_signed: "",
       date_move_in: "",
@@ -386,6 +417,7 @@ export default function RevenueClient({ user }: { user: User }) {
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
       vat_type: vatType,
+      deal_type: revenue.deal_type || 'longlet',
       date_rented: revenue.date_rented || "",
       date_signed: revenue.date_signed || "",
       date_move_in: revenue.date_move_in || "",
@@ -406,6 +438,17 @@ export default function RevenueClient({ user }: { user: User }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields: Ref No, Client Name, Rent Amount, Date Rented, Date Signed, and Date Move In",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -467,7 +510,7 @@ export default function RevenueClient({ user }: { user: User }) {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href="/teamleader" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href="/teamleader" className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -516,7 +559,7 @@ export default function RevenueClient({ user }: { user: User }) {
                   </tr>
                 ) : (
                   revenues.map((revenue: Revenue, idx: number) => (
-                    <tr key={revenue.id} className="hover:bg-gray-50">
+                    <tr key={revenue.id} className="hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors">
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {(page - 1) * pageSize + idx + 1}
                       </td>
@@ -683,10 +726,39 @@ export default function RevenueClient({ user }: { user: User }) {
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Deal Type Toggle */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Deal Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, deal_type: 'longlet', has_listing_fee: false })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        form.deal_type === 'longlet'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Longlet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, deal_type: 'shortlet', has_listing_fee: false })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        form.deal_type === 'shortlet'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Shortlet
+                    </button>
+                  </div>
+                </div>
+
                 {/* Row 1: Ref No, Client Name */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Ref No</label>
+                    <label className="block text-sm font-medium mb-1">Ref No <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from listings or type manually..."
@@ -708,7 +780,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: '#d1d5db',
+                          borderColor: form.ref_no ? '#d1d5db' : '#ef4444',
                         }),
                       }}
                     />
@@ -717,7 +789,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Name</label>
+                    <label className="block text-sm font-medium mb-1">Client Name <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from clients or type manually..."
@@ -739,7 +811,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: '#d1d5db',
+                          borderColor: form.client_name ? '#d1d5db' : '#ef4444',
                         }),
                       }}
                     />
@@ -752,13 +824,15 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 2: Rent Amount, VAT Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Rent Amount (€) *</label>
+                    <label className="block text-sm font-medium mb-1">
+                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                    </label>
                     <Input
                       type="number"
                       step="0.01"
                       value={form.rent_amount}
                       onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                      placeholder="Enter rent amount"
+                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
                       required
                     />
                   </div>
@@ -767,7 +841,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <Select
                       options={vatOptions}
                       value={vatOptions.find(opt => opt.value === form.vat_type)}
-                      onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'vatable' })}
+                      onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'non-vatable' })}
                       placeholder="Select VAT type"
                     />
                   </div>
@@ -806,8 +880,14 @@ export default function RevenueClient({ user }: { user: User }) {
                       checked={form.has_listing_fee}
                       onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
                       className="h-4 w-4 mr-2"
+                      disabled={form.deal_type === 'shortlet'}
                     />
-                    <label htmlFor="has_listing_fee" className="text-sm font-medium">
+                    <label 
+                      htmlFor="has_listing_fee" 
+                      className={`text-sm font-medium ${
+                        form.deal_type === 'shortlet' ? 'text-gray-400' : ''
+                      }`}
+                    >
                       Listing Fee (5%)
                     </label>
                   </div>
@@ -835,32 +915,32 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 3: Date Rented, Date Signed, Date Move In */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Rented</label>
+                    <label className="block text-sm font-medium mb-1">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
                       onChange={(date) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Signed</label>
+                    <label className="block text-sm font-medium mb-1">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
                       onChange={(date) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Move In</label>
+                    <label className="block text-sm font-medium mb-1">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
                       onChange={(date) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
                   </div>

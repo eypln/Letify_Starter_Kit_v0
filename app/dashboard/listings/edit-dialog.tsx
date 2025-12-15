@@ -495,10 +495,10 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
               {/* Header */}
-              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-                <h2 className="text-2xl font-semibold">Edit Listing</h2>
+              <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Edit Listing</h2>
                 <button
                   onClick={() => {
                     setModalOpen(false);
@@ -518,7 +518,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                 {/* Photos Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-lg font-medium">Photos</label>
+                    <label className="text-lg font-medium text-gray-900 dark:text-gray-100">Photos</label>
                     <span className="text-sm text-gray-500">{photos.length}/30</span>
                   </div>
                   
@@ -605,7 +605,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        <span className="text-xs text-gray-500 mt-1 font-medium">Add Photo</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">Add Photo</span>
                       </button>
                     )}
                   </div>
@@ -624,7 +624,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                 <div className="grid grid-cols-2 gap-6">
                   {/* Source URL */}
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-2">Source URL</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Source URL</label>
                     <input
                       type="text"
                       name="sourceUrl"
@@ -637,7 +637,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Reference No / Title */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Reference No</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Reference No</label>
                     <input
                       type="text"
                       name="title"
@@ -650,7 +650,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* City */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">City</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">City</label>
                     <Select
                       value={maltaCitiesOptions.find(opt => opt.value === formData.city)}
                       onChange={(option) => handleSelectChange('city', option)}
@@ -664,7 +664,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Price */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Price (€)</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Price (€)</label>
                     <input
                       type="text"
                       name="price"
@@ -692,7 +692,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Bedrooms */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Bedrooms</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Bedrooms</label>
                     <input
                       type="number"
                       name="bedroom"
@@ -706,7 +706,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Bathrooms */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Bathrooms</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Bathrooms</label>
                     <input
                       type="number"
                       name="bathroom"
@@ -720,7 +720,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Property Type */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Property Type</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Property Type</label>
                     <Select
                       value={propertyTypeOptions.find(opt => opt.value === formData.propertyType)}
                       onChange={(option) => handleSelectChange('propertyType', option)}
@@ -734,7 +734,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Availability */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Availability</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Availability</label>
                     <select
                       name="availability"
                       value={formData.availability}
@@ -749,7 +749,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Available Date */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Available Date</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Available Date</label>
                     <DatePicker
                       selected={availableDate}
                       onChange={(date) => setAvailableDate(date)}
@@ -762,7 +762,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Facebook Post URL */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Facebook Post URL</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Facebook Post URL</label>
                     <input
                       type="text"
                       name="fbPostUrl"
@@ -775,7 +775,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Facebook Reels URL */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Facebook Reels URL</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Facebook Reels URL</label>
                     <input
                       type="text"
                       name="fbReelsUrl"
@@ -788,7 +788,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
 
                   {/* Description */}
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Description</label>
                     <textarea
                       name="description"
                       value={formData.description}
@@ -801,7 +801,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex justify-end gap-4 pt-4 border-t">
+                <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
                     onClick={() => {
@@ -809,7 +809,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                       setPhotos([]);
                       setDeletedPhotoUrls([]);
                     }}
-                    className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     Cancel
                   </button>

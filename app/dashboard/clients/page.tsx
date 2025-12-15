@@ -531,7 +531,7 @@ export default function ClientsPage() {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -567,12 +567,12 @@ export default function ClientsPage() {
           {showModal && (
             <Dialog open={showModal} onOpenChange={setShowModal}>
               <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center overflow-y-auto p-4">
-                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg my-8 max-h-[90vh] overflow-y-auto">
-                  <h3 className="text-xl font-bold mb-4 sticky top-0 bg-white pb-2 border-b">{form.id ? "Edit Client" : "Add New Client"}</h3>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 w-full max-w-lg my-8 max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-xl font-bold mb-4 sticky top-0 bg-white dark:bg-gray-900 pb-2 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">{form.id ? "Edit Client" : "Add New Client"}</h3>
                   <form onSubmit={handleAddClient} className="space-y-3">
                     <Input name="name" value={form.name} onChange={handleInputChange} placeholder="Name" required />
                     <div>
-                      <label className="block text-sm font-medium mb-1">People</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">People</label>
                       <Select
                         options={peopleOptions}
                         value={peopleOptions.find((opt: { label: string; value: string }) => opt.value === form.people) || null}
@@ -585,7 +585,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Bedroom</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Bedroom</label>
                       <Select
                         options={bedroomOptions}
                         value={bedroomOptions.filter((opt: { label: string; value: string }) => form.bedroom.split(",").includes(opt.value))}
@@ -601,7 +601,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Cities</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Cities</label>
                       <Select
                         options={maltaCitiesOptions}
                         value={maltaCitiesOptions.filter((opt: { label: string; value: string }) => form.cities.split(",").includes(opt.value))}
@@ -617,7 +617,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Family/Sharing</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Family/Sharing</label>
                       <Select
                         options={familySharingOptions}
                         value={familySharingOptions.filter((opt: { label: string; value: string }) => form.family_sharing.split(",").includes(opt.value))}
@@ -633,7 +633,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Nationalities</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Nationalities</label>
                       <Select
                         options={countryOptions}
                         value={countryOptions.find((opt: { label: string; value: string }) => opt.value === form.nationalities) || null}
@@ -647,7 +647,7 @@ export default function ClientsPage() {
                     </div>
                     <Input name="jobs" value={form.jobs} onChange={handleInputChange} placeholder="Jobs" required />
                     <div>
-                      <label className="block text-sm font-medium mb-1">Pet</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Pet</label>
                       <Select
                         options={petOptions}
                         value={petOptions.filter((opt: { label: string; value: string }) => form.pet.split(",").includes(opt.value))}
@@ -663,7 +663,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Budget €</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Budget €</label>
                       <Input 
                         name="budget" 
                         type="number"
@@ -682,7 +682,7 @@ export default function ClientsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Move In</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Move In</label>
                       <DatePicker
                         selected={moveInDate}
                         onChange={handleMoveInDateChange}
@@ -694,7 +694,7 @@ export default function ClientsPage() {
                     </div>
                     <Input name="phone" value={form.phone} onChange={handleInputChange} placeholder="Phone" required />
                     <div>
-                      <label className="block text-sm font-medium mb-1">Status</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Status</label>
                       <Select
                         options={statusOptions}
                         value={statusOptions.find((opt: { label: string; value: string }) => opt.value === form.status) || null}
@@ -721,9 +721,9 @@ export default function ClientsPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full border rounded-lg">
                 <thead>
-                  <tr className="bg-purple-50">
+                  <tr className="bg-purple-50 dark:bg-purple-950/30">
                     {columns.map((col) => (
-                      <th key={col} className="px-3 py-2 text-left font-semibold text-purple-700 border-b">
+                      <th key={col} className="px-3 py-2 text-left font-semibold text-purple-700 dark:text-purple-400 border-b border-gray-200 dark:border-gray-700">
                         {col}
                       </th>
                     ))}
@@ -740,7 +740,7 @@ export default function ClientsPage() {
                     </tr>
                   ) : (
                     clients.map((client: Client, idx: number) => (
-                      <tr key={client.id} className="border-b hover:bg-purple-50 cursor-pointer" onClick={() => {
+                      <tr key={client.id} className="border-b border-adaptive table-row-hover cursor-pointer" onClick={() => {
                         setForm({
                           id: client.id,
                           user_id: client.user_id,
@@ -841,9 +841,9 @@ export default function ClientsPage() {
               <div className="overflow-x-auto">
                 <table className="min-w-full border rounded-lg">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-gray-50 dark:bg-gray-800/50">
                       {columns.map((col) => (
-                        <th key={col} className="px-3 py-2 text-left font-semibold text-gray-700 border-b">
+                        <th key={col} className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
                           {col}
                         </th>
                       ))}
@@ -851,7 +851,7 @@ export default function ClientsPage() {
                   </thead>
                   <tbody>
                     {foundClients.map((client: Client, idx: number) => (
-                      <tr key={client.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => {
+                      <tr key={client.id} className="border-b border-adaptive table-row-hover cursor-pointer" onClick={() => {
                         setForm({
                           id: client.id,
                           user_id: client.user_id,
@@ -935,15 +935,15 @@ export default function ClientsPage() {
       {jobsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div 
-            className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative"
+            className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-lg w-full p-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-black"
+              className="absolute top-2 right-2 text-gray-500 hover:text-black dark:hover:text-white"
               onClick={() => setJobsModal(null)}
               aria-label="Close"
             >✕</button>
-            <div className="text-base whitespace-pre-line max-h-[60vh] overflow-auto">
+            <div className="text-base whitespace-pre-line max-h-[60vh] overflow-auto text-gray-900 dark:text-gray-100">
               {jobsModal}
             </div>
           </div>

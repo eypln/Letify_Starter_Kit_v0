@@ -443,7 +443,7 @@ export default function ViewingsPage() {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -479,11 +479,11 @@ export default function ViewingsPage() {
             {/* Modal for Add/Edit Viewing */}
             {showModal && (
               <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center overflow-y-auto">
-                <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg my-8">
-                  <h3 className="text-xl font-bold mb-4">{form.id ? "Edit Viewing" : "Add New Viewing"}</h3>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 w-full max-w-lg my-8">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{form.id ? "Edit Viewing" : "Add New Viewing"}</h3>
                   <form onSubmit={handleAddViewing} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Ref No</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Ref No</label>
                       <CreatableSelect
                         options={listingsSuggestions}
                         value={
@@ -508,7 +508,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">City</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">City</label>
                       <Select
                         options={maltaCitiesOptions}
                         value={maltaCitiesOptions.find(opt => opt.value === form.city) || null}
@@ -531,7 +531,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Viewing Date</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Viewing Date</label>
                       <DatePicker
                         selected={viewingDate}
                         onChange={handleViewingDateChange}
@@ -545,7 +545,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Viewing Time</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Viewing Time</label>
                       <Select
                         options={timeOptions}
                         value={timeOptions.find((opt) => opt.value === form.viewing_time?.substring(0, 5)) || null}
@@ -574,7 +574,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Client Name</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Name</label>
                       <CreatableSelect
                         options={clientsSuggestions}
                         value={
@@ -599,7 +599,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Client Mobile No</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Mobile No</label>
                       <Input 
                         name="client_mobile_no" 
                         value={form.client_mobile_no} 
@@ -617,7 +617,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Result</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Result</label>
                       <Select
                         options={resultOptions}
                         value={resultOptions.find((opt) => opt.value === form.result) || null}
@@ -646,7 +646,7 @@ export default function ViewingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-1">Comments</label>
+                      <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Comments</label>
                       <textarea
                         name="comments"
                         value={form.comments}
@@ -665,7 +665,7 @@ export default function ViewingsPage() {
                         onChange={(e) => setForm({ ...form, inform_teamleader: e.target.checked })}
                         className="rounded"
                       />
-                      <label className="text-sm font-medium">Inform Teamleader</label>
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Inform Teamleader</label>
                     </div>
 
                     <div className="flex justify-end gap-2 mt-4">
@@ -688,9 +688,9 @@ export default function ViewingsPage() {
             <div className="overflow-x-auto rounded-lg border">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-purple-50">
+                  <tr className="bg-purple-50 dark:bg-purple-950/30">
                     {columns.map((col) => (
-                      <th key={col} className="px-2 sm:px-3 py-2 text-left font-semibold text-purple-700 border-b text-xs sm:text-sm whitespace-nowrap">
+                      <th key={col} className="px-2 sm:px-3 py-2 text-left font-semibold text-purple-700 dark:text-purple-400 border-b border-gray-200 dark:border-gray-700 text-xs sm:text-sm whitespace-nowrap">
                         {col}
                       </th>
                     ))}
@@ -713,7 +713,7 @@ export default function ViewingsPage() {
                     viewings.map((viewing, idx: number) => (
                       <tr 
                         key={viewing.id} 
-                        className="border-b hover:bg-purple-50 cursor-pointer" 
+                        className="border-b border-adaptive table-row-hover cursor-pointer" 
                         onClick={() => {
                           console.log('Viewing data:', viewing);
                           console.log('Viewing time:', viewing.viewing_time);

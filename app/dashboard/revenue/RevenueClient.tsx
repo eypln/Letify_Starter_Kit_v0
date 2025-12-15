@@ -482,7 +482,7 @@ export default function RevenueClient({ user }: { user: User }) {
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
-        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 z-10">
+        <Link href={dashboardUrl} className="absolute -top-10 right-0 inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" className="opacity-70">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
           </svg>
@@ -504,19 +504,19 @@ export default function RevenueClient({ user }: { user: User }) {
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                   {columns.map((col) => (
                     <th
                       key={col}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap"
                     >
                       {col}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
                   <tr>
                     <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
@@ -531,58 +531,58 @@ export default function RevenueClient({ user }: { user: User }) {
                   </tr>
                 ) : (
                   revenues.map((revenue: Revenue, idx: number) => (
-                    <tr key={revenue.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={revenue.id} className="table-row-hover">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {(page - 1) * pageSize + idx + 1}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.date_rented)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {revenue.ref_no || "-"}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {revenue.client_name || "-"}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.rent_amount)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.landlord_fee)}
                         {revenue.landlord_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.client_fee)}
                         {revenue.client_discount && <span className="text-xs text-green-600 ml-1">(-15%)</span>}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.listing_fee)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.agent_income)}
                         <span className="text-xs text-gray-500 ml-1">
                           ({revenue.vat_type === 'vatable' ? "40%" : revenue.vat_type === 'part-time' ? "36%" : "32%"})
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.agent_tax)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.date_signed)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.date_move_in)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.landlord_paid_date)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.client_paid_date)}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {revenue.collaboration_with || "-"}
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         <input
                           type="checkbox"
                           checked={revenue.inform_boss_after_both_sides_paid}
@@ -590,7 +590,7 @@ export default function RevenueClient({ user }: { user: User }) {
                           className="h-4 w-4"
                         />
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -691,16 +691,16 @@ export default function RevenueClient({ user }: { user: User }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 {form.id ? "Edit Deal" : "Add New Deal"}
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Deal Type Toggle */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2">Deal Type</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Deal Type</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -708,7 +708,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         form.deal_type === 'longlet'
                           ? 'bg-purple-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Longlet
@@ -719,7 +719,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         form.deal_type === 'shortlet'
                           ? 'bg-purple-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Shortlet
@@ -729,7 +729,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 1: Ref No, Client Name */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Ref No <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Ref No <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from listings or type manually..."
@@ -748,7 +748,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         }
                       }}
                       styles={{
-                        control: (base) => ({
+                        control: (base, state) => ({
                           ...base,
                           minHeight: '40px',
                           borderColor: form.ref_no ? '#d1d5db' : '#ef4444',
@@ -760,7 +760,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Name <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
                       placeholder="Select from clients or type manually..."
@@ -779,7 +779,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         }
                       }}
                       styles={{
-                        control: (base) => ({
+                        control: (base, state) => ({
                           ...base,
                           minHeight: '40px',
                           borderColor: form.client_name ? '#d1d5db' : '#ef4444',
@@ -795,7 +795,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 2: Rent Amount, VAT Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                       {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
                     </label>
                     <Input
@@ -808,12 +808,17 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">VAT Type</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">VAT Type</label>
                     <Select
                       options={vatOptions}
                       value={vatOptions.find(opt => opt.value === form.vat_type)}
                       onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'vatable' })}
                       placeholder="Select VAT type"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                        }),
+                      }}
                     />
                   </div>
                 </div>
@@ -828,7 +833,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       onChange={(e) => setForm({ ...form, landlord_discount: e.target.checked })}
                       className="h-4 w-4 mr-2"
                     />
-                    <label htmlFor="landlord_discount" className="text-sm font-medium">
+                    <label htmlFor="landlord_discount" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Landlord 15% Discount
                     </label>
                   </div>
@@ -840,7 +845,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       onChange={(e) => setForm({ ...form, client_discount: e.target.checked })}
                       className="h-4 w-4 mr-2"
                     />
-                    <label htmlFor="client_discount" className="text-sm font-medium">
+                    <label htmlFor="client_discount" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Client 15% Discount
                     </label>
                   </div>
@@ -854,7 +859,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label htmlFor="has_listing_fee" className={`text-sm font-medium ${
-                      form.deal_type === 'shortlet' ? 'text-gray-400' : ''
+                      form.deal_type === 'shortlet' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'
                     }`}>
                       Listing Fee (5%)
                     </label>
@@ -862,9 +867,9 @@ export default function RevenueClient({ user }: { user: User }) {
                 </div>
 
                 {/* Calculated Fees Display */}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="font-semibold mb-2">Calculated Fees</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Calculated Fees</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-900 dark:text-gray-100">
                     <div>
                       Landlord Fee: <span className="font-semibold">{formatCurrency(calculatedFees.landlord_fee)}</span>
                       <span className="text-green-600 ml-1">+ {formatCurrency(calculatedFees.landlord_fee_vat)} VAT (18%)</span>
@@ -883,7 +888,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 3: Date Rented, Date Signed, Date Move In */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Rented <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
                       onChange={(date) => setDateRented(date)}
@@ -894,7 +899,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Signed <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
                       onChange={(date) => setDateSigned(date)}
@@ -905,7 +910,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Move In <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
                       onChange={(date) => setDateMoveIn(date)}
@@ -920,7 +925,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 4: Payment Dates */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Landlord Paid Date</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Landlord Paid Date</label>
                     <DatePicker
                       selected={landlordPaidDate}
                       onChange={(date) => setLandlordPaidDate(date)}
@@ -930,7 +935,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Paid Date</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Paid Date</label>
                     <DatePicker
                       selected={clientPaidDate}
                       onChange={(date) => setClientPaidDate(date)}
@@ -943,7 +948,7 @@ export default function RevenueClient({ user }: { user: User }) {
 
                 {/* Row 5: Collaboration */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Collaboration With</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Collaboration With</label>
                   <Select
                     value={
                       form.collaboration_with
@@ -993,7 +998,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label 
                       htmlFor="inform_boss" 
                       className={`text-sm font-medium ${
-                        !isInformBossEnabled() ? 'text-gray-400' : 'text-gray-900'
+                        !isInformBossEnabled() ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'
                       }`}
                     >
                       Inform Boss after both sides paid

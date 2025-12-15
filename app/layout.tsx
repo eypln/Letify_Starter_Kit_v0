@@ -8,6 +8,7 @@ import ErrorShield from "./(app)/error-shield";
 import ErrorBoundary from "@/components/system/ErrorBoundary";
 import ClientProviders from "@/components/system/ClientProviders";
 import { siteConfig, generateOGMetadata } from "@/lib/seo";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -67,13 +68,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/Logo/180.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ClientProviders />
-        <ToastRoot>
-          <ErrorBoundary>
-            <ErrorShield>{children}</ErrorShield>
-          </ErrorBoundary>
-        </ToastRoot>
-        <Analytics mode={process.env.NODE_ENV === 'production' ? 'production' : 'development'} />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ClientProviders />
+          <ToastRoot>
+            <ErrorBoundary>
+              <ErrorShield>{children}</ErrorShield>
+            </ErrorBoundary>
+          </ToastRoot>
+          <Analytics mode={process.env.NODE_ENV === 'production' ? 'production' : 'development'} />
+        </ThemeProvider>
       </body>
     </html>
   );

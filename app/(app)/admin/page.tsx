@@ -311,6 +311,10 @@ export default function AdminPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
+      // Reset theme preference to light for new user
+      localStorage.removeItem('theme')
+      document.documentElement.classList.remove('dark')
+      
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
@@ -323,7 +327,7 @@ export default function AdminPage() {
         throw new Error(errorData.error || 'An error occurred during logout')
       }
 
-      router.push('/sign-in')
+      router.push('/')
       router.refresh()
     } catch (error) {
       const err = error as Error
@@ -382,7 +386,7 @@ export default function AdminPage() {
               {users.map((user) => (
                 <div
                   key={user.user_id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-4">
@@ -481,7 +485,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {approvedUsers.map((user) => (
-                    <tr key={user.user_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr key={user.user_id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors">
                       <td className="py-3 px-4 text-xs text-gray-600 font-mono">
                         {user.user_id.slice(0, 8)}...
                       </td>
@@ -564,7 +568,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {blockedUsers.map((user) => (
-                    <tr key={user.user_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr key={user.user_id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors">
                       <td className="py-3 px-4 text-xs text-gray-600 font-mono">
                         {user.user_id.slice(0, 8)}...
                       </td>

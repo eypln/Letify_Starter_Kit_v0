@@ -277,7 +277,7 @@ export default function NotificationSettings({ userId }: NotificationSettingsPro
             <button
               onClick={handleDisableNotifications}
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/40 rounded-md transition-colors disabled:opacity-50"
             >
               {loading ? 'Disabling...' : 'Disable'}
             </button>

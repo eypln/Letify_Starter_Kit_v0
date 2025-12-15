@@ -3,6 +3,173 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.6.0 - Dark Mode Theme & Revenue Management Improvements (14.12.2025) ✅
+**Yapılanlar:**
+
+#### Dark Mode Theme Persistence ✅
+- **User-Specific Theme**:
+  - Theme preference stored in localStorage per user
+  - Automatic theme reset on logout (localStorage.removeItem('theme'))
+  - document.documentElement.classList.remove('dark') on logout
+  - Each user maintains their own theme preference
+  - No cross-user theme persistence
+
+- **Sign-In/Sign-Up Light Theme**:
+  - Auth pages always use light theme styling
+  - .auth-input CSS class exception in dark mode
+  - text-gray-900 for all headings and labels
+  - Consistent readability regardless of user's theme setting
+  - Applied to: sign-in, sign-up, forgot-password, reset-password
+
+#### Revenue Management Enhancements ✅
+- **Deal Type Toggle (Longlet/Shortlet)**:
+  - Toggle buttons at top of Add New Deal form
+  - Purple highlight for selected deal type
+  - Conditional label: "Rent Amount" vs "Total Owner Rent Income"
+  - Different calculation logic per deal type
+  - Listing Fee auto-disabled for shortlet deals
+
+- **Calculation Logic**:
+  - **Shortlet**: landlord_fee = rent * 0.10, client_fee = rent * 0.10, listing_fee = 0
+  - **Longlet**: landlord_fee = rent / 2, client_fee = rent / 2, listing_fee = optional 5%
+  - Total revenue = landlord_fee + client_fee
+  - Agent income = totalRevenue * 0.40 (gross)
+  - VAT calculations: 40% (vatable), 36% (part-time), 32% (non-vatable)
+
+- **VAT Type Integration Fix**:
+  - POST /api/revenue now receives and saves vat_type
+  - Database column properly populated on insert
+  - UI displays correct percentage (32%, 36%, or 40%)
+  - Backward compatibility with old vatable boolean
+  - Default value: 'non-vatable' for new records
+
+#### Form Validation ✅
+- **Required Fields**:
+  - Ref No, Client Name, Rent Amount, Date Rented, Date Signed, Date Move In
+  - Red asterisk (*) marks on labels
+  - Red border (borderColor: '#ef4444') for empty Select fields
+  - Red border for empty DatePicker fields
+  - Toast error message with field list
+  - Form submission blocked until all required fields filled
+
+- **Validation Coverage**:
+  - /dashboard/revenue (agent page)
+  - /teamleader/team-revenue (teamleader page)
+  - Identical validation logic in both locations
+  - Consistent user experience across roles
+
+#### Boss Team Revenue Table Split ✅
+- **Dual Table System**:
+  - Pending Deals table (agent_payment_status !== 'paid')
+  - Paid Deals table (agent_payment_status === 'paid')
+  - Color-coded indicators: Yellow (pending), Green (paid)
+  - Count badges showing record numbers
+  - State lifted to parent component (BossTeamRevenueClient)
+
+- **Auto Transfer Logic**:
+  - Records automatically move between tables
+  - Triggered by agent_payment_status dropdown change
+  - Shared allRevenues state with filter functions
+  - handleStatusChange callback updates state
+  - EditDealModal onSuccess triggers refresh
+
+#### Logout Redirect Update ✅
+- **Homepage Redirect for All Roles**:
+  - Boss: router.push('/') instead of '/sign-in'
+  - Manager: router.push('/') instead of '/sign-in'
+  - Teamleader: router.push('/') instead of '/sign-in'
+  - Admin: router.push('/') instead of '/sign-in'
+  - Agent: already redirecting to '/'
+  - Consistent behavior across all user roles
+
+**Technical Implementation:**
+- **Modified Files** (14 files):
+  - app/api/revenue/route.ts
+  - app/dashboard/revenue/RevenueClient.tsx
+  - app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx
+  - app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx
+  - app/(app)/boss/page.tsx
+  - app/(app)/manager/page.tsx
+  - app/(app)/teamleader/page.tsx
+  - app/(app)/admin/page.tsx
+  - app/globals.css
+  - app/sign-in/page.tsx
+  - app/sign-up/page.tsx
+  - app/forgot-password/page.tsx
+  - app/reset-password/page.tsx
+  - package.json (v2.6.0)
+
+- **Build Status**: ✅ Production build successful
+
+### v2.5.1 - Dark Mode Theme System (13.12.2025) ✅
+**Yapılanlar:**
+
+#### Dark Mode Implementation ✅
+- **Theme Provider**:
+  - next-themes v0.4.6 integration
+  - Light/Dark mode toggle with smooth transitions
+  - System theme detection support
+  - localStorage theme persistence
+  - SSR-safe implementation with suppressHydrationWarning
+
+- **UI Components**:
+  - ThemeToggle component with Sun/Moon icons
+  - Animated icon transitions on theme switch
+  - Ghost button variant for minimal UI
+  - Accessible screen reader support
+
+- **Color System**:
+  - Complete dark mode CSS variables in globals.css
+  - Background: Light (#FFFFFF) / Dark (#222.2 84% 4.9%)
+  - Card backgrounds with proper contrast
+  - Border and input colors optimized for both themes
+  - Purple primary color (#9333ea) maintained across themes
+  - Muted colors for secondary text in dark mode
+
+- **Dashboard Integration**:
+  - Theme toggle button added next to logout
+  - Positioned in header alongside logout button
+  - Consistent spacing and alignment
+  - Works across all dashboard pages
+
+- **Technical Features**:
+  - Client-side only rendering with mounted state
+  - Prevents hydration mismatch errors
+  - enableSystem prop for OS theme detection
+  - disableTransitionOnChange for smooth theme switching
+  - attribute="class" for Tailwind dark mode
+
+**Technical Implementation:**
+- **Theme Provider**: components/theme/theme-provider.tsx (10 lines)
+- **Theme Toggle**: components/theme/theme-toggle.tsx (40 lines)
+- **Layout Integration**: app/layout.tsx (ThemeProvider wrapper)
+- **Dashboard UI**: app/dashboard/DashboardClient.tsx (toggle button)
+- **CSS Variables**: app/globals.css (light + dark mode colors)
+
+**User Experience:**
+- One-click theme switching
+- Instant visual feedback with icon animation
+- Theme preference saved across sessions
+- Works with system theme detection
+- No flash of unstyled content (FOUC)
+
+**Testing Verified:**
+- ✅ Theme toggle button visible on dashboard
+- ✅ Light/Dark mode switch works instantly
+- ✅ Theme persists after page reload
+- ✅ No hydration errors in console
+- ✅ Icons animate smoothly on switch
+- ✅ All colors properly contrast in both themes
+- ✅ System theme detection functional
+
+**Files Created/Modified:**
+- Created: `/components/theme/theme-provider.tsx` (10 lines)
+- Created: `/components/theme/theme-toggle.tsx` (40 lines)
+- Modified: `/app/layout.tsx` (added ThemeProvider wrapper)
+- Modified: `/app/dashboard/DashboardClient.tsx` (added theme toggle)
+- Modified: `/memory-bank/progress.md` (updated feature status)
+- Dependencies: `next-themes@0.4.6`
+
 ### v2.5.0 - Database Backup & Rate Limiting System (08.01.2025) ✅
 **Yapılanlar:**
 
@@ -1130,8 +1297,8 @@ CREATE POLICY "Allow authenticated users to update teamwork listings"
 - 🔄 **Audit Logging**: Enhanced security logging
 
 ### Low Priority
-- 🔄 **Multi-language Support**: i18n implementation
-- 🔄 **Dark Mode**: Theme switching
+- 🔄 **Multi-langua Support**: i18n implementation
+- ✅ **Dark Mode**: Theme switching (COMPLETED - 13.12.2025)
 - 🔄 **Advanced Search**: Filter ve search capabilities
 - 🔄 **Bulk Operations**: Mass client/listing management
 - 🔄 **API Documentation**: OpenAPI specs

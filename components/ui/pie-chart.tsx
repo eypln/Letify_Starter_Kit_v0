@@ -14,13 +14,14 @@ export default function PieChartComponent({ data }: { data: { bedroom: string; c
           cx="50%"
           cy="50%"
           outerRadius={100}
-          label
+          label={({ name, value }) => `${name}: ${value}`}
+          labelLine={{ stroke: 'currentColor' }}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }} />
         <Legend />
       </PieChart>
     </ResponsiveContainer>
