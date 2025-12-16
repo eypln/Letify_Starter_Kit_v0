@@ -2,7 +2,99 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (14.12.2025) ✅ COMPLETED - v2.6.0 RELEASE
+### Ana Odak Alanları (16.12.2025) ✅ COMPLETED - v2.6.1 RELEASE
+1. **Applications Management System (v2.6.1)**:
+   - ✅ New `applications` database table with RLS policies
+   - ✅ Full CRUD API at /api/applications
+   - ✅ ApplicationsClient component with pagination, add/edit/delete modals
+   - ✅ Excel-matching 1st Call status colors (7 status options)
+   - ✅ "Hired" checkbox to mark applicants as team members
+   - ✅ Separate "Hired Team Members" table with green theme
+   - ✅ Automatic transfer between tables when hired status changes
+   - ✅ Real-time subscriptions for live updates
+   - ✅ Applications card added to teamleader, manager, boss dashboards
+   - ✅ Dynamic dashboardUrl prop for role-based navigation
+   - ✅ 148 initial records imported from Excel
+
+**Teknik Detaylar:**
+- **Database Schema**:
+  ```sql
+  CREATE TABLE public.applications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    application_date DATE NOT NULL,
+    applicant_name TEXT NOT NULL,
+    nationality TEXT,
+    phone TEXT,
+    email TEXT,
+    re_experience BOOLEAN DEFAULT FALSE,
+    first_call_status TEXT,
+    second_call_notes TEXT,
+    appointment_date DATE,
+    interview_point TEXT,
+    vat_type TEXT,
+    start_date DATE,
+    hired BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  ```
+
+- **1st Call Status Colors**:
+  ```typescript
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case "No Reply": return "bg-red-800 text-white"; // Dark red
+      case "Not interested anymore": return "bg-yellow-400 text-yellow-900"; // Yellow
+      case "Found a job": return "bg-orange-400 text-orange-900"; // Orange
+      case "Scheduled Interview": return "bg-green-500 text-white"; // Green
+      case "Requires Follow-up": return "bg-green-300 text-green-900"; // Light green
+      case "Missing Contact": return "bg-gray-700 text-white"; // Dark gray
+      case "Refused Applicant": return "bg-gray-200 text-gray-700"; // Light gray
+    }
+  };
+  ```
+
+- **Hired Table Filtering**:
+  ```typescript
+  // Main table: hired = false
+  const fetchApplications = async () => {
+    await supabase.from("applications")
+      .select("*", { count: "exact" })
+      .eq("hired", false)
+      .order("application_date", { ascending: false });
+  };
+  
+  // Hired table: hired = true  
+  const fetchHiredApplicants = async () => {
+    await supabase.from("applications")
+      .select("*", { count: "exact" })
+      .eq("hired", true)
+      .order("start_date", { ascending: false });
+  };
+  ```
+
+- **Created Files**:
+  ```
+  supabase/migrations/20251216_create_applications_table.sql
+  supabase/migrations/20251216_add_hired_column.sql
+  supabase/migrations/20251216_insert_applications_data.sql
+  app/api/applications/route.ts
+  app/(app)/teamleader/applications/page.tsx
+  app/(app)/teamleader/applications/ApplicationsClient.tsx
+  app/(app)/manager/applications/page.tsx
+  app/(app)/boss/applications/page.tsx
+  ```
+
+- **Modified Files**:
+  ```
+  app/(app)/teamleader/page.tsx (Applications card)
+  app/(app)/manager/page.tsx (Applications card + ClipboardList icon)
+  app/(app)/boss/page.tsx (Applications card + ClipboardList icon)
+  package.json (v2.6.1)
+  ```
+
+### Önceki Odak (14.12.2025) ✅ COMPLETED - v2.6.0 RELEASE
 1. **Dark Mode Theme & Revenue Management Improvements (v2.6.0)**:
    - ✅ Dark mode theme persistence per user (localStorage cleanup on logout)
    - ✅ Sign-in/Sign-up pages always use light theme (not affected by dark mode)

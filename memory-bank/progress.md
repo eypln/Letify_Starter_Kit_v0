@@ -3,6 +3,65 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.6.1 - Applications Management System (16.12.2025) ✅
+**Yapılanlar:**
+
+#### Job Applications Tracking System ✅
+- **Applications Table**:
+  - New database table: `public.applications` with 15+ columns
+  - Columns: id, user_id, application_date, applicant_name, nationality, phone, email, re_experience, first_call_status, second_call_notes, appointment_date, interview_point, vat_type, start_date, hired, created_at, updated_at
+  - Row Level Security (RLS) policies for teamleader, manager, boss, admin roles
+  - Full CRUD API: GET, POST, PUT, DELETE at /api/applications
+
+- **UI Components**:
+  - Applications card added to teamleader, manager, and boss dashboards
+  - Full-featured data table with pagination (15 items per page)
+  - Add/Edit modal with form validation
+  - Delete confirmation modal
+  - Real-time subscriptions for live updates
+  - Excel-matching status colors for 1st Call column
+
+- **1st Call Status Colors (Excel Match)**:
+  - No Reply: Dark red/maroon
+  - Not interested anymore: Yellow
+  - Found a job: Orange
+  - Scheduled Interview: Green
+  - Requires Follow-up: Light green
+  - Missing Contact: Dark gray/black
+  - Refused Applicant: Light gray
+
+- **Hired Team Members Feature**:
+  - "Hired" checkbox in form to mark applicants as team members
+  - Separate "Hired Team Members" table with green theme
+  - Main table shows only non-hired applicants (hired=false)
+  - Hired table shows only hired applicants (hired=true)
+  - Automatic transfer between tables when hired status changes
+  - Team member count displayed in card header
+
+- **Multi-Dashboard Integration**:
+  - Teamleader: /teamleader/applications
+  - Manager: /manager/applications  
+  - Boss: /boss/applications
+  - Shared ApplicationsClient component with dynamic dashboardUrl prop
+  - Role-based access control on each page
+
+**Technical Implementation:**
+- **Created Files**:
+  - supabase/migrations/20251216_create_applications_table.sql
+  - supabase/migrations/20251216_add_hired_column.sql
+  - supabase/migrations/20251216_insert_applications_data.sql (148 records)
+  - app/api/applications/route.ts
+  - app/(app)/teamleader/applications/page.tsx
+  - app/(app)/teamleader/applications/ApplicationsClient.tsx
+  - app/(app)/manager/applications/page.tsx
+  - app/(app)/boss/applications/page.tsx
+
+- **Modified Files**:
+  - app/(app)/teamleader/page.tsx (Applications card)
+  - app/(app)/manager/page.tsx (Applications card + ClipboardList icon)
+  - app/(app)/boss/page.tsx (Applications card + ClipboardList icon)
+  - package.json (v2.6.1)
+
 ### v2.6.0 - Dark Mode Theme & Revenue Management Improvements (14.12.2025) ✅
 **Yapılanlar:**
 
