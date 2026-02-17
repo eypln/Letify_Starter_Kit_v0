@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Yeni client eklenince activity tablosuna kayıt ekle
     await logActivity(supabase, {
       user_id,
-      type: 'new_client_added',
+      type: 'client_created',
       data: { name, phone }
     });
   }

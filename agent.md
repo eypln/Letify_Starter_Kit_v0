@@ -130,13 +130,14 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
    - ✅ Teamwork & Sharing
    - ✅ Viewings Tracking
    - ✅ Revenue Management
+   - ✅ Assign to Agent (Elevated user delegation)
    - ✅ Billing & Payments
    - ✅ Push Notifications (6 categories, 19 types)
    - ✅ BotID Security
    - ✅ PWA & Offline Support
    - ✅ Advanced Analytics
 
-## Son Deployment Bilgisi (02.12.2025)
+## Son Deployment Bilgisi (17.02.2026)
 
 ### Production Status
 - **URL**: https://app.letify.cloud
@@ -147,7 +148,19 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **PWA**: Service worker active, install prompt enhanced
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
-- **Build Status**: ✅ Production build successful (93 pages, 4 ESLint warnings - acceptable)
+- **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
+- **Version**: v2.6.1
+
+### Son Eklenen Özellikler (17.02.2026)
+1. **Assign to Agent Feature**:
+   - Teamleader/Manager/Boss, agent adına deal ekleyebilir (Add Deal modal)
+   - Edit Deal modal ile deal'ları farklı agent'lara reassign edebilir
+   - API: target_user_id ile elevated user desteği
+   - RLS: is_elevated_user() fonksiyonu ile INSERT/UPDATE policy
+
+2. **⚠️ Pending Migration**:
+   - `supabase/migrations/20260217_fix_revenue_insert_policy.sql` Supabase SQL Editor'de çalıştırılmalı
+   - Bu olmadan Assign to Agent özelliği RLS hatası verir
 
 ### Yeni Eklemeler (02.12.2025)
 1. **Production Build & Type System Fixes ✅**

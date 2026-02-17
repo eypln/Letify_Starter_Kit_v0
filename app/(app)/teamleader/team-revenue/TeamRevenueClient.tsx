@@ -116,12 +116,19 @@ interface Profile {
   full_name: string;
 }
 
+interface Agent {
+  user_id: string;
+  full_name: string;
+}
+
 export default function RevenueClient({ user }: { user: User }) {
   const { toast } = useToast();
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -332,6 +339,19 @@ export default function RevenueClient({ user }: { user: User }) {
       setProfiles(profilesData);
     }
 
+    // Fetch agents for Assign to Agent dropdown (role = 'agent')
+    const { data: agentsData, error: agentsError } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .eq("role", "agent")
+      .order("full_name", { ascending: true });
+
+    if (agentsError) {
+      console.warn("Could not fetch agents for assign dropdown");
+    } else if (agentsData) {
+      setAgents(agentsData);
+    }
+
     setLoading(false);
   }
 
@@ -391,6 +411,7 @@ export default function RevenueClient({ user }: { user: User }) {
     setDateMoveIn(null);
     setLandlordPaidDate(null);
     setClientPaidDate(null);
+    setSelectedAgentId('');
   };
 
   const handleAddNew = () => {
@@ -433,6 +454,13 @@ export default function RevenueClient({ user }: { user: User }) {
     setLandlordPaidDate(revenue.landlord_paid_date ? new Date(revenue.landlord_paid_date) : null);
     setClientPaidDate(revenue.client_paid_date ? new Date(revenue.client_paid_date) : null);
     
+    // Pre-select the agent if the deal belongs to someone else
+    if (revenue.user_id !== user.id) {
+      setSelectedAgentId(revenue.user_id);
+    } else {
+      setSelectedAgentId('');
+    }
+    
     setShowModal(true);
   };
 
@@ -459,6 +487,8 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
       user_id: user?.id,
+      // If teamleader selected an agent, pass their user_id as target
+      target_user_id: selectedAgentId || undefined,
     };
 
     try {
@@ -970,7 +1000,39 @@ export default function RevenueClient({ user }: { user: User }) {
                   </div>
                 </div>
 
-                {/* Row 5: Collaboration */}
+                {/* Row 5: Assign to Agent */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assign to Agent</label>
+                  <Select
+                    value={
+                      selectedAgentId
+                        ? {
+                            label: agents.find(a => a.user_id === selectedAgentId)?.full_name || '',
+                            value: selectedAgentId,
+                          }
+                        : null
+                    }
+                    onChange={(option) => setSelectedAgentId(option ? option.value : '')}
+                    options={agents.map((agent) => ({
+                      label: agent.full_name,
+                      value: agent.user_id,
+                    }))}
+                    isClearable
+                    placeholder="Select agent (leave empty for yourself)"
+                    className="text-sm"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: "42px",
+                      }),
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select an agent to assign this deal to. If left empty, the deal will be assigned to you.
+                  </p>
+                </div>
+
+                {/* Row 6: Collaboration */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Collaboration With</label>
                   <Select

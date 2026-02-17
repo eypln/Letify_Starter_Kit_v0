@@ -2,7 +2,71 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (16.12.2025) ✅ COMPLETED - v2.6.1 RELEASE
+### Ana Odak Alanları (17.02.2026) ✅ COMPLETED - Assign to Agent Feature
+1. **Assign to Agent - Team Revenue Deal Management**:
+   - ✅ "Assign to Agent" dropdown added to Add New Deal modal (TeamRevenueClient.tsx)
+   - ✅ "Assign to Agent" dropdown added to Edit Deal modal (EditDealModal.tsx)
+   - ✅ Teamleader/Manager/Boss can create deals on behalf of agents
+   - ✅ Teamleader/Manager/Boss can reassign deals to different agents via Edit
+   - ✅ API POST /api/revenue accepts `target_user_id` for elevated users
+   - ✅ API PUT /api/revenue accepts `target_user_id` for deal reassignment
+   - ✅ Role check: only elevated users (teamleader/manager/boss/admin) can assign to agents
+   - ✅ Agent list fetched from profiles table (role='agent')
+   - ✅ react-select dropdown with agent full names
+   - ✅ RLS INSERT/UPDATE policy fix: `user_id::uuid = auth.uid() OR is_elevated_user()`
+   - ✅ Migration SQL created: `supabase/migrations/20260217_fix_revenue_insert_policy.sql`
+   - ✅ Production build successful (120 pages, 0 TypeScript errors)
+
+**Teknik Detaylar:**
+- **Agent Fetch Pattern**:
+  ```typescript
+  // Fetch all agents for dropdown
+  const { data: agentData } = await supabase
+    .from('profiles')
+    .select('user_id, full_name')
+    .eq('role', 'agent')
+    .order('full_name');
+  ```
+
+- **Elevated User Check (API)**:
+  ```typescript
+  // Check if caller is elevated (can assign to others)
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single();
+  const isElevated = ['teamleader','manager','boss','admin']
+    .includes(callerProfile?.role);
+  if (isElevated && target_user_id) {
+    insertData.user_id = target_user_id; // Override user_id
+  }
+  ```
+
+- **RLS Policy Fix**:
+  ```sql
+  -- INSERT policy: Allow elevated users to insert for other agents
+  CREATE POLICY "Users can insert own revenue or elevated users can insert for others"
+  ON revenue FOR INSERT TO authenticated
+  WITH CHECK (user_id::uuid = auth.uid() OR is_elevated_user());
+  ```
+
+- **Modified Files**:
+  ```
+  app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (Agent dropdown in Add Deal)
+  app/(app)/teamleader/team-revenue/EditDealModal.tsx (Agent dropdown in Edit Deal)
+  app/api/revenue/route.ts (POST + PUT target_user_id support)
+  supabase/migrations/20260217_fix_revenue_insert_policy.sql (Created - RLS fix)
+  ```
+
+- **⚠️ Pending**: RLS migration SQL needs to be executed in Supabase SQL Editor
+
+2. **Package Updates (17.02.2026)**:
+   - ✅ Updated baseline-browser-mapping to latest version
+   - ✅ Updated caniuse-lite to v1.0.30001770
+   - ✅ Dev server startup warnings resolved
+
+### Önceki Odak (16.12.2025) ✅ COMPLETED - v2.6.1 RELEASE
 1. **Applications Management System (v2.6.1)**:
    - ✅ New `applications` database table with RLS policies
    - ✅ Full CRUD API at /api/applications

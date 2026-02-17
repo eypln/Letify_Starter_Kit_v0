@@ -3,6 +3,60 @@
 
 ## Ne Çalışıyor ✅
 
+### Assign to Agent - Team Revenue Deal Management (17.02.2026) ✅
+**Yapılanlar:**
+
+#### Assign to Agent Feature (Teamleader/Manager/Boss) ✅
+- **Add New Deal Modal**:
+  - "Assign to Agent" react-select dropdown added to TeamRevenueClient.tsx
+  - Agent list fetched from profiles table (role='agent')
+  - Dropdown placed above "Collaboration With" section
+  - selectedAgentId state tracks selected agent
+  - target_user_id sent in POST payload
+  - resetForm() clears selectedAgentId
+  - handleEdit() pre-selects agent when editing existing deal
+
+- **Edit Deal Modal**:
+  - "Assign to Agent" react-select dropdown added to EditDealModal.tsx
+  - Agent list fetched in fetchData() on modal open
+  - selectedAgentId initialized with revenue.user_id
+  - target_user_id sent in PUT payload for reassignment
+  - Allows changing deal ownership from one agent to another
+
+- **API Route Enhancements**:
+  - POST /api/revenue: Accepts target_user_id, checks caller role via profiles
+  - PUT /api/revenue: Accepts target_user_id, adds user_id to updateData
+  - Role check: Only elevated users (teamleader/manager/boss/admin) can assign
+  - Non-elevated users: target_user_id ignored, uses auth.uid()
+  - updateData type changed to Record<string, any> to support user_id field
+
+- **RLS Policy Fix**:
+  - INSERT policy: `user_id::uuid = auth.uid() OR is_elevated_user()`
+  - UPDATE policy: Same pattern for elevated user support
+  - Migration: supabase/migrations/20260217_fix_revenue_insert_policy.sql
+  - ⚠️ Needs to be run in Supabase SQL Editor
+
+- **Cross-Display Verification**:
+  - Agent's /dashboard/revenue uses `.eq("user_id", user.id)` → assigned deals appear
+  - Team Revenue Records fetches ALL revenue → all deals visible to teamleader
+  - Edit from Team Revenue Records → can reassign to different agent
+
+**Technical Implementation:**
+- **Created Files**:
+  - supabase/migrations/20260217_fix_revenue_insert_policy.sql
+
+- **Modified Files**:
+  - app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (~1707 lines)
+  - app/(app)/teamleader/team-revenue/EditDealModal.tsx (~640 lines)
+  - app/api/revenue/route.ts (~706 lines)
+
+- **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
+
+#### Package Updates (17.02.2026) ✅
+- Updated baseline-browser-mapping to latest version
+- Updated caniuse-lite to v1.0.30001770 via `npx update-browserslist-db@latest`
+- Dev server startup warnings resolved
+
 ### v2.6.1 - Applications Management System (16.12.2025) ✅
 **Yapılanlar:**
 

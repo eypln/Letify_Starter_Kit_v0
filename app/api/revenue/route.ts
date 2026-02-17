@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
     landlord_paid_date,
     client_paid_date,
     collaboration_with,
-    inform_boss_after_both_sides_paid
+    inform_boss_after_both_sides_paid,
+    target_user_id
   } = body;
 
   // Authenticated user id
@@ -84,7 +85,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const user_id = user.id;
+  // Check if caller is an elevated user (teamleader/manager/boss/admin)
+  // If so, they can assign deals to other agents via target_user_id
+  let user_id = user.id;
+  
+  if (target_user_id && target_user_id !== user.id) {
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    const callerRole = callerProfile?.role;
+    const isElevatedUser = ['teamleader', 'manager', 'boss', 'admin'].includes(callerRole || '');
+    
+    if (isElevatedUser) {
+      user_id = target_user_id;
+    }
+  }
 
   // Calculate fees
   const rentAmountNum = parseFloat(rent_amount) || 0;
@@ -248,7 +266,8 @@ export async function PUT(req: NextRequest) {
     landlord_paid_date,
     client_paid_date,
     collaboration_with,
-    inform_boss_after_both_sides_paid
+    inform_boss_after_both_sides_paid,
+    target_user_id
   } = body;
 
   const {
@@ -373,7 +392,7 @@ export async function PUT(req: NextRequest) {
     }, { status: 404 });
   }
 
-  const updateData = {
+  const updateData: Record<string, any> = {
     ref_no: ref_no ?? null,
     client_name: client_name ?? null,
     rent_amount: rentAmountNum,
@@ -396,6 +415,11 @@ export async function PUT(req: NextRequest) {
     collaboration_with: collaboration_with ?? null,
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
   };
+
+  // If elevated user wants to reassign the deal to another agent
+  if (target_user_id && isElevatedUser) {
+    updateData.user_id = target_user_id;
+  }
 
   // Update query - elevated users can update any revenue
   let updateQuery = supabase

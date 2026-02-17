@@ -298,7 +298,7 @@ Redirect to correct role dashboard
 - ✅ `/dashboard` - Agent only
 - ✅ `/teamleader` - Team Leader only (8-card dashboard)
   - Team Viewings (own + team table)
-  - Team Revenue (own + team table)
+  - Team Revenue (own + team table, **Assign to Agent** feature)
   - Notifications (activity log)
 - ✅ `/manager` - Manager Dashboard (08.12.2025) - 5-card monitoring system
   - Profile (no Facebook integration)
@@ -308,6 +308,60 @@ Redirect to correct role dashboard
   - Reports (coming soon)
 - ✅ `/boss` - Boss only (placeholder)
 - ✅ Shared pages - All roles (Profile, Clients, Listings, etc.)
+
+### Elevated User Delegation Pattern (17.02.2026)
+
+**Pattern**: Elevated users (teamleader/manager/boss/admin) can perform actions on behalf of agents.
+
+**Implementation:**
+```typescript
+// Frontend: Fetch agents for dropdown
+const { data: agentData } = await supabase
+  .from('profiles')
+  .select('user_id, full_name')
+  .eq('role', 'agent')
+  .order('full_name');
+
+// Frontend: Send target_user_id in payload
+const payload = { ...formData, target_user_id: selectedAgentId };
+
+// API: Check caller's role and delegate
+const { data: callerProfile } = await supabase
+  .from('profiles').select('role').eq('user_id', user.id).single();
+const isElevated = ['teamleader','manager','boss','admin']
+  .includes(callerProfile?.role);
+
+if (isElevated && target_user_id) {
+  insertData.user_id = target_user_id; // Assign to selected agent
+} else {
+  insertData.user_id = user.id; // Self-assign
+}
+```
+
+**RLS Pattern for Delegation:**
+```sql
+-- Allow self-insert OR elevated users to insert for others
+CREATE POLICY "policy_name" ON table_name
+FOR INSERT TO authenticated
+WITH CHECK (user_id::uuid = auth.uid() OR is_elevated_user());
+
+-- is_elevated_user() checks role in profiles table
+CREATE OR REPLACE FUNCTION is_elevated_user()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles
+    WHERE user_id = auth.uid()::text
+    AND role IN ('teamleader', 'manager', 'boss', 'admin')
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+```
+
+**Key Decisions:**
+- ❌ Don't allow agents to assign to other agents
+- ✅ Only elevated roles can use target_user_id
+- ✅ API silently ignores target_user_id for non-elevated users
+- ✅ Agent dropdown uses react-select (consistent with other dropdowns)
+- ✅ Edit Deal allows reassignment (change deal ownership)
 
 **Manager Dashboard Pattern (08.12.2025):**
 ```typescript

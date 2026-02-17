@@ -14,6 +14,30 @@ interface Activity {
   data?: Record<string, unknown> | null;
 }
 
+/** Activity type → label map: Bilinmeyen type'lar UI'da boş gösterilmesin */
+function getActivityLabel(activity: Activity): string {
+  switch (activity.type) {
+    case 'listing': return 'New Listing Shared';
+    case 'subscription': return 'Subscription Purchased';
+    case 'credit': return `Credit Purchased: ${activity.data?.amount || 'N/A'}`;
+    case 'profile_update': return 'Profile Updated';
+    case 'listing_created': return `New Listing Created: ${activity.data?.title || 'Untitled'}`;
+    case 'listing_updated': return `Listing Updated: ${activity.data?.title || 'Untitled'}`;
+    case 'client_created':
+    case 'new_client_added': return `New Client Added: ${activity.data?.name || 'Unnamed'}`;
+    case 'post_shared': return `Post Shared: ${activity.data?.title || 'Untitled'}`;
+    case 'teamwork_listing_shared': return `Listing Shared to Teamwork: ${activity.data?.listing_title || 'N/A'}`;
+    case 'teamwork_client_shared': return `Client Shared to Teamwork: ${activity.data?.client_name || 'N/A'}`;
+    case 'new_viewing_added': return `New Viewing Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`;
+    case 'viewing_updated': return `Viewing Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`;
+    case 'new_revenue_added': return `New Revenue Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`;
+    case 'revenue_updated': return `Revenue Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`;
+    case 'deal_finalized': return `Deal Finalized: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`;
+    case 'agent_payment_sent': return `Agency Fee Sent: ${activity.data?.ref_no || 'N/A'}`;
+    default: return '';
+  }
+}
+
 interface DashboardStats {
   totalListings: number;
   sharesThisMonth: number;
@@ -339,28 +363,13 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
               <h2 className="text-2xl font-semibold leading-none tracking-tight">Recent Activities</h2>
             </div>
             <div className="p-6 pt-0">
-              {stats.recentActivities.length === 0 ? (
+              {stats.recentActivities.filter((a: Activity) => getActivityLabel(a) !== '').length === 0 ? (
                 <p className="text-muted-foreground text-sm">No activity yet. Start by creating your first content!</p>
               ) : (
                 <ul className="space-y-2">
-                  {stats.recentActivities.map((activity: Activity) => (
+                  {stats.recentActivities.filter((a: Activity) => getActivityLabel(a) !== '').map((activity: Activity) => (
                     <li key={activity.id} className="flex items-center justify-between">
-                      <span>
-                        {activity.type === 'listing' && 'New Listing Shared'}
-                        {activity.type === 'subscription' && 'Subscription Purchased'}
-                        {activity.type === 'credit' && `Credit Purchased: ${activity.data?.amount || 'N/A'}`}
-                        {activity.type === 'profile_update' && 'Profile Updated'}
-                        {activity.type === 'listing_created' && `New Listing Created: ${activity.data?.title || 'Untitled'}`}
-                        {activity.type === 'listing_updated' && `Listing Updated: ${activity.data?.title || 'Untitled'}`}
-                        {activity.type === 'client_created' && `New Client Added: ${activity.data?.name || 'Unnamed'}`}
-                        {activity.type === 'post_shared' && `Post Shared: ${activity.data?.title || 'Untitled'}`}
-                        {activity.type === 'teamwork_listing_shared' && `Listing Shared to Teamwork: ${activity.data?.listing_title || 'N/A'}`}
-                        {activity.type === 'teamwork_client_shared' && `Client Shared to Teamwork: ${activity.data?.client_name || 'N/A'}`}
-                        {activity.type === 'new_viewing_added' && `New Viewing Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
-                        {activity.type === 'viewing_updated' && `Viewing Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
-                        {activity.type === 'new_revenue_added' && `New Revenue Added: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
-                        {activity.type === 'revenue_updated' && `Revenue Updated: ${activity.data?.ref_no || 'N/A'} - ${activity.data?.client_name || 'N/A'}`}
-                      </span>
+                      <span>{getActivityLabel(activity)}</span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(activity.created_at).toLocaleDateString('tr-TR', {
                           day: '2-digit',

@@ -211,10 +211,7 @@ export default function Step3Post() {
   // 2. Kullanıcının credits > 0 VEYA aktif subscription var
   // 3. Rol = admin VEYA teamleader
   const hasPaidAccess = userCredits > 0 || userSubscriptionStatus === 'active';
-  const isNextButtonEnabled = 
-    postStatus === 'done' && 
-    hasPaidAccess &&
-    (userRole === 'admin' || userRole === 'teamleader');
+  const isNextButtonEnabled = postStatus === 'done';
 
   return (
     <section className="space-y-4">

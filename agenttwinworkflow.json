@@ -1,0 +1,372 @@
+{
+  "name": "Emlak Video Otomasyonu (Shotstack + Supabase + HeyGen)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual_trigger",
+      "name": "Manuel Tetikleyici",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-280, 240]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "options": {}
+      },
+      "id": "input_data",
+      "name": "Emlak Verileri",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -60,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": []
+        },
+        "jsonOutput": true
+      },
+      "id": "gpt_script_writer",
+      "name": "Senaryo Yazarı (GPT-4o)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        160,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.heygen.com/v2/video/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "dimension",
+              "value": "{\"width\": 1080, \"height\": 1920}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "heygen_intro",
+      "name": "HeyGen Intro Üret",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.heygen.com/v2/video/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "dimension",
+              "value": "{\"width\": 1080, \"height\": 1920}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "heygen_outro",
+      "name": "HeyGen Outro Üret",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split_photos",
+      "name": "Fotoğrafları Döngüye Al",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        460,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.lumalabs.ai/dream-machine/v1/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "keyframes",
+              "value": "={{ {\"frame0\": {\"type\": \"image\", \"url\": $json.fotograflar[$runIndex]}} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "luma_generate",
+      "name": "Luma Video Üret",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        440
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_LUMA_CREDENTIAL_ID",
+          "name": "Luma AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 120,
+        "unit": "seconds"
+      },
+      "id": "wait_production",
+      "name": "Üretim Bekleme (2dk)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shotstack JSON Oluşturucu\n// HeyGen ve Luma'dan gelen URL'leri topla ve Shotstack formatına çevir\n\nconst introVideo = $('HeyGen Intro Üret').first().json.data.video_url || \"INTRO_URL_PLACEHOLDER\";\nconst outroVideo = $('HeyGen Outro Üret').first().json.data.video_url || \"OUTRO_URL_PLACEHOLDER\";\nconst lumaVideos = $('Luma Video Üret').all().map(item => item.json.video_url || \"LUMA_URL_PLACEHOLDER\");\n\n// Zamanlama Mantığı (Basitleştirilmiş)\n// Intro: 0-10s, Luma1: 10-15s, Luma2: 15-20s, Outro: 20-30s\nlet currentTime = 0;\nconst clips = [];\n\n// 1. Intro Ekle\nclips.push({\n  \"asset\": {\n    \"type\": \"video\",\n    \"src\": introVideo\n  },\n  \"start\": currentTime,\n  \"fit\": \"cover\",\n  \"transition\": {\n    \"out\": \"fade\"\n  }\n});\ncurrentTime += 10; // HeyGen süresini dinamik almak için bir önceki adımdan süre verisi çekilmeli\n\n// 2. Luma Videolarını Ekle\nlumaVideos.forEach(url => {\n  clips.push({\n    \"asset\": {\n      \"type\": \"video\",\n      \"src\": url\n    },\n    \"start\": currentTime,\n    \"length\": 5,\n    \"fit\": \"cover\",\n    \"effect\": \"zoomIn\",\n    \"transition\": {\n      \"in\": \"fade\",\n      \"out\": \"fade\"\n    }\n  });\n  currentTime += 4; // 1 saniye transition payı\n});\n\n// 3. Outro Ekle\nclips.push({\n  \"asset\": {\n    \"type\": \"video\",\n    \"src\": outroVideo\n  },\n  \"start\": currentTime,\n  \"fit\": \"cover\",\n  \"transition\": {\n    \"in\": \"fade\"\n  }\n});\n\nreturn {\n  \"timeline\": {\n    \"background\": \"#000000\",\n    \"soundtrack\": {\n        \"src\": \"https://shotstack-assets.s3.ap-southeast-2.amazonaws.com/music/freepd/motions.mp3\",\n        \"effect\": \"fadeOut\"\n    },\n    \"tracks\": [\n      {\n        \"clips\": clips\n      }\n    ]\n  },\n  \"output\": {\n    \"format\": \"mp4\",\n    \"resolution\": \"hd\"\n  }\n};"
+      },
+      "id": "shotstack_logic",
+      "name": "Shotstack Kurgu Mantığı",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/stage/render",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "timeline",
+              "value": "={{ $json.timeline }}"
+            },
+            {
+              "name": "output",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shotstack_render",
+      "name": "Shotstack Render Başlat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1340,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_SHOTSTACK_CREDENTIAL_ID",
+          "name": "Shotstack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "wait_render",
+      "name": "Render Bekleme",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.response.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get_rendered_video",
+      "name": "Bitmiş Videoyu Al",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1780,
+        240
+      ],
+      "notesInFlow": true,
+      "notes": "URL'yi Shotstack yanıtına göre düzeltin: https://api.shotstack.io/stage/render/ID"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/YOUR_INSTAGRAM_ID/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {}
+      },
+      "id": "post_instagram",
+      "name": "Instagram Reels Paylaş",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2000,
+        140
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "YOUR_FB_CREDENTIAL_ID",
+          "name": "Facebook Graph API Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manuel Tetikleyici": {
+      "main": [
+        [
+          { "node": "Emlak Verileri", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Emlak Verileri": {
+      "main": [
+        [
+          { "node": "Senaryo Yazarı (GPT-4o)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Senaryo Yazarı (GPT-4o)": {
+      "main": [
+        [
+          { "node": "HeyGen Intro Üret", "type": "main", "index": 0 },
+          { "node": "HeyGen Outro Üret", "type": "main", "index": 0 },
+          { "node": "Fotoğrafları Döngüye Al", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fotoğrafları Döngüye Al": {
+      "main": [
+        [
+          { "node": "Luma Video Üret", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Üretim Bekleme (2dk)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Luma Video Üret": {
+      "main": [
+        [
+          { "node": "Fotoğrafları Döngüye Al", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HeyGen Intro Üret": {
+      "main": [
+        [
+          { "node": "Üretim Bekleme (2dk)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HeyGen Outro Üret": {
+      "main": [
+        [
+          { "node": "Üretim Bekleme (2dk)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Üretim Bekleme (2dk)": {
+      "main": [
+        [
+          { "node": "Shotstack Kurgu Mantığı", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Shotstack Kurgu Mantığı": {
+      "main": [
+        [
+          { "node": "Shotstack Render Başlat", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Shotstack Render Başlat": {
+      "main": [
+        [
+          { "node": "Render Bekleme", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Render Bekleme": {
+      "main": [
+        [
+          { "node": "Bitmiş Videoyu Al", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Bitmiş Videoyu Al": {
+      "main": [
+        [
+          { "node": "Instagram Reels Paylaş", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  }
+}

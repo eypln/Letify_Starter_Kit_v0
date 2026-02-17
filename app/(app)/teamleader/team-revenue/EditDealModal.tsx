@@ -73,6 +73,11 @@ interface Profile {
   full_name: string;
 }
 
+interface Agent {
+  user_id: string;
+  full_name: string;
+}
+
 interface EditDealModalProps {
   revenue: Revenue;
   onClose: () => void;
@@ -92,6 +97,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(revenue.user_id || '');
 
   // Initialize form with revenue data
   const [form, setForm] = useState<RevenueForm>(() => {
@@ -245,6 +252,16 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       if (profilesData) {
         setProfiles(profilesData.map(p => ({ id: p.user_id, full_name: p.full_name })));
       }
+
+      // Fetch agents for Assign to Agent dropdown (role = 'agent')
+      const { data: agentsData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("role", "agent")
+        .order("full_name", { ascending: true });
+      if (agentsData) {
+        setAgents(agentsData);
+      }
     }
 
     fetchData();
@@ -265,6 +282,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       date_move_in: dateMoveIn ? dateMoveIn.toISOString() : null,
       landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
+      // Pass selected agent's user_id for reassignment
+      target_user_id: selectedAgentId || undefined,
     };
 
     try {
@@ -510,7 +529,39 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
               </div>
             </div>
 
-            {/* Row 5: Collaboration */}
+            {/* Row 5: Assign to Agent */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Assign to Agent</label>
+              <Select
+                value={
+                  selectedAgentId
+                    ? {
+                        label: agents.find(a => a.user_id === selectedAgentId)?.full_name || 'Current Owner',
+                        value: selectedAgentId,
+                      }
+                    : null
+                }
+                onChange={(option) => setSelectedAgentId(option ? option.value : '')}
+                options={agents.map((agent) => ({
+                  label: agent.full_name,
+                  value: agent.user_id,
+                }))}
+                isClearable
+                placeholder="Select agent to reassign"
+                className="text-sm"
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "42px",
+                  }),
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Change the agent this deal is assigned to
+              </p>
+            </div>
+
+            {/* Row 6: Collaboration */}
             <div>
               <label className="block text-sm font-medium mb-1">Collaboration With</label>
               <Select
