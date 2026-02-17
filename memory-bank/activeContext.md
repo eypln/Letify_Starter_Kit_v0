@@ -2,8 +2,42 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (17.02.2026) ✅ COMPLETED - Assign to Agent Feature
-1. **Assign to Agent - Team Revenue Deal Management**:
+### Ana Odak Alanları (17.02.2026) ✅ COMPLETED - Admin Approval Bug Fix
+1. **Admin User Approval System - Critical Bug Fix**:
+   - ✅ **Root Cause**: `approve-user` API used `createClient()` (anon key, subject to RLS) instead of `createAdminClient()` (service_role key)
+   - ✅ RLS policy `admin_update_all_profiles` was not applied in production, causing silent update failure (0 rows, no error)
+   - ✅ **Fix**: All 4 admin API routes now use `createAdminClient()` for database operations
+   - ✅ `approve-user/route.ts`: Uses service_role for profile/queue updates + `.select().single()` verification
+   - ✅ `pending-users/route.ts`: Uses service_role + auto-fixes missing approval_queue entries from profiles
+   - ✅ `approved-users/route.ts`: Uses adminClient for profiles query
+   - ✅ `blocked-users/route.ts`: Uses adminClient for profiles query
+   - ✅ Email fetching now uses `adminSupabase.auth.admin.getUserById()` instead of RPC `get_user_email`
+   - ✅ `fix_bedirhan_approval.sql` created for manual Bedirhan status fix in Supabase SQL Editor
+   - ⚠️ **Pending**: Run `fix_bedirhan_approval.sql` in Supabase SQL Editor to approve Bedirhan
+   - ⚠️ **Pending**: Deploy updated code to production
+
+**Teknik Detaylar:**
+- **Critical Pattern - Admin Operations Must Use service_role**:
+  ```typescript
+  // Auth verification: use regular client (with cookies/session)
+  const supabase = await createClient()
+  const { data: { user: adminUser } } = await supabase.auth.getUser()
+  
+  // Data operations: use admin client (bypasses RLS)
+  const adminSupabase = createAdminClient()
+  const { data, error } = await adminSupabase.from('profiles').update(...)
+  ```
+
+- **Modified Files**:
+  ```
+  app/api/admin/approve-user/route.ts (service_role for updates)
+  app/api/admin/pending-users/route.ts (service_role + auto-fix missing queue entries)
+  app/api/admin/approved-users/route.ts (adminClient for profiles)
+  app/api/admin/blocked-users/route.ts (adminClient for profiles)
+  fix_bedirhan_approval.sql (manual fix for stuck user)
+  ```
+
+2. **Assign to Agent - Team Revenue Deal Management** (Earlier today):
    - ✅ "Assign to Agent" dropdown added to Add New Deal modal (TeamRevenueClient.tsx)
    - ✅ "Assign to Agent" dropdown added to Edit Deal modal (EditDealModal.tsx)
    - ✅ Teamleader/Manager/Boss can create deals on behalf of agents

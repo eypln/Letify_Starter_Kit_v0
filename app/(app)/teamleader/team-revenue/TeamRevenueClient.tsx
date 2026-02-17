@@ -548,6 +548,16 @@ export default function RevenueClient({ user }: { user: User }) {
         </Link>
       </div>
       
+      {/* Monthly Revenue Chart */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Monthly Team Revenue Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthlyRevenueChart />
+        </CardContent>
+      </Card>
+
       {/* Revenue Table */}
       <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -1130,16 +1140,6 @@ export default function RevenueClient({ user }: { user: User }) {
           <TeamRevenueTable />
         </CardContent>
       </Card>
-
-      {/* Monthly Revenue Chart */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Monthly Team Revenue Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonthlyRevenueChart />
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -1153,6 +1153,7 @@ function TeamRevenueTable() {
   const [pageCount, setPageCount] = useState(1);
   const [filterAgentName, setFilterAgentName] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [filterRefNo, setFilterRefNo] = useState('');
   const supabase = createClient();
 
   const pageSize = 10;
@@ -1248,6 +1249,13 @@ function TeamRevenueTable() {
       });
     }
 
+    // Filter by ref no
+    if (filterRefNo) {
+      filtered = filtered.filter(r =>
+        r.ref_no?.toString().includes(filterRefNo)
+      );
+    }
+
     // Update page count
     setPageCount(Math.ceil(filtered.length / pageSize));
     
@@ -1260,7 +1268,7 @@ function TeamRevenueTable() {
     const startIdx = (page - 1) * pageSize;
     const endIdx = startIdx + pageSize;
     setTeamRevenues(filtered.slice(startIdx, endIdx));
-  }, [allRevenues, filterAgentName, filterMonth, page]);
+  }, [allRevenues, filterAgentName, filterMonth, filterRefNo, page]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
@@ -1294,7 +1302,7 @@ function TeamRevenueTable() {
   return (
     <>
       {/* Filter Section */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Agent Name Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1337,6 +1345,23 @@ function TeamRevenueTable() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Ref No Search */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Search by Ref No
+          </label>
+          <input
+            type="text"
+            value={filterRefNo}
+            onChange={(e) => {
+              setFilterRefNo(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Enter ref no..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
         </div>
       </div>
 

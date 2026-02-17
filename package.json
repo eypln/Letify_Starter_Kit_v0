@@ -1,6 +1,6 @@
 {
   "name": "letify-nextjs",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "private": true,
   "sideEffects": [
     "*.css",
@@ -86,6 +86,7 @@
     "@typescript-eslint/parser": "^8.47.0",
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.9.19",
+    "caniuse-lite": "^1.0.30001770",
     "critters": "^0.0.23",
     "dotenv": "^17.2.3",
     "eslint": "^9",
@@ -103,5 +104,5 @@
     "typescript": "^5",
     "web-push": "^3.6.7"
   },
-  "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b"
+  "packageManager": "pnpm@10.30.0+sha512.2b5753de015d480eeb88f5b5b61e0051f05b4301808a82ec8b840c9d2adf7748eb352c83f5c1593ca703ff1017295bc3fdd3119abb9686efc96b9fcb18200937"
 }

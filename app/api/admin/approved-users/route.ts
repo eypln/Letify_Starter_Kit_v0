@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
 
     console.log('[Approved Users API] Admin verified, fetching approved users')
 
-    // Fetch all approved users with profile data
-    const { data: profiles, error: profilesError } = await supabase
+    // Fetch all approved users with profile data (using admin client to bypass RLS)
+    const { data: profiles, error: profilesError } = await adminClient
       .from('profiles')
       .select('user_id, full_name, phone, role, status')
       .eq('status', 'approved')

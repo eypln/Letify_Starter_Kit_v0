@@ -3,6 +3,30 @@
 
 ## Ne Çalışıyor ✅
 
+### Admin Approval System - Critical Bug Fix (17.02.2026) ✅
+**Problem:**
+- Bedirhan kullanıcısı kayıt olup email doğruladı ama admin onayı çalışmadı
+- profiles tablosunda status hala `pending_admin` kaldı
+- Admin panelinden onay verildiğinde güncelleme sessizce başarısız oluyordu
+
+**Root Cause:**
+- `approve-user/route.ts` API `createClient()` kullanıyordu (anon key + RLS)
+- `admin_update_all_profiles` RLS policy production'da uygulanmamış olabilir
+- Supabase `.update().eq()` RLS tarafından engellendiğinde hata dönmez, 0 satır günceller
+
+**Yapılanlar:**
+- ✅ `approve-user/route.ts`: `createAdminClient()` (service_role) ile güncelleme
+- ✅ `.select().single()` ile güncelleme doğrulaması eklendi
+- ✅ `pending-users/route.ts`: service_role + profiles tablosundan eksik queue girdilerini otomatik ekleme
+- ✅ `approved-users/route.ts`: adminClient ile profiles query
+- ✅ `blocked-users/route.ts`: adminClient ile profiles query
+- ✅ Email fetching: `auth.admin.getUserById()` kullanımı (RPC yerine)
+- ✅ `fix_bedirhan_approval.sql` oluşturuldu
+
+**⚠️ Pending Actions:**
+- Supabase SQL Editor'da `fix_bedirhan_approval.sql` çalıştır (Bedirhan'ı onayla)
+- Kodu production'a deploy et
+
 ### Assign to Agent - Team Revenue Deal Management (17.02.2026) ✅
 **Yapılanlar:**
 

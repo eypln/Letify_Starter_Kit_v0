@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { sendEmail, generateUserApprovalEmail } from '@/lib/email'
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
@@ -7,6 +7,9 @@ import { rateLimit, RateLimitPresets } from '@/lib/rate-limit'
 /**
  * PUT /api/admin/approve-user
  * Approve or deny a user registration
+ * 
+ * IMPORTANT: Uses createAdminClient (service_role) for profile/queue updates
+ * to bypass RLS policies. The regular client is only used for auth verification.
  */
 export async function PUT(request: NextRequest) {
   // Rate limiting: 120 requests per minute per admin (loose - trusted users)
@@ -15,7 +18,7 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Verify user is admin
+    // Verify user is admin (using regular client with cookies/session)
     const {
       data: { user: adminUser },
     } = await supabase.auth.getUser()
@@ -52,29 +55,48 @@ export async function PUT(request: NextRequest) {
 
     const newStatus = action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'denied'
 
+    // Use admin client (service_role) for database operations to bypass RLS
+    // This is the critical fix: regular client with anon key was subject to RLS
+    // and the update could silently fail (0 rows affected, no error)
+    const adminSupabase = createAdminClient()
+
     // Get user info before updating (needed for email)
-    const { data: userProfile } = await supabase
+    const { data: userProfile } = await adminSupabase
       .from('profiles')
       .select('full_name, user_id')
       .eq('user_id', userId)
       .single()
 
-    // Update user profile status
-    const { error } = await supabase
+    if (!userProfile) {
+      console.error('[Approve User] User profile not found for userId:', userId)
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    // Update user profile status using admin client (bypasses RLS)
+    const { data: updatedProfile, error } = await adminSupabase
       .from('profiles')
-      .update({ status: newStatus })
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
+      .select('user_id, status')
+      .single()
 
     if (error) {
       console.error('[Approve User] Error updating user status:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log(`[Approve User] User ${userId} ${action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'denied'}`)
+    if (!updatedProfile) {
+      console.error('[Approve User] Profile update returned no data - update may have failed silently')
+      return NextResponse.json({ error: 'Failed to update user status' }, { status: 500 })
+    }
 
-    // Update approval_queue table
-    const queueStatus = action === 'approve' ? 'approved' : action === 'block' ? 'blocked' : 'rejected'
-    const { error: queueError } = await supabase
+    console.log(`[Approve User] User ${userId} status updated to: ${updatedProfile.status}`)
+
+    // Update approval_queue table using admin client
+    // Note: approval_queue only allows 'pending', 'approved', 'rejected' (CHECK constraint)
+    // 'blocked' maps to 'rejected' in the queue
+    const queueStatus = action === 'approve' ? 'approved' : 'rejected'
+    const { error: queueError } = await adminSupabase
       .from('approval_queue')
       .update({ 
         status: queueStatus,
@@ -90,16 +112,14 @@ export async function PUT(request: NextRequest) {
     // Send approval email to user (only if approved)
     if (action === 'approve' && userProfile) {
       try {
-        // Get user email from auth.users
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: emailData } = await (supabase as any)
-          .rpc('get_user_email', {
-            user_uuid: userId
-          })
+        // Get user email from auth.users using admin client
+        const { data: authUser, error: authError } = await adminSupabase.auth.admin.getUserById(userId)
         
-        const userEmail = emailData && Array.isArray(emailData) && emailData.length > 0 
-          ? emailData[0].email 
-          : null
+        const userEmail = authUser?.user?.email || null
+
+        if (authError) {
+          console.error('[Approve User] Error fetching user email:', authError)
+        }
 
         if (userEmail) {
           const emailHtml = generateUserApprovalEmail({
