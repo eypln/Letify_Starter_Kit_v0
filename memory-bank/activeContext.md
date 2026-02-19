@@ -2,7 +2,70 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (17.02.2026) ✅ COMPLETED - Admin Approval Bug Fix
+### Ana Odak Alanları (19.02.2026) ✅ COMPLETED - Bonuses & Performance v2.7.1
+1. **Bonuses & Performance Sayfası (v2.7.1)**:
+   - ✅ Teamleader dashboard'a Bonuses kartı eklendi (Trophy ikonu)
+   - ✅ Boss dashboard'a Bonuses kartı eklendi
+   - ✅ Manager dashboard'a Bonuses kartı eklendi
+   - ✅ `BonusesClient.tsx` bileşeni oluşturuldu (~900 satır)
+   - ✅ 4 kademeli bonus sistemi: Tier 1-4 (32-37% personal, 0-10% team)
+   - ✅ Personal rate `leaderRevenue` bazında, team rate `totalRevenue` bazında hesaplanır
+   - ✅ Leadership Performance Chart: Recharts yatay bar + sıralama tablosu
+   - ✅ Monthly Earnings Breakdown: Stacked bar chart + line grafik
+   - ✅ Detailed Bonus Breakdown tablosu (Personal Revenue başlığı)
+   - ✅ Dış ajan filtreleme: `isExternalAgentName()` helper ile "Agent"/"Unknown Agent" hariç
+   - ✅ Collaboration mantığı: `collaboration_with` alanı doluysa rent %50 bölünür (takım içi/dışı fark etmez)
+   - ✅ Listing fee doğrudan DB'den okunur (`deal.listing_fee`)
+   - ✅ Çift hesap desteği: `LEADER_AGENT_ACCOUNTS` map ile teamleader ↔ agent hesap bağlantısı
+   - ✅ Deal tamamlanma tarihi: `max(landlord_paid_date, client_paid_date)`, yoksa current month
+   - ✅ Paylaşılan `BonusesClient` bileşeni, rol bazlı dashboard geri dönüş linki
+   - ✅ Boss (`/boss/bonuses`) ve Manager (`/manager/bonuses`) page.tsx oluşturuldu
+   - ✅ `package.json` version: 2.7.1
+
+**Teknik Detaylar:**
+- **Bonus Tier Hesaplama**:
+  ```typescript
+  function getBonusTier(totalRevenue: number) {
+    if (totalRevenue >= 15000) return { tier: 4, leaderRate: 0.37, teamRate: 0.10 };
+    if (totalRevenue >= 10000) return { tier: 3, leaderRate: 0.37, teamRate: 0.075 };
+    if (totalRevenue >= 5000) return { tier: 2, leaderRate: 0.37, teamRate: 0.05 };
+    return { tier: 1, leaderRate: 0.32, teamRate: 0 };
+  }
+  // Personal rate: getBonusTier(leaderRevenue).leaderRate
+  // Team rate: getBonusTier(totalRevenue).teamRate
+  ```
+
+- **Çift Hesap Bağlantısı**:
+  ```typescript
+  const LEADER_AGENT_ACCOUNTS: Record<string, string[]> = {
+    "c75e2b9a-aeda-415d-bbfd-b7c90e6e54e1": ["9bd6f7bc-0041-4c8c-8c48-c4726b7ed008"],
+  };
+  // leaderUserIds = nameMatchedIds ∪ linkedAgentIds
+  ```
+
+- **Collaboration %50 Kuralı**:
+  ```typescript
+  const hasCollaboration = collabName !== "";
+  if (hasCollaboration) effectiveRent = rentAmount / 2;
+  ```
+
+- **Oluşturulan Dosyalar**:
+  ```
+  app/(app)/teamleader/bonuses/BonusesClient.tsx (~900 satır)
+  app/(app)/teamleader/bonuses/page.tsx (rol guard: teamleader)
+  app/(app)/boss/bonuses/page.tsx (rol guard: boss)
+  app/(app)/manager/bonuses/page.tsx (rol guard: manager)
+  ```
+
+- **Değiştirilen Dosyalar**:
+  ```
+  app/(app)/teamleader/page.tsx (Bonuses kartı + Trophy icon)
+  app/(app)/boss/page.tsx (Bonuses kartı + Trophy icon)
+  app/(app)/manager/page.tsx (Bonuses kartı + Trophy icon)
+  package.json (v2.7.1)
+  ```
+
+### Önceki Odak (17.02.2026) ✅ COMPLETED - Admin Approval Bug Fix
 1. **Admin User Approval System - Critical Bug Fix**:
    - ✅ **Root Cause**: `approve-user` API used `createClient()` (anon key, subject to RLS) instead of `createAdminClient()` (service_role key)
    - ✅ RLS policy `admin_update_all_profiles` was not applied in production, causing silent update failure (0 rows, no error)

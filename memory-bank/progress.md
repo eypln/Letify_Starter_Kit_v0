@@ -3,6 +3,72 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.7.1 - Bonuses & Performance Sayfası (19.02.2026) ✅
+**Yapılanlar:**
+
+#### Bonuses Sayfası ✅
+- **4 Kademeli Bonus Sistemi**:
+  - Tier 1 (€0-5K): Personal %32, Team %0
+  - Tier 2 (€5K-10K): Personal %37, Team %5
+  - Tier 3 (€10K-15K): Personal %37, Team %7.5
+  - Tier 4 (€15K+): Personal %37, Team %10
+  - Personal rate: leaderRevenue bazında hesaplanır
+  - Team rate: totalRevenue (leader + team) bazında hesaplanır
+
+- **BonusesClient.tsx Bileşeni (~900 satır)**:
+  - Current Month Summary Cards (Tier, Personal Earnings, Team Bonus, Total)
+  - Tier Progress Bar
+  - Leadership Performance Chart (Recharts yatay bar + sıralama tablosu)
+  - Monthly Earnings Breakdown (stacked bar chart + line grafik)
+  - Detailed Bonus Breakdown tablosu
+  - Bonus Tier Rules referans tablosu
+
+- **Dış Ajan Filtreleme**:
+  - `isExternalAgentName()` helper: "agent", "unknown agent" (case-insensitive)
+  - Leadership chart'tan ve deal hesaplamalarından hariç tutulur
+  - Dış ajan deal'leri: effectiveRent = 0, sadece listing fee geliri
+
+- **Collaboration Mantığı**:
+  - `collaboration_with` alanı doluysa → rent %50 bölünür
+  - Hem takım içi hem dışarıdan collaboration aynı kural
+  - Boşsa → rent tam (%100) sayılır
+  - Dış ajan kaydıysa → rent sıfır (sadece listing fee)
+
+- **Listing Fee**:
+  - DB'den doğrudan `deal.listing_fee` alanı okunur
+  - Önceki yanlış hesaplama (rent × 5%) düzeltildi
+
+- **Çift Hesap Desteği (LEADER_AGENT_ACCOUNTS)**:
+  - Teamleader aynı zamanda bireysel agent olarak çalışabilir
+  - İki farklı Supabase auth hesabı, farklı user_id'ler
+  - `LEADER_AGENT_ACCOUNTS` map ile bağlantılandırılır
+  - Sadece Bonuses sayfasında kullanılır, başka işlemleri etkilemez
+  - Erhan Yurdakul: teamleader c75e... → agent 9bd6...
+
+- **Deal Tamamlanma Tarihi**:
+  - `max(landlord_paid_date, client_paid_date)` → bonus ayı
+  - Her ikisi de yoksa → current month (pending deal)
+
+- **Multi-Dashboard Entegrasyonu**:
+  - Teamleader: /teamleader/bonuses (Trophy kartı)
+  - Manager: /manager/bonuses (Trophy kartı)
+  - Boss: /boss/bonuses (Trophy kartı)
+  - Paylaşılan BonusesClient bileşeni, rol bazlı import
+  - Dashboard geri dönüş linki rol bazlı (leaderProfile.role)
+
+**Technical Implementation:**
+- **Oluşturulan Dosyalar**:
+  - app/(app)/teamleader/bonuses/BonusesClient.tsx (~900 satır)
+  - app/(app)/teamleader/bonuses/page.tsx
+  - app/(app)/boss/bonuses/page.tsx
+  - app/(app)/manager/bonuses/page.tsx
+
+- **Değiştirilen Dosyalar**:
+  - app/(app)/teamleader/page.tsx (Bonuses kartı + Trophy icon)
+  - app/(app)/boss/page.tsx (Bonuses kartı + Trophy icon)
+  - app/(app)/manager/page.tsx (Bonuses kartı + Trophy icon)
+  - package.json (v2.7.1)
+
 ### Admin Approval System - Critical Bug Fix (17.02.2026) ✅
 **Problem:**
 - Bedirhan kullanıcısı kayıt olup email doğruladı ama admin onayı çalışmadı

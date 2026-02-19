@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { LogOut, Settings, Plus, FileText, Users, Users2, Calendar, Euro, Bell, ClipboardList } from 'lucide-react'
+import { LogOut, Settings, Plus, FileText, Users, Users2, Calendar, Euro, Bell, ClipboardList, Trophy } from 'lucide-react'
 
 export default function TeamLeaderPage() {
   const router = useRouter()
@@ -238,6 +238,24 @@ export default function TeamLeaderPage() {
               </div>
               <div className="p-6 pt-0">
                 <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Manage</button>
+              </div>
+            </div>
+          </Link>
+
+          {/* Bonuses Card */}
+          <Link href="/teamleader/bonuses" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Trophy className="h-6 w-6 text-purple-600" />
+                  <span>Bonuses</span>
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Leadership bonuses, team performance & earnings
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Bonuses</button>
               </div>
             </div>
           </Link>

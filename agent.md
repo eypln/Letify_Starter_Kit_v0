@@ -149,9 +149,25 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
-- **Version**: v2.6.1
+- **Version**: v2.7.1
 
-### Son Eklenen Özellikler (17.02.2026)
+### Son Eklenen Özellikler (19.02.2026)
+1. **Bonuses & Performance Sayfası (v2.7.1)**:
+   - Teamleader, Boss ve Manager dashboard'larına Bonuses kartı eklendi
+   - 4 kademeli bonus sistemi: Tier 1 (€0-5K: 32%/0%), Tier 2 (€5K-10K: 37%/5%), Tier 3 (€10K-15K: 37%/7.5%), Tier 4 (€15K+: 37%/10%)
+   - Personal rate, leaderRevenue bazında; team rate, totalRevenue bazında hesaplanır
+   - Leadership Performance Chart (yatay bar grafik + sıralama tablosu)
+   - Monthly Earnings Breakdown (stacked bar chart + line grafik)
+   - Detailed Bonus Breakdown tablosu
+   - Dış ajan ("Agent") filtreleme: isExternalAgentName() helper
+   - Collaboration mantığı: collaboration_with doluysa rent %50 bölünür (takım içi/dışı fark etmez)
+   - Listing fee DB'den okunur (listing_fee alanı)
+   - Çift hesap desteği: LEADER_AGENT_ACCOUNTS map ile teamleader ve agent hesapları bağlantılandırılır
+   - Deal tamamlanma tarihi: max(landlord_paid_date, client_paid_date)
+   - Paylaşılan BonusesClient bileşeni, rol bazlı dashboard geri dönüş linki
+   - Boss (/boss/bonuses) ve Manager (/manager/bonuses) sayfaları oluşturuldu
+
+### Önceki Eklenen Özellikler (17.02.2026)
 1. **Assign to Agent Feature**:
    - Teamleader/Manager/Boss, agent adına deal ekleyebilir (Add Deal modal)
    - Edit Deal modal ile deal'ları farklı agent'lara reassign edebilir

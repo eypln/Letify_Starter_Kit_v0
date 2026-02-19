@@ -299,15 +299,31 @@ Redirect to correct role dashboard
 - ✅ `/teamleader` - Team Leader only (8-card dashboard)
   - Team Viewings (own + team table)
   - Team Revenue (own + team table, **Assign to Agent** feature)
+  - Bonuses (shared BonusesClient component, 4-tier bonus system)
   - Notifications (activity log)
 - ✅ `/manager` - Manager Dashboard (08.12.2025) - 5-card monitoring system
   - Profile (no Facebook integration)
   - Teamwork (shared component)
   - Team Viewings (calendar + records, no add function)
   - Team Revenue (records + chart, no add deal)
+  - Bonuses (shared BonusesClient component)
   - Reports (coming soon)
-- ✅ `/boss` - Boss only (placeholder)
+- ✅ `/boss` - Boss only
+  - Bonuses (shared BonusesClient component)
 - ✅ Shared pages - All roles (Profile, Clients, Listings, etc.)
+
+### Bonuses & Performance Pattern (19.02.2026)
+
+**Pattern**: Paylaşılan `BonusesClient` bileşeni, teamleader/boss/manager tarafından kullanılır.
+
+**Tier Hesaplama**:
+- Personal rate → `leaderRevenue` bazında tier belirlendi
+- Team rate → `totalRevenue` (leader + team) bazında tier belirlendi
+- Collaboration → `collaboration_with` doluysa rent %50
+
+**Çift Hesap Desteği**:
+- `LEADER_AGENT_ACCOUNTS` map ile teamleader auth ID → agent account user_id bağlantısı
+- Sadece BonusesClient.tsx'de kullanılır, başka işlemlere etkisi yoktur
 
 ### Elevated User Delegation Pattern (17.02.2026)
 
