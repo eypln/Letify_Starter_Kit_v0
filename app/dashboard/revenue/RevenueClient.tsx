@@ -13,6 +13,7 @@ import { Plus, Edit2, Trophy, Target, Award, TrendingUp, FileText, Gift } from "
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -112,7 +113,7 @@ interface Client {
 }
 
 interface Profile {
-  id: string;
+  user_id: string;
   full_name: string;
 }
 
@@ -319,11 +320,12 @@ export default function RevenueClient({ user }: { user: User }) {
       setClients(clientsData);
     }
 
-    // Fetch profiles for Collaboration With dropdown (exclude current user)
+    // Fetch profiles for Collaboration With dropdown (only agents, exclude current user)
     const { data: profilesData } = await supabase
       .from("profiles")
-      .select("id, full_name")
-      .neq("id", user.id)
+      .select("user_id, full_name")
+      .eq("role", "agent")
+      .neq("user_id", user.id)
       .order("full_name", { ascending: true });
 
     if (profilesData) {
@@ -1012,6 +1014,9 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   )}
                 </div>
+
+                {/* Row 7: Deal Documents Upload */}
+                <DealDocumentUpload refNo={form.ref_no} />
 
                 {/* Form Buttons */}
                 <div className="flex justify-end gap-2 pt-4">

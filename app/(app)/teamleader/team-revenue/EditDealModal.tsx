@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -626,6 +627,9 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 </p>
               )}
             </div>
+
+            {/* Row 7: Deal Documents Upload */}
+            <DealDocumentUpload refNo={form.ref_no} />
 
             {/* Form Buttons */}
             <div className="flex justify-end gap-2 pt-4">

@@ -2,7 +2,83 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Hired Agents Document Upload v2.7.3
+### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Deal Documents & Collaboration Fix v2.7.4
+1. **Agent Collaboration Dropdown Fix (v2.7.4)**:
+   - ✅ Bug Fix: Agent rolündeki kullanıcılar Revenue sayfasında "Collaboration With" dropdown'unda diğer agentları göremiyordu
+   - ✅ Kök Neden: `profiles` tablosunda `id` kolonu yok, PK `user_id` (UUID). Agent tarafında `.select("id, full_name").neq("id", user.id)` yanlış kolon kullanıyordu
+   - ✅ Düzeltme: `.select("user_id, full_name").neq("user_id", user.id)` olarak güncellendi
+   - ✅ `Profile` interface'i `id` → `user_id` olarak düzeltildi
+   - ✅ Teamleader tarafı zaten doğruydu (user_id kullanıyordu)
+
+2. **Deal Documents Upload (v2.7.4)**:
+   - ✅ Revenue sayfalarındaki Add/Edit Deal modal'larına doküman yükleme bölümü eklendi
+   - ✅ "Inform Boss after both sides paid" checkbox'ının altında Deal Documents bölümü
+   - ✅ 4 doküman tipi: Lease Agreement, Inventory List, Invoice-Owner, Invoice-Client
+   - ✅ Supabase Storage: `Lease_agreements` bucket (public, 10MB limit)
+   - ✅ Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
+   - ✅ Depolama yolu: `ref_no/document_type/filename`
+   - ✅ `DealDocumentUpload` paylaşımlı bileşen: `components/revenue/DealDocumentUpload.tsx`
+   - ✅ 3 dosyaya entegre edildi: Agent RevenueClient, Teamleader TeamRevenueClient, EditDealModal
+   - ✅ Doküman görüntüleme, silme, replace özellikleri
+   - ✅ Yüklü doküman sayacı (X/4 uploaded)
+   - ✅ `package.json` version: 2.7.4
+
+**Teknik Detaylar:**
+- **Bug Fix - Collaboration Dropdown**:
+  ```typescript
+  // ÖNCE (Agent - HATALI): profiles tablosunda 'id' kolonu yok
+  const { data } = await supabase.from("profiles")
+    .select("id, full_name").neq("id", user.id);
+  
+  // SONRA (Agent - DOĞRU): user_id = UUID primary key
+  const { data } = await supabase.from("profiles")
+    .select("user_id, full_name").neq("user_id", user.id);
+  ```
+
+- **Supabase Storage Bucket**:
+  ```sql
+  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('Lease_agreements', 'Lease_agreements', true, 10485760,
+    ARRAY['application/pdf','application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg','image/jpg','image/png']);
+  ```
+
+- **Doküman Tipleri**:
+  ```typescript
+  const DOCUMENT_TYPES = [
+    { key: "lease_agreement", label: "Lease Agreement" },
+    { key: "inventory_list", label: "Inventory List" },
+    { key: "invoice_owner", label: "Invoice - Owner" },
+    { key: "invoice_client", label: "Invoice - Client" },
+  ];
+  ```
+
+- **Depolama Yapısı**:
+  ```
+  Lease_agreements/
+  └── ref_no/
+      ├── lease_agreement/contract.pdf
+      ├── inventory_list/list.pdf
+      ├── invoice_owner/invoice.pdf
+      └── invoice_client/invoice.pdf
+  ```
+
+- **Oluşturulan Dosyalar**:
+  ```
+  components/revenue/DealDocumentUpload.tsx (paylaşımlı bileşen)
+  supabase/migrations/20260222_create_lease_agreements_bucket.sql (bucket + RLS)
+  ```
+
+- **Değiştirilen Dosyalar**:
+  ```
+  app/dashboard/revenue/RevenueClient.tsx (collaboration fix + DealDocumentUpload)
+  app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (DealDocumentUpload)
+  app/(app)/teamleader/team-revenue/EditDealModal.tsx (DealDocumentUpload)
+  package.json (v2.7.4)
+  ```
+
+### Önceki Odak (22.02.2026) ✅ COMPLETED - Hired Agents Document Upload v2.7.3
 1. **Hired Agents Document Upload (v2.7.3)**:
    - ✅ Applications sayfasında Edit Applicant modal'ına doküman yükleme bölümü eklendi
    - ✅ "Hired" checkbox'ının altında Required Documents bölümü

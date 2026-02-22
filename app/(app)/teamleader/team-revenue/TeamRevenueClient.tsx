@@ -13,6 +13,7 @@ import { Plus, Edit2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import EditDealModal from "./EditDealModal";
+import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -1108,6 +1109,9 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   )}
                 </div>
+
+                {/* Row 7: Deal Documents Upload */}
+                <DealDocumentUpload refNo={form.ref_no} />
 
                 {/* Form Buttons */}
                 <div className="flex justify-end gap-2 pt-4">

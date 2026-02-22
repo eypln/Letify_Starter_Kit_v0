@@ -149,21 +149,20 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
-- **Version**: v2.7.3
+- **Version**: v2.7.4
 
 ### Son Eklenen Özellikler (22.02.2026)
-1. **Hired Agents Document Upload (v2.7.3)**:
-   - Applications sayfasında Edit Applicant modal'ına doküman yükleme bölümü eklendi
-   - 4 doküman tipi: Passport, CV, Selfie, Service Agreement
-   - Supabase Storage: `hired_agents` bucket (public, 10MB limit)
-   - Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
-   - Depolama yolu: `applicant_name/document_type/filename`
-   - Sadece "Hired" checkbox işaretlendiğinde görünür
-   - Doküman görüntüleme (yeni sekmede), silme ve değiştirme özellikleri
-   - Yüklü doküman sayacı (X/4 uploaded)
-   - HiredDocumentUpload bileşeni: yeşil tema (yüklendi), mavi tema (bekliyor)
+1. **Deal Documents & Collaboration Fix (v2.7.4)**:
+   - Agent Collaboration Dropdown Fix: profiles tablosunda `id` yerine `user_id` kullanılacak şekilde düzeltildi
+   - Deal Documents Upload: Revenue modal'larına Lease Agreement, Inventory List, Invoice-Owner, Invoice-Client yükleme
+   - Paylaşımlı DealDocumentUpload bileşeni (Agent + Teamleader)
+   - Supabase Storage: `Lease_agreements` bucket (ref_no ile organize)
 
-2. **Agent Bonus Tracker (v2.7.2)**:
+2. **Hired Agents Document Upload (v2.7.3)**:
+   - Applications sayfasında Hired teamleader doküman yükleme (Passport, CV, Selfie, Service Agreement)
+   - Supabase Storage: `hired_agents` bucket (applicant_name ile organize)
+
+3. **Agent Bonus Tracker (v2.7.2)**:
    - Revenue sayfasında Agent Bonus Tracker eklendi
    - Contract Bonus (≥6 deal): %50-%70 × ortalama kira
    - Agency Fee Bonus (<6 deal): €3,000→€150, €5,000→€300

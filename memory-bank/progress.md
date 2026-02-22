@@ -3,6 +3,46 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.7.4 - Deal Documents & Collaboration Fix (22.02.2026) ✅
+**Yapılanlar:**
+
+#### Agent Collaboration Dropdown Fix ✅
+- **Bug Fix**: Agent rolündeki kullanıcılar "Collaboration With" dropdown'unda diğer agentları göremiyordu
+  - Kök Neden: `profiles` tablosunda `id` kolonu yok, PK `user_id` (UUID)
+  - Agent tarafında `.select("id, full_name").neq("id", user.id)` yanlış kolon kullanıyordu
+  - Düzeltme: `.select("user_id, full_name").neq("user_id", user.id)`
+  - `Profile` interface: `id: string` → `user_id: string`
+  - Teamleader tarafı zaten doğruydu
+
+#### Deal Documents Upload (Revenue Sayfaları) ✅
+- **Revenue modal'larına doküman yükleme bölümü eklendi**:
+  - "Inform Boss" checkbox'ının altında Deal Documents bölümü
+  - 4 doküman tipi: Lease Agreement, Inventory List, Invoice-Owner, Invoice-Client
+  - Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
+  - Depolama yolu: `ref_no/document_type/filename` (bucket: Lease_agreements)
+  - Paylaşımlı DealDocumentUpload bileşeni (components/revenue/)
+  - 3 modal'a entegre: Agent Add/Edit, Teamleader Add Deal, Teamleader Edit Deal
+  - Doküman görüntüleme (yeni sekmede), silme ve değiştirme
+  - Yüklü doküman sayacı (X/4 uploaded)
+
+- **Supabase Storage**:
+  - `Lease_agreements` bucket (public, 10MB limit)
+  - RLS: authenticated upload/read/update/delete + public read
+  - Migration: `20260222_create_lease_agreements_bucket.sql`
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+components/revenue/DealDocumentUpload.tsx (yeni paylaşımlı bileşen)
+supabase/migrations/20260222_create_lease_agreements_bucket.sql (bucket + RLS)
+app/dashboard/revenue/RevenueClient.tsx (collaboration fix + DealDocumentUpload)
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (DealDocumentUpload)
+app/(app)/teamleader/team-revenue/EditDealModal.tsx (DealDocumentUpload)
+package.json (v2.7.4)
+```
+
+**⚠️ Pending Migration:**
+- `supabase/migrations/20260222_create_lease_agreements_bucket.sql` → Supabase SQL Editor'de çalıştırılmalı
+
 ### v2.7.3 - Hired Agents Document Upload (22.02.2026) ✅
 **Yapılanlar:**
 
