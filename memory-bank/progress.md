@@ -3,6 +3,62 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.7.2 - Agent Bonus Tracker (22.02.2026) ✅
+**Yapılanlar:**
+
+#### Agent Bonus Tracker (Revenue Sayfası) ✅
+- **Agent rolüne sahip kullanıcılar için bonus takip bölümü**:
+  - Revenue sayfasındaki Monthly Agent Revenue Overview grafiğinin altına eklendi
+  - `AgentBonusSection` bileşeni olarak `RevenueClient.tsx` içinde implementasyon
+
+- **Contract Bonus Sistemi (≥6 deal/ay)**:
+  - 6 kontrat = %50 × ortalama kira (VAT hariç)
+  - 7 kontrat = %55
+  - 8 kontrat = %60
+  - 9 kontrat = %65
+  - 10+ kontrat = %70
+  - Örnek: 10 kontrat @ €1000 ortalama = €700 bonus
+
+- **Monthly Agency Fee Bonus (<6 deal/ay)**:
+  - Kira ≥ €5,000 (VAT hariç) → €300 bonus
+  - Kira ≥ €3,000 (VAT hariç) → €150 bonus
+  - 6+ deal'de contract bonus devreye girer, agency fee uygulanmaz
+
+- **Yıllık Ödül**:
+  - Toplam €48,000 kira geliri (VAT hariç) → €2,500 bonus
+  - Progress bar ile takip
+
+- **UI Bileşenleri**:
+  - 4 özet kartı (Deals, Total Rent, Active Scheme, Monthly Bonus)
+  - Contract Progress: PieChart (donut) + tier adımları
+  - Agency Fee Bonus kutuları (< 6 deal durumunda)
+  - Yearly Target: gradient progress bar + €2,500 ödül kartı
+  - Monthly Bonus Breakdown: ComposedChart (bar rengi scheme'e göre + deals line)
+  - Detailed Monthly History tablosu (footer toplamları dahil)
+  - Bonus Rules Reference (3 sütun: Contract, Agency Fee, Yearly)
+  - Important Notes bölümü
+
+- **Deal Tamamlanma Koşulu**:
+  - Her iki ödeme tarihi (landlord_paid_date + client_paid_date) dolu olmalı
+  - Eksikse deal tamamlanmamış sayılır (teamleader bonusundan farklı: orada current month'a atanıyor)
+  - Tamamlanma ayı = max(landlord_paid_date, client_paid_date)
+
+- **Collaboration Mantığı**:
+  - `collaboration_with` alanı doluysa → effectiveRent = rentAmount / 2
+  - Boşsa → tam miktar
+
+- **Floating Point Fix**:
+  - `rate * 100` → `Math.round(rate * 100)` (55.00000000000001 → 55)
+  - 5 farklı noktada düzeltildi
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+app/dashboard/revenue/RevenueClient.tsx (AgentBonusSection bileşeni + floating point fix)
+package.json (v2.7.2)
+memory-bank/activeContext.md (güncellendi)
+memory-bank/progress.md (güncellendi)
+```
+
 ### v2.7.1 - Bonuses & Performance Sayfası (19.02.2026) ✅
 **Yapılanlar:**
 

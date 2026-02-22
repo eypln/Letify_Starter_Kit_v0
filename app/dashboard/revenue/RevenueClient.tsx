@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Select from "react-select";
 import DatePicker from "react-datepicker";
@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Edit2 } from "lucide-react";
+import { Plus, Edit2, Trophy, Target, Award, TrendingUp, FileText, Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -1044,6 +1044,9 @@ export default function RevenueClient({ user }: { user: User }) {
           <MonthlyAgentRevenueChart userId={user.id} />
         </CardContent>
       </Card>
+
+      {/* Agent Bonus Section */}
+      <AgentBonusSection userId={user.id} />
     </div>
   );
 }
@@ -1197,5 +1200,777 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
         />
       </ComposedChart>
     </ResponsiveContainer>
+  );
+}
+
+// ─── Agent Bonus Types ───────────────────────────────────────────────────────
+
+interface AgentMonthlyBonus {
+  month: string;
+  monthLabel: string;
+  completedDeals: number;
+  totalRent: number;
+  averageRent: number;
+  bonusScheme: 'contract' | 'agency_fee' | 'none';
+  contractRate: number;
+  bonusAmount: number;
+}
+
+// ─── Agent Bonus Calculation ─────────────────────────────────────────────────
+
+function getContractBonusRate(dealCount: number): { rate: number; label: string } | null {
+  if (dealCount >= 10) return { rate: 0.70, label: '70%' };
+  if (dealCount >= 9) return { rate: 0.65, label: '65%' };
+  if (dealCount >= 8) return { rate: 0.60, label: '60%' };
+  if (dealCount >= 7) return { rate: 0.55, label: '55%' };
+  if (dealCount >= 6) return { rate: 0.50, label: '50%' };
+  return null;
+}
+
+function getContractBonusLabel(dealCount: number): string {
+  if (dealCount >= 10) return '10+ contracts → 70%';
+  if (dealCount >= 9) return '9 contracts → 65%';
+  if (dealCount >= 8) return '8 contracts → 60%';
+  if (dealCount >= 7) return '7 contracts → 55%';
+  if (dealCount >= 6) return '6 contracts → 50%';
+  return `${dealCount} contract${dealCount !== 1 ? 's' : ''} (need 6 for bonus)`;
+}
+
+function calculateAgentBonus(
+  dealCount: number,
+  totalRent: number
+): { scheme: 'contract' | 'agency_fee' | 'none'; rate: number; bonus: number } {
+  if (dealCount >= 6) {
+    const rateInfo = getContractBonusRate(dealCount);
+    if (rateInfo) {
+      const averageRent = dealCount > 0 ? totalRent / dealCount : 0;
+      return {
+        scheme: 'contract',
+        rate: rateInfo.rate,
+        bonus: rateInfo.rate * averageRent,
+      };
+    }
+  }
+
+  // Less than 6 deals: Monthly Agency Fee Bonus
+  if (totalRent >= 5000) {
+    return { scheme: 'agency_fee', rate: 0, bonus: 300 };
+  }
+  if (totalRent >= 3000) {
+    return { scheme: 'agency_fee', rate: 0, bonus: 150 };
+  }
+
+  return { scheme: 'none', rate: 0, bonus: 0 };
+}
+
+function getAgentBonusCompletionMonth(deal: Revenue): string | null {
+  const landlordDate = deal.landlord_paid_date ? new Date(deal.landlord_paid_date) : null;
+  const clientDate = deal.client_paid_date ? new Date(deal.client_paid_date) : null;
+
+  // Both dates must be present for a deal to be considered "completed"
+  if (!landlordDate || !clientDate) return null;
+
+  // Completion month = the later of the two dates
+  const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
+  return `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatBonusMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-');
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  return `${monthNames[parseInt(month) - 1]} ${year}`;
+}
+
+function formatBonusCurrency(amount: number): string {
+  return `€${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const CONTRACT_TIERS = [
+  { deals: 6, rate: 0.50, color: '#60a5fa' },
+  { deals: 7, rate: 0.55, color: '#818cf8' },
+  { deals: 8, rate: 0.60, color: '#a78bfa' },
+  { deals: 9, rate: 0.65, color: '#c084fc' },
+  { deals: 10, rate: 0.70, color: '#f59e0b' },
+];
+
+const BONUS_BAR_COLORS = {
+  contract: '#8b5cf6',
+  agency_fee: '#06b6d4',
+  none: '#94a3b8',
+};
+
+const YEARLY_TARGET = 48000;
+
+// ─── Agent Bonus Section Component ───────────────────────────────────────────
+
+function AgentBonusSection({ userId }: { userId: string }) {
+  const [allRevenues, setAllRevenues] = useState<Revenue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function loadBonusData() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('revenue')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) setAllRevenues(data);
+      setLoading(false);
+    }
+    loadBonusData();
+  }, [supabase, userId]);
+
+  // Process deals: only completed deals (both paid dates present)
+  const completedDeals = useMemo(() => {
+    return allRevenues
+      .map((deal) => {
+        const completionMonth = getAgentBonusCompletionMonth(deal);
+        if (!completionMonth) return null;
+
+        const rentAmount = deal.rent_amount || 0;
+        const hasCollaboration = (deal.collaboration_with?.trim() || '') !== '';
+        const effectiveRent = hasCollaboration ? rentAmount / 2 : rentAmount;
+
+        return {
+          ...deal,
+          completion_month: completionMonth,
+          effective_rent: effectiveRent,
+          is_collaboration: hasCollaboration,
+        };
+      })
+      .filter(Boolean) as (Revenue & {
+        completion_month: string;
+        effective_rent: number;
+        is_collaboration: boolean;
+      })[];
+  }, [allRevenues]);
+
+  // Monthly bonus calculations
+  const monthlyBonuses = useMemo((): AgentMonthlyBonus[] => {
+    const monthGroups = new Map<string, typeof completedDeals>();
+    completedDeals.forEach((deal) => {
+      const month = deal.completion_month;
+      if (!monthGroups.has(month)) monthGroups.set(month, []);
+      monthGroups.get(month)!.push(deal);
+    });
+
+    const results: AgentMonthlyBonus[] = [];
+    monthGroups.forEach((deals, month) => {
+      const totalRent = deals.reduce((sum, d) => sum + d.effective_rent, 0);
+      const dealCount = deals.length;
+      const averageRent = dealCount > 0 ? totalRent / dealCount : 0;
+
+      const bonusCalc = calculateAgentBonus(dealCount, totalRent);
+
+      results.push({
+        month,
+        monthLabel: formatBonusMonthLabel(month),
+        completedDeals: dealCount,
+        totalRent: Math.round(totalRent * 100) / 100,
+        averageRent: Math.round(averageRent * 100) / 100,
+        bonusScheme: bonusCalc.scheme,
+        contractRate: bonusCalc.rate,
+        bonusAmount: Math.round(bonusCalc.bonus * 100) / 100,
+      });
+    });
+
+    return results.sort((a, b) => a.month.localeCompare(b.month));
+  }, [completedDeals]);
+
+  // Current month summary
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return monthlyBonuses.find((mb) => mb.month === key) || null;
+  }, [monthlyBonuses]);
+
+  // Current year totals (for yearly reward)
+  const yearlyData = useMemo(() => {
+    const currentYear = new Date().getFullYear().toString();
+    const yearBonuses = monthlyBonuses.filter((mb) => mb.month.startsWith(currentYear));
+    const totalRent = yearBonuses.reduce((sum, mb) => sum + mb.totalRent, 0);
+    const totalBonus = yearBonuses.reduce((sum, mb) => sum + mb.bonusAmount, 0);
+    const totalDeals = yearBonuses.reduce((sum, mb) => sum + mb.completedDeals, 0);
+    const progress = Math.min((totalRent / YEARLY_TARGET) * 100, 100);
+    const yearlyBonusEarned = totalRent >= YEARLY_TARGET ? 2500 : 0;
+
+    return { totalRent, totalBonus, totalDeals, progress, yearlyBonusEarned, monthCount: yearBonuses.length };
+  }, [monthlyBonuses]);
+
+  // Chart data
+  const bonusChartData = useMemo(() => {
+    return monthlyBonuses.map((mb) => {
+      const shortMonth = mb.monthLabel.replace(/(\w+)\s(\d{4})/, (_, m, y) => {
+        const shorts: Record<string, string> = {
+          January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
+          May: 'May', June: 'Jun', July: 'Jul', August: 'Aug',
+          September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec',
+        };
+        return `${shorts[m] || m} ${y}`;
+      });
+      return {
+        month: shortMonth,
+        bonus: mb.bonusAmount,
+        deals: mb.completedDeals,
+        totalRent: mb.totalRent,
+        scheme: mb.bonusScheme,
+        rate: mb.contractRate,
+      };
+    });
+  }, [monthlyBonuses]);
+
+  // Donut data for current month deal progress
+  const dealProgressData = useMemo(() => {
+    const current = currentMonth?.completedDeals || 0;
+    const target = 6;
+    const achieved = Math.min(current, target);
+    const remaining = Math.max(0, target - current);
+    const extra = Math.max(0, current - target);
+
+    return [
+      { name: 'Completed', value: achieved, fill: '#8b5cf6' },
+      ...(extra > 0 ? [{ name: 'Extra', value: extra, fill: '#f59e0b' }] : []),
+      ...(remaining > 0 ? [{ name: 'Remaining', value: remaining, fill: '#e2e8f0' }] : []),
+    ];
+  }, [currentMonth]);
+
+  if (loading) {
+    return (
+      <Card className="mt-8">
+        <CardContent className="pt-6">
+          <div className="h-[200px] flex items-center justify-center text-gray-500">
+            Loading bonus data...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const currentDeals = currentMonth?.completedDeals || 0;
+  const currentTotalRent = currentMonth?.totalRent || 0;
+  const currentBonus = currentMonth?.bonusAmount || 0;
+  const currentScheme = currentMonth?.bonusScheme || 'none';
+
+  return (
+    <>
+      {/* ─── Section Header ──────────────────────────────────────────────── */}
+      <div className="mt-12 mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Trophy className="h-7 w-7 text-yellow-500" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Agent Bonus Tracker</h2>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 ml-10">
+          Track your monthly contract bonuses, agency fee bonuses and yearly rewards
+        </p>
+      </div>
+
+      {/* ─── Current Month Summary Cards ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Deals This Month */}
+        <Card className={`border-2 ${currentDeals >= 6 ? 'border-purple-400' : 'border-gray-200 dark:border-gray-700'}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="h-4 w-4 text-purple-500" />
+              <span className="text-sm text-gray-500">Deals This Month</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{currentDeals}</div>
+            <div className="text-xs text-gray-500 mt-1">{getContractBonusLabel(currentDeals)}</div>
+          </CardContent>
+        </Card>
+
+        {/* Total Rent */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm text-gray-500">Total Rent (excl. VAT)</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              {formatBonusCurrency(currentTotalRent)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Avg: {formatBonusCurrency(currentDeals > 0 ? currentTotalRent / currentDeals : 0)} / deal
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Scheme */}
+        <Card className={`border-2 ${
+          currentScheme === 'contract' ? 'border-purple-400' :
+          currentScheme === 'agency_fee' ? 'border-cyan-400' : 'border-gray-200 dark:border-gray-700'
+        }`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Award className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-gray-500">Active Bonus Scheme</span>
+            </div>
+            <div className={`text-lg font-bold ${
+              currentScheme === 'contract' ? 'text-purple-600' :
+              currentScheme === 'agency_fee' ? 'text-cyan-600' : 'text-gray-400'
+            }`}>
+              {currentScheme === 'contract'
+                ? `Contract Bonus (${Math.round((currentMonth?.contractRate || 0) * 100)}%)`
+                : currentScheme === 'agency_fee'
+                  ? `Agency Fee Bonus`
+                  : 'No Bonus Yet'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {currentScheme === 'contract'
+                ? `${currentDeals} contracts closed`
+                : currentScheme === 'agency_fee'
+                  ? currentTotalRent >= 5000 ? '€5,000+ rent tier' : '€3,000+ rent tier'
+                  : currentDeals > 0 ? `Need ${Math.max(0, 3000 - currentTotalRent).toFixed(0)}€ more rent or ${Math.max(0, 6 - currentDeals)} more deals` : 'Close deals to earn bonus'}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Monthly Bonus */}
+        <Card className={`border-2 ${currentBonus > 0 ? 'border-yellow-400 bg-yellow-50/30 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Gift className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm text-gray-500">Monthly Bonus</span>
+            </div>
+            <div className={`text-3xl font-bold ${currentBonus > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>
+              {formatBonusCurrency(currentBonus)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {currentScheme === 'contract'
+                ? `${Math.round((currentMonth?.contractRate || 0) * 100)}% × ${formatBonusCurrency(currentMonth?.averageRent || 0)} avg`
+                : currentScheme === 'agency_fee'
+                  ? 'Fixed bonus tier'
+                  : 'Start closing deals!'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ─── Contract Progress & Yearly Target ───────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Contract Tier Progress */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Target className="h-5 w-5 text-purple-500" />
+              Contract Bonus Progress (This Month)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Deal count donut */}
+            <div className="flex items-center gap-6 mb-6">
+              <div className="w-[130px] h-[130px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dealProgressData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={35}
+                      outerRadius={55}
+                      dataKey="value"
+                      strokeWidth={2}
+                    >
+                      {dealProgressData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-gray-900 dark:fill-gray-100 text-2xl font-bold">
+                      {currentDeals}
+                    </text>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  {currentDeals >= 6
+                    ? '🎉 Contract bonus unlocked!'
+                    : `${6 - currentDeals} more deal${6 - currentDeals !== 1 ? 's' : ''} to unlock contract bonus`}
+                </div>
+                {/* Tier steps */}
+                <div className="space-y-1.5">
+                  {CONTRACT_TIERS.map((tier) => (
+                    <div key={tier.deals} className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${currentDeals >= tier.deals ? '' : 'opacity-30'}`}
+                        style={{ backgroundColor: tier.color }}
+                      />
+                      <span className={`text-xs font-medium ${
+                        currentDeals >= tier.deals ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400'
+                      }`}>
+                        {tier.deals}{tier.deals === 10 ? '+' : ''} contracts = {Math.round(tier.rate * 100)}%
+                        {currentDeals === tier.deals && ' ←'}
+                      </span>
+                      {currentDeals >= tier.deals && (
+                        <span className="text-xs text-green-500">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Agency Fee Bonus info (when <6 deals) */}
+            {currentDeals < 6 && (
+              <div className="border-t pt-4">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Monthly Agency Fee Bonus (when &lt;6 deals)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-3 rounded-lg border-2 ${currentTotalRent >= 5000 ? 'border-cyan-400 bg-cyan-50/50 dark:bg-cyan-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+                    <div className="text-xs text-gray-500 mb-1">Rent ≥ €5,000</div>
+                    <div className={`text-lg font-bold ${currentTotalRent >= 5000 ? 'text-cyan-600' : 'text-gray-400'}`}>€300</div>
+                    {currentTotalRent < 5000 && (
+                      <div className="text-xs text-gray-400 mt-1">{formatBonusCurrency(Math.max(0, 5000 - currentTotalRent))} to go</div>
+                    )}
+                  </div>
+                  <div className={`p-3 rounded-lg border-2 ${currentTotalRent >= 3000 && currentTotalRent < 5000 ? 'border-cyan-400 bg-cyan-50/50 dark:bg-cyan-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+                    <div className="text-xs text-gray-500 mb-1">Rent ≥ €3,000</div>
+                    <div className={`text-lg font-bold ${currentTotalRent >= 3000 ? 'text-cyan-600' : 'text-gray-400'}`}>€150</div>
+                    {currentTotalRent < 3000 && (
+                      <div className="text-xs text-gray-400 mt-1">{formatBonusCurrency(Math.max(0, 3000 - currentTotalRent))} to go</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Yearly Revenue Target */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Yearly Revenue Target ({new Date().getFullYear()})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600 dark:text-gray-400">
+                  Total Rent (excl. VAT)
+                </span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  {formatBonusCurrency(yearlyData.totalRent)} / {formatBonusCurrency(YEARLY_TARGET)}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-5 relative overflow-hidden">
+                <div
+                  className={`h-5 rounded-full transition-all duration-700 ${
+                    yearlyData.progress >= 100
+                      ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                      : yearlyData.progress >= 75
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600'
+                        : yearlyData.progress >= 50
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500'
+                          : 'bg-gradient-to-r from-blue-400 to-blue-500'
+                  }`}
+                  style={{ width: `${yearlyData.progress}%` }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white drop-shadow-sm">
+                  {yearlyData.progress.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Yearly stats */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Total Deals (Year)</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{yearlyData.totalDeals}</div>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="text-xs text-gray-500 mb-1">Total Monthly Bonuses</div>
+                <div className="text-xl font-bold text-purple-600">{formatBonusCurrency(yearlyData.totalBonus)}</div>
+              </div>
+            </div>
+
+            {/* Yearly reward card */}
+            <div className={`p-4 rounded-lg border-2 ${
+              yearlyData.yearlyBonusEarned > 0
+                ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20'
+                : 'border-dashed border-gray-300 dark:border-gray-600'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`text-3xl ${yearlyData.yearlyBonusEarned > 0 ? '' : 'grayscale opacity-40'}`}>💎</div>
+                <div>
+                  <div className={`text-sm font-medium ${yearlyData.yearlyBonusEarned > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500'}`}>
+                    Yearly Reward
+                  </div>
+                  <div className={`text-2xl font-bold ${yearlyData.yearlyBonusEarned > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>
+                    €2,500
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {yearlyData.yearlyBonusEarned > 0
+                      ? '🎉 Congratulations! You hit the €48,000 target!'
+                      : `${formatBonusCurrency(Math.max(0, YEARLY_TARGET - yearlyData.totalRent))} remaining to unlock`}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ─── Monthly Bonus Chart ────────────────────────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Monthly Bonus Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {bonusChartData.length === 0 ? (
+            <div className="h-[300px] flex items-center justify-center text-gray-500">
+              No completed deals yet. Close your first deal to see bonus progress!
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={350}>
+              <ComposedChart
+                data={bonusChartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="month"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  style={{ fontSize: '11px' }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  label={{ value: 'Bonus (€)', angle: -90, position: 'insideLeft' }}
+                  style={{ fontSize: '11px' }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  label={{ value: 'Deals', angle: 90, position: 'insideRight' }}
+                  style={{ fontSize: '11px' }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  formatter={(value: any, name: string) => {
+                    if (name === 'Bonus') return [`€${Number(value).toFixed(2)}`, 'Bonus Amount'];
+                    if (name === 'Deals') return [value, 'Completed Deals'];
+                    return [value, name];
+                  }}
+                  labelFormatter={(label) => label}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #ccc',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar yAxisId="left" dataKey="bonus" name="Bonus" radius={[6, 6, 0, 0]}>
+                  {bonusChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={BONUS_BAR_COLORS[entry.scheme as keyof typeof BONUS_BAR_COLORS] || BONUS_BAR_COLORS.none}
+                    />
+                  ))}
+                </Bar>
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="deals"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  name="Deals"
+                  dot={{ fill: '#f59e0b', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+          {/* Chart legend for scheme colors */}
+          <div className="flex items-center justify-center gap-6 mt-2 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: BONUS_BAR_COLORS.contract }} />
+              <span>Contract Bonus</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: BONUS_BAR_COLORS.agency_fee }} />
+              <span>Agency Fee Bonus</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Detailed Monthly Breakdown Table ───────────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Detailed Monthly Bonus History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  {['Month', 'Deals', 'Total Rent', 'Avg Rent / Deal', 'Scheme', 'Rate', 'Bonus'].map((col) => (
+                    <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {monthlyBonuses.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      No completed deals yet.
+                    </td>
+                  </tr>
+                ) : (
+                  [...monthlyBonuses].reverse().map((mb) => (
+                    <tr key={mb.month} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {mb.monthLabel}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                          mb.completedDeals >= 6 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {mb.completedDeals}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {formatBonusCurrency(mb.totalRent)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {formatBonusCurrency(mb.averageRent)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          mb.bonusScheme === 'contract'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                            : mb.bonusScheme === 'agency_fee'
+                              ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300'
+                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {mb.bonusScheme === 'contract' ? 'Contract' : mb.bonusScheme === 'agency_fee' ? 'Agency Fee' : 'None'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {mb.bonusScheme === 'contract' ? `${Math.round(mb.contractRate * 100)}%` : '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
+                        <span className={mb.bonusAmount > 0 ? 'text-green-600' : 'text-gray-400'}>
+                          {formatBonusCurrency(mb.bonusAmount)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              {monthlyBonuses.length > 0 && (
+                <tfoot className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100">Total</td>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100">
+                      {monthlyBonuses.reduce((s, m) => s + m.completedDeals, 0)}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100">
+                      {formatBonusCurrency(monthlyBonuses.reduce((s, m) => s + m.totalRent, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                    <td className="px-4 py-3 text-sm font-bold text-green-600">
+                      {formatBonusCurrency(monthlyBonuses.reduce((s, m) => s + m.bonusAmount, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Bonus Rules Reference ──────────────────────────────────────── */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Award className="h-5 w-5 text-purple-500" />
+            Bonus Rules Reference
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Contract Bonus */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                🏆 Contract Bonus (≥6 deals)
+              </h4>
+              <div className="space-y-1.5">
+                {CONTRACT_TIERS.map((tier) => (
+                  <div key={tier.deals} className="flex justify-between text-sm py-1 px-2 rounded" style={{ backgroundColor: `${tier.color}10` }}>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {tier.deals}{tier.deals === 10 ? '+' : ''} contracts
+                    </span>
+                    <span className="font-semibold" style={{ color: tier.color }}>
+                      {Math.round(tier.rate * 100)}% × avg rent
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                Bonus = rate × average rent per deal (excl. VAT)
+              </p>
+            </div>
+
+            {/* Agency Fee Bonus */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">
+                💰 Monthly Agency Fee (&lt;6 deals)
+              </h4>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm py-1 px-2 rounded bg-cyan-50 dark:bg-cyan-900/20">
+                  <span className="text-gray-700 dark:text-gray-300">Rent ≥ €5,000</span>
+                  <span className="font-semibold text-cyan-600">€300</span>
+                </div>
+                <div className="flex justify-between text-sm py-1 px-2 rounded bg-cyan-50 dark:bg-cyan-900/20">
+                  <span className="text-gray-700 dark:text-gray-300">Rent ≥ €3,000</span>
+                  <span className="font-semibold text-cyan-600">€150</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                Applies only when less than 6 deals in a month. If 6+ deals, contract bonus applies instead.
+              </p>
+            </div>
+
+            {/* Yearly Reward */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-yellow-600 dark:text-yellow-400 uppercase tracking-wide">
+                🎯 Yearly Reward
+              </h4>
+              <div className="flex justify-between text-sm py-1 px-2 rounded bg-yellow-50 dark:bg-yellow-900/20">
+                <span className="text-gray-700 dark:text-gray-300">€48,000 total rent</span>
+                <span className="font-semibold text-yellow-600">€2,500</span>
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                Reach €48,000 in total agency fees (excl. VAT) within the calendar year.
+              </p>
+            </div>
+          </div>
+
+          {/* Important notes */}
+          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">📌 Important Notes</h4>
+            <ul className="text-xs text-gray-500 space-y-1 list-disc ml-4">
+              <li>A deal is considered <strong>completed</strong> when both Landlord Paid Date and Client Paid Date are filled.</li>
+              <li>The completion month is determined by the later of the two payment dates.</li>
+              <li>For <strong>collaboration</strong> deals, only half of the rent amount counts toward your bonus calculation.</li>
+              <li>All amounts are calculated <strong>excluding VAT</strong>.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }

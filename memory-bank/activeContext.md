@@ -2,7 +2,69 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (19.02.2026) ✅ COMPLETED - Bonuses & Performance v2.7.1
+### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Agent Bonus Tracker v2.7.2
+1. **Agent Bonus Tracker (v2.7.2)**:
+   - ✅ Revenue sayfasında Monthly Agent Revenue Overview grafiğinin altına Agent Bonus Tracker eklendi
+   - ✅ 4 adet özet kart: Deals This Month, Total Rent, Active Bonus Scheme, Monthly Bonus
+   - ✅ Contract Bonus Progress: Donut chart (deal sayısı / 6 hedef) + tier adımları (6-10 kontrat)
+   - ✅ Agency Fee Bonus gösterimi: <6 deal durumunda €3,000→€150, €5,000→€300 kutucukları
+   - ✅ Yearly Revenue Target: €48,000 hedef progress bar + €2,500 yıllık ödül kartı
+   - ✅ Monthly Bonus Breakdown: ComposedChart (bar: bonus miktarı, line: deal sayısı)
+   - ✅ Bar renkleri bonus şemasına göre: mor=contract, cyan=agency fee
+   - ✅ Detailed Monthly Bonus History tablosu (Month, Deals, Total Rent, Avg, Scheme, Rate, Bonus)
+   - ✅ Bonus Rules Reference: 3 sütunlu kural tablosu (Contract Bonus, Agency Fee, Yearly Reward)
+   - ✅ Important Notes: tamamlanma kuralları, collaboration %50, VAT hariç
+   - ✅ Floating point düzeltmesi: `Math.round(rate * 100)` ile 55.00000000000001 → 55
+   - ✅ `package.json` version: 2.7.2
+
+**Teknik Detaylar:**
+- **Agent Bonus Hesaplama**:
+  ```typescript
+  // Contract Bonus (≥6 deals): rate × average rent (excl. VAT)
+  function getContractBonusRate(dealCount: number) {
+    if (dealCount >= 10) return { rate: 0.70, label: '70%' };
+    if (dealCount >= 9) return { rate: 0.65, label: '65%' };
+    if (dealCount >= 8) return { rate: 0.60, label: '60%' };
+    if (dealCount >= 7) return { rate: 0.55, label: '55%' };
+    if (dealCount >= 6) return { rate: 0.50, label: '50%' };
+    return null;
+  }
+
+  // Agency Fee Bonus (<6 deals):
+  // rent ≥ €5,000 → €300 bonus
+  // rent ≥ €3,000 → €150 bonus
+
+  // Yearly Reward: €48,000 total rent → €2,500 bonus
+  ```
+
+- **Deal Tamamlanma Koşulu (Agent)**:
+  ```typescript
+  // Her iki paid date de dolu olmalı, aksi takdirde deal tamamlanmamış sayılır
+  function getAgentBonusCompletionMonth(deal: Revenue): string | null {
+    if (!landlordDate || !clientDate) return null; // incomplete → excluded
+    return max(landlordDate, clientDate); // later date determines month
+  }
+  ```
+
+- **Collaboration %50 Kuralı**:
+  ```typescript
+  const hasCollaboration = (deal.collaboration_with?.trim() || '') !== '';
+  const effectiveRent = hasCollaboration ? rentAmount / 2 : rentAmount;
+  ```
+
+- **Floating Point Düzeltmesi**:
+  ```typescript
+  // Önceki: {tier.rate * 100}% → 55.00000000000001%
+  // Sonra: {Math.round(tier.rate * 100)}% → 55%
+  ```
+
+- **Değiştirilen Dosyalar**:
+  ```
+  app/dashboard/revenue/RevenueClient.tsx (Agent Bonus Tracker bölümü + floating point fix)
+  package.json (v2.7.2)
+  ```
+
+### Önceki Odak (19.02.2026) ✅ COMPLETED - Bonuses & Performance v2.7.1
 1. **Bonuses & Performance Sayfası (v2.7.1)**:
    - ✅ Teamleader dashboard'a Bonuses kartı eklendi (Trophy ikonu)
    - ✅ Boss dashboard'a Bonuses kartı eklendi
