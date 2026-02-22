@@ -2,7 +2,64 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Agent Bonus Tracker v2.7.2
+### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Hired Agents Document Upload v2.7.3
+1. **Hired Agents Document Upload (v2.7.3)**:
+   - ✅ Applications sayfasında Edit Applicant modal'ına doküman yükleme bölümü eklendi
+   - ✅ "Hired" checkbox'ının altında Required Documents bölümü
+   - ✅ 4 doküman tipi: Passport, CV, Selfie, Service Agreement
+   - ✅ Supabase Storage: `hired_agents` bucket (public, 10MB limit)
+   - ✅ Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
+   - ✅ Depolama yolu: `applicant_name/document_type/filename`
+   - ✅ Sadece "Hired" işaretlendiğinde görünür (conditional rendering)
+   - ✅ Doküman görüntüleme (yeni sekme), silme ve replace özellikleri
+   - ✅ Yüklü doküman sayacı: X/4 uploaded göstergesi
+   - ✅ Yeşil tema = yüklendi, mavi tema = bekliyor, durum göstergeleri
+   - ✅ HiredDocumentUpload bileşeni oluşturuldu
+   - ✅ `package.json` version: 2.7.3
+
+**Teknik Detaylar:**
+- **Supabase Storage Bucket**:
+  ```sql
+  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('hired_agents', 'hired_agents', true, 10485760, -- 10MB
+    ARRAY['application/pdf','application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg','image/jpg','image/png']);
+  ```
+
+- **Doküman Tipleri**:
+  ```typescript
+  const DOCUMENT_TYPES = [
+    { key: "passport", label: "Passport", accept: ".pdf,.jpg,.jpeg,.png" },
+    { key: "cv", label: "CV", accept: ".pdf,.doc,.docx" },
+    { key: "selfie", label: "Selfie", accept: ".jpg,.jpeg,.png" },
+    { key: "service_agreement", label: "Service Agreement", accept: ".pdf,.doc,.docx" },
+  ];
+  ```
+
+- **Depolama Yapısı**:
+  ```
+  hired_agents/
+  └── applicant_name/
+      ├── passport/filename.pdf
+      ├── cv/filename.pdf
+      ├── selfie/photo.jpg
+      └── service_agreement/agreement.pdf
+  ```
+
+- **Oluşturulan Dosyalar**:
+  ```
+  app/(app)/teamleader/applications/HiredDocumentUpload.tsx (yeni bileşen)
+  supabase/migrations/20260222_create_hired_agents_bucket.sql (bucket + RLS)
+  ```
+
+- **Değiştirilen Dosyalar**:
+  ```
+  app/(app)/teamleader/applications/ApplicationsClient.tsx (HiredDocumentUpload entegrasyonu)
+  package.json (v2.7.3)
+  ```
+
+### Önceki Odak (22.02.2026) ✅ COMPLETED - Agent Bonus Tracker v2.7.2
 1. **Agent Bonus Tracker (v2.7.2)**:
    - ✅ Revenue sayfasında Monthly Agent Revenue Overview grafiğinin altına Agent Bonus Tracker eklendi
    - ✅ 4 adet özet kart: Deals This Month, Total Rent, Active Bonus Scheme, Monthly Bonus
@@ -63,6 +120,10 @@
   app/dashboard/revenue/RevenueClient.tsx (Agent Bonus Tracker bölümü + floating point fix)
   package.json (v2.7.2)
   ```
+
+### Önceki Odak (22.02.2026) - Hired Agents Document Upload v2.7.3
+- **⚠️ Pending**: `hired_agents` bucket SQL migration Supabase SQL Editor'de çalıştırılmalı
+  - Dosya: `supabase/migrations/20260222_create_hired_agents_bucket.sql`
 
 ### Önceki Odak (19.02.2026) ✅ COMPLETED - Bonuses & Performance v2.7.1
 1. **Bonuses & Performance Sayfası (v2.7.1)**:

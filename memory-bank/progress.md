@@ -3,6 +3,44 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.7.3 - Hired Agents Document Upload (22.02.2026) ✅
+**Yapılanlar:**
+
+#### Hired Agents Document Upload (Applications Sayfası) ✅
+- **Edit Applicant modal'ına doküman yükleme bölümü eklendi**:
+  - "Hired" checkbox'ı işaretlendiğinde görünür olan Required Documents bölümü
+  - 4 doküman tipi: Passport, CV, Selfie, Service Agreement
+  - Her doküman için ayrı kabul edilen dosya formatları
+  - Doküman yükleme, görüntüleme (yeni sekmede açma), silme ve değiştirme
+  - Yüklü doküman sayacı göstergesi (X/4 uploaded)
+
+- **Supabase Storage Entegrasyonu**:
+  - `hired_agents` bucket (public, 10MB limit)
+  - Kabul edilen MIME: PDF, Word (doc/docx), JPEG, PNG
+  - Depolama yolu: `applicant_name/document_type/filename`
+  - RLS politikaları: authenticated upload/read/update/delete + public read
+
+- **HiredDocumentUpload Bileşeni**:
+  - Conditional rendering: sadece `isHired=true` olduğunda gösterilir
+  - Mevcut dokümanları Supabase Storage'dan listeler
+  - Her tip için ayrı dosya validasyonu (MIME type + boyut)
+  - Yeşil tema = yüklendi (CheckCircle), mavi tema = bekliyor
+  - Durum göstergeleri: uploading spinner, success, empty state
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/applications/HiredDocumentUpload.tsx (yeni bileşen)
+supabase/migrations/20260222_create_hired_agents_bucket.sql (bucket + RLS policies)
+app/(app)/teamleader/applications/ApplicationsClient.tsx (HiredDocumentUpload entegrasyonu)
+package.json (v2.7.3)
+memory-bank/activeContext.md (güncellendi)
+memory-bank/progress.md (güncellendi)
+agent.md (güncellendi)
+```
+
+**⚠️ Pending Migration:**
+- `supabase/migrations/20260222_create_hired_agents_bucket.sql` → Supabase SQL Editor'de çalıştırılmalı
+
 ### v2.7.2 - Agent Bonus Tracker (22.02.2026) ✅
 **Yapılanlar:**
 
@@ -55,8 +93,6 @@
 ```
 app/dashboard/revenue/RevenueClient.tsx (AgentBonusSection bileşeni + floating point fix)
 package.json (v2.7.2)
-memory-bank/activeContext.md (güncellendi)
-memory-bank/progress.md (güncellendi)
 ```
 
 ### v2.7.1 - Bonuses & Performance Sayfası (19.02.2026) ✅

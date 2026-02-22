@@ -149,10 +149,27 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
-- **Version**: v2.7.1
+- **Version**: v2.7.3
 
-### Son Eklenen Özellikler (19.02.2026)
-1. **Bonuses & Performance Sayfası (v2.7.1)**:
+### Son Eklenen Özellikler (22.02.2026)
+1. **Hired Agents Document Upload (v2.7.3)**:
+   - Applications sayfasında Edit Applicant modal'ına doküman yükleme bölümü eklendi
+   - 4 doküman tipi: Passport, CV, Selfie, Service Agreement
+   - Supabase Storage: `hired_agents` bucket (public, 10MB limit)
+   - Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
+   - Depolama yolu: `applicant_name/document_type/filename`
+   - Sadece "Hired" checkbox işaretlendiğinde görünür
+   - Doküman görüntüleme (yeni sekmede), silme ve değiştirme özellikleri
+   - Yüklü doküman sayacı (X/4 uploaded)
+   - HiredDocumentUpload bileşeni: yeşil tema (yüklendi), mavi tema (bekliyor)
+
+2. **Agent Bonus Tracker (v2.7.2)**:
+   - Revenue sayfasında Agent Bonus Tracker eklendi
+   - Contract Bonus (≥6 deal): %50-%70 × ortalama kira
+   - Agency Fee Bonus (<6 deal): €3,000→€150, €5,000→€300
+   - Yearly Reward: €48,000 hedef → €2,500 bonus
+
+3. **Bonuses & Performance Sayfası (v2.7.1)**:
    - Teamleader, Boss ve Manager dashboard'larına Bonuses kartı eklendi
    - 4 kademeli bonus sistemi: Tier 1 (€0-5K: 32%/0%), Tier 2 (€5K-10K: 37%/5%), Tier 3 (€10K-15K: 37%/7.5%), Tier 4 (€15K+: 37%/10%)
    - Personal rate, leaderRevenue bazında; team rate, totalRevenue bazında hesaplanır

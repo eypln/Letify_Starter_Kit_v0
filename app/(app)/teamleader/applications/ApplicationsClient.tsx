@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import HiredDocumentUpload from "./HiredDocumentUpload";
 
 // First call status options
 const FIRST_CALL_STATUS_OPTIONS = [
@@ -918,6 +919,12 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     Hired - Mark this applicant as a team member
                   </label>
                 </div>
+
+                {/* Row 7: Document Upload for Hired Agents */}
+                <HiredDocumentUpload
+                  applicantName={form.applicant_name}
+                  isHired={form.hired}
+                />
 
                 {/* Submit Buttons */}
                 <div className="flex justify-end gap-2 pt-4">
