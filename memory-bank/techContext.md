@@ -10,7 +10,7 @@
 - **Component Library**: Radix UI primitives (being migrated to native HTML for performance)
 - **Icons**: Lucide React
 - **Forms**: React Hook Form + Zod validation
-- **Charts**: Recharts
+- **Charts**: Recharts\n- **PDF Generation**: jsPDF 2.5.2 + jspdf-autotable 3.8.4 (Teamleader Bonus raporları)
 - **Date Handling**: date-fns
 - **PWA**: next-pwa 5.6.0 (Service Worker, Offline Support, Push Notifications)
   - **Custom Service Worker**: `public/service-worker.js` (270+ lines)

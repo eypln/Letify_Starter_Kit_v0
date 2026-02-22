@@ -232,6 +232,11 @@ export async function POST(req: NextRequest) {
     if (isDealFinalized) {
       await sendBossNotification(supabase, user_id, data);
     }
+
+    // Check if agent just qualified for a bonus (both dates paid = completed deal)
+    if (landlord_paid_date && client_paid_date) {
+      await checkAndNotifyAgentBonus(supabase, user_id, landlord_paid_date, client_paid_date);
+    }
   }
 
   if (error) {
@@ -450,6 +455,12 @@ export async function PUT(req: NextRequest) {
     if (shouldNotify) {
       await sendBossNotification(supabase, user_id, data);
     }
+
+    // Check if agent just qualified for a bonus (both dates paid = completed deal)
+    if (landlord_paid_date && client_paid_date) {
+      const dealOwnerId = (target_user_id && isElevatedUser) ? (updateData.user_id || prevRecord.user_id) : user_id;
+      await checkAndNotifyAgentBonus(supabase, dealOwnerId, landlord_paid_date, client_paid_date);
+    }
   }
 
   if (error) {
@@ -639,6 +650,244 @@ function generateRevenueNotificationEmail(data: {
           <div class="detail-row">
             <span class="label">Agent:</span>
             <span class="value">${data.agentName}</span>
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated notification from the Letify system.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// ─── Agent Bonus Notification Logic ──────────────────────────────────────────
+
+function calculateAgentBonusServer(
+  dealCount: number,
+  totalRent: number
+): { scheme: 'contract' | 'agency_fee' | 'none'; bonus: number; label: string } {
+  if (dealCount >= 6) {
+    let rate = 0.50;
+    let label = '6 contracts → 50%';
+    if (dealCount >= 10) { rate = 0.70; label = '10+ contracts → 70%'; }
+    else if (dealCount >= 9) { rate = 0.65; label = '9 contracts → 65%'; }
+    else if (dealCount >= 8) { rate = 0.60; label = '8 contracts → 60%'; }
+    else if (dealCount >= 7) { rate = 0.55; label = '7 contracts → 55%'; }
+    const averageRent = dealCount > 0 ? totalRent / dealCount : 0;
+    return { scheme: 'contract', bonus: Math.round(rate * averageRent * 100) / 100, label };
+  }
+  if (totalRent >= 5000) return { scheme: 'agency_fee', bonus: 300, label: 'Agency Fee Bonus (€5K+ rent → €300)' };
+  if (totalRent >= 3000) return { scheme: 'agency_fee', bonus: 150, label: 'Agency Fee Bonus (€3K+ rent → €150)' };
+  return { scheme: 'none', bonus: 0, label: '' };
+}
+
+async function checkAndNotifyAgentBonus(
+  supabase: SupabaseClient,
+  agentUserId: string,
+  landlordPaidDate: string,
+  clientPaidDate: string
+) {
+  try {
+    // First check if this user is actually an agent
+    const { data: agentProfile } = await supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('user_id', agentUserId)
+      .single();
+
+    if (!agentProfile || agentProfile.role !== 'agent') return;
+
+    // Determine the completion month (later of the two dates)
+    const landlordDate = new Date(landlordPaidDate);
+    const clientDate = new Date(clientPaidDate);
+    const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
+    const completionMonth = `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, '0')}`;
+    const monthStart = `${completionMonth}-01`;
+    const [yearStr, monthStr] = completionMonth.split('-');
+    const nextMonth = parseInt(monthStr) === 12
+      ? `${parseInt(yearStr) + 1}-01-01`
+      : `${yearStr}-${String(parseInt(monthStr) + 1).padStart(2, '0')}-01`;
+
+    // Get all completed deals for this agent in the completion month
+    // A completed deal = both landlord_paid_date AND client_paid_date exist,
+    // and the LATER of the two falls within the completion month
+    const { data: allDeals } = await supabase
+      .from('revenue')
+      .select('rent_amount, landlord_paid_date, client_paid_date, collaboration_with')
+      .eq('user_id', agentUserId)
+      .not('landlord_paid_date', 'is', null)
+      .not('client_paid_date', 'is', null);
+
+    if (!allDeals || allDeals.length === 0) return;
+
+    // Filter deals whose completion month matches
+    const monthDeals = allDeals.filter((d) => {
+      const ld = new Date(d.landlord_paid_date!);
+      const cd = new Date(d.client_paid_date!);
+      const later = ld > cd ? ld : cd;
+      const dm = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}`;
+      return dm === completionMonth;
+    });
+
+    const dealCount = monthDeals.length;
+    const totalRent = monthDeals.reduce((sum, d) => {
+      const rent = d.rent_amount || 0;
+      const hasCollab = (d.collaboration_with?.trim() || '') !== '';
+      return sum + (hasCollab ? rent / 2 : rent);
+    }, 0);
+
+    // Calculate current bonus
+    const currentBonus = calculateAgentBonusServer(dealCount, totalRent);
+    if (currentBonus.scheme === 'none') return;
+
+    // Calculate previous bonus (without this deal) to check if threshold was just crossed
+    const prevDealCount = dealCount - 1;
+    const prevTotalRent = totalRent - (() => {
+      // Find the "latest" deal to subtract (approximate - just use current deal's contribution)
+      const lastDeal = monthDeals[monthDeals.length - 1];
+      const rent = lastDeal?.rent_amount || 0;
+      const hasCollab = (lastDeal?.collaboration_with?.trim() || '') !== '';
+      return hasCollab ? rent / 2 : rent;
+    })();
+    const prevBonus = calculateAgentBonusServer(prevDealCount, Math.max(0, prevTotalRent));
+
+    // Only notify if bonus status changed (new qualification or tier upgrade)
+    const bonusChanged = currentBonus.scheme !== prevBonus.scheme ||
+      currentBonus.bonus !== prevBonus.bonus;
+    if (!bonusChanged) return;
+
+    const agentName = agentProfile.full_name || 'Agent';
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    const monthLabel = `${monthNames[parseInt(monthStr) - 1]} ${yearStr}`;
+
+    // Get teamleader, manager, and boss users
+    const { data: recipients } = await supabase
+      .from('profiles')
+      .select('email, full_name, user_id, role')
+      .in('role', ['teamleader', 'manager', 'boss']);
+
+    if (!recipients || recipients.length === 0) return;
+
+    const bonusText = currentBonus.scheme === 'contract'
+      ? `Contract Bonus: ${currentBonus.label} = €${currentBonus.bonus.toFixed(2)}`
+      : `${currentBonus.label}`;
+
+    // Send notifications to each recipient
+    for (const recipient of recipients) {
+      // Send email
+      if (recipient.email) {
+        const emailHtml = generateBonusNotificationEmail({
+          recipientName: recipient.full_name || 'Manager',
+          agentName,
+          monthLabel,
+          dealCount,
+          totalRent,
+          bonusText,
+          bonusAmount: currentBonus.bonus,
+        });
+
+        await sendEmail({
+          to: recipient.email,
+          subject: `🏆 Agent Bonus Earned: ${agentName} - ${monthLabel}`,
+          html: emailHtml,
+        });
+      }
+
+      // Send push notification
+      if (recipient.user_id) {
+        await sendBossNotificationPush(recipient.user_id, {
+          title: '🏆 Agent Bonus Earned!',
+          body: `${agentName} earned a bonus in ${monthLabel}: ${dealCount} deals, €${currentBonus.bonus.toFixed(2)}`,
+          icon: '/icons/Logo/192.png',
+          badge: '/icons/Logo/96.png',
+          tag: `agent-bonus-${agentUserId}-${completionMonth}`,
+          data: {
+            type: 'agent_bonus_earned',
+            agent_name: agentName,
+            month: completionMonth,
+            bonus_amount: currentBonus.bonus,
+            url: '/dashboard/revenue',
+          },
+        });
+      }
+    }
+
+    console.log(`Agent bonus notification sent for ${agentName}: ${currentBonus.label}`);
+  } catch (error) {
+    console.error('Error checking agent bonus:', error);
+  }
+}
+
+// Generate email HTML for agent bonus notification
+function generateBonusNotificationEmail(data: {
+  recipientName: string;
+  agentName: string;
+  monthLabel: string;
+  dealCount: number;
+  totalRent: number;
+  bonusText: string;
+  bonusAmount: number;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #8b5cf6, #f59e0b); color: white; padding: 20px; border-radius: 5px 5px 0 0; text-align: center; }
+        .header h2 { margin: 0; }
+        .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+        .detail-row { margin: 10px 0; padding: 10px; background-color: white; border-radius: 3px; display: flex; justify-content: space-between; }
+        .label { font-weight: bold; color: #6B7280; }
+        .value { color: #111827; font-weight: 600; }
+        .bonus-highlight { background-color: #fef3c7; border: 2px solid #f59e0b; padding: 15px; border-radius: 5px; text-align: center; margin: 15px 0; }
+        .bonus-amount { font-size: 24px; font-weight: bold; color: #b45309; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6B7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>🏆 Agent Bonus Earned!</h2>
+        </div>
+        <div class="content">
+          <p>Dear ${data.recipientName},</p>
+          <p><strong>${data.agentName}</strong> has earned a bonus for <strong>${data.monthLabel}</strong>!</p>
+          
+          <div class="detail-row">
+            <span class="label">Agent:</span>
+            <span class="value">${data.agentName}</span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Month:</span>
+            <span class="value">${data.monthLabel}</span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Completed Deals:</span>
+            <span class="value">${data.dealCount}</span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Total Rent:</span>
+            <span class="value">€${data.totalRent.toFixed(2)}</span>
+          </div>
+          
+          <div class="detail-row">
+            <span class="label">Bonus Type:</span>
+            <span class="value">${data.bonusText}</span>
+          </div>
+          
+          <div class="bonus-highlight">
+            <div>Bonus Amount</div>
+            <div class="bonus-amount">€${data.bonusAmount.toFixed(2)}</div>
           </div>
           
           <div class="footer">

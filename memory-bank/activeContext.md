@@ -2,83 +2,98 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - Deal Documents & Collaboration Fix v2.7.4
-1. **Agent Collaboration Dropdown Fix (v2.7.4)**:
-   - ✅ Bug Fix: Agent rolündeki kullanıcılar Revenue sayfasında "Collaboration With" dropdown'unda diğer agentları göremiyordu
-   - ✅ Kök Neden: `profiles` tablosunda `id` kolonu yok, PK `user_id` (UUID). Agent tarafında `.select("id, full_name").neq("id", user.id)` yanlış kolon kullanıyordu
-   - ✅ Düzeltme: `.select("user_id, full_name").neq("user_id", user.id)` olarak güncellendi
-   - ✅ `Profile` interface'i `id` → `user_id` olarak düzeltildi
-   - ✅ Teamleader tarafı zaten doğruydu (user_id kullanıyordu)
+### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - PDF Rapor & Bonus Bildirimleri v2.7.5
 
-2. **Deal Documents Upload (v2.7.4)**:
-   - ✅ Revenue sayfalarındaki Add/Edit Deal modal'larına doküman yükleme bölümü eklendi
-   - ✅ "Inform Boss after both sides paid" checkbox'ının altında Deal Documents bölümü
-   - ✅ 4 doküman tipi: Lease Agreement, Inventory List, Invoice-Owner, Invoice-Client
-   - ✅ Supabase Storage: `Lease_agreements` bucket (public, 10MB limit)
-   - ✅ Kabul edilen formatlar: PDF, Word (doc/docx), JPEG, PNG
-   - ✅ Depolama yolu: `ref_no/document_type/filename`
-   - ✅ `DealDocumentUpload` paylaşımlı bileşen: `components/revenue/DealDocumentUpload.tsx`
-   - ✅ 3 dosyaya entegre edildi: Agent RevenueClient, Teamleader TeamRevenueClient, EditDealModal
-   - ✅ Doküman görüntüleme, silme, replace özellikleri
-   - ✅ Yüklü doküman sayacı (X/4 uploaded)
-   - ✅ `package.json` version: 2.7.4
+1. **Teamleader Bonus PDF Raporu (v2.7.5)**:
+   - ✅ Teamleader Bonuses sayfasına "Download PDF Report" butonu eklendi
+   - ✅ jsPDF + jspdf-autotable kütüphaneleri kuruldu (v2.5.2 / v3.8.4)
+   - ✅ generatePdfReport() fonksiyonu useCallback ile implement edildi
+   - ✅ PDF İçeriği:
+     - Sayfa 1: Kapak + Özet Tablo (personal earnings, team bonus, listing fee, grand total)
+     - Sayfa 2: Listing Fee Kırılımı (aylara göre gruplandırılmış, ref_no, agent, tarih, kira, listing fee)
+     - Sayfa 3+: Aylık Team Bonus Detayları (tier bilgisi, deal tablosu, renkli kazanç özeti)
+     - Grand Totals tablosu (vurgulu grand total satırı)
+     - Her sayfada footer: "Letify CRM — Confidential" + sayfa numarası
+   - ✅ PDF dosya adı formatı: `Bonus_Report_{LeaderName}_{Date}.pdf`
+   - ✅ Loading state: generatingPdf spinner animasyonu
+   - ✅ Veri yoksa buton disabled
+
+2. **Agent Bonus Bildirimi (v2.7.5)**:
+   - ✅ Revenue API'ye `checkAndNotifyAgentBonus()` fonksiyonu eklendi
+   - ✅ Deal tamamlandığında (landlord_paid_date + client_paid_date dolu) agent bonus eşiği kontrol edilir
+   - ✅ Bonus eşikleri:
+     - Contract Bonus (≥6 deal): %50-%70 × ortalama kira
+     - Agency Fee Bonus (<6 deal): ≥€3K → €150, ≥€5K → €300
+   - ✅ Bildirim alıcıları: teamleader, manager, boss rolleri
+   - ✅ Bildirim kanalları: email + push notification
+   - ✅ Duplicate önleme: önceki vs mevcut bonus karşılaştırması, sadece eşik aşıldığında bildirim
+   - ✅ Agent'a bildirim gitmez, sadece yöneticilere
+
+3. **Collaboration Dropdown - Agent Filtresi (v2.7.5)**:
+   - ✅ Agent RevenueClient'ta profiles sorgusuna `.eq("role", "agent")` eklendi
+   - ✅ Dropdown'da sadece agent rolündeki kullanıcılar gösterilir
+   - ✅ admin, boss, teamleader, manager rolleri filtrelenir
+
+4. **Profile Kartı Pozisyonu (v2.7.5)**:
+   - ✅ Agent DashboardClient'ta Profile kartı grid'de ilk sıraya taşındı
+
+5. **React Hooks Bug Fix (v2.7.5)**:
+   - ✅ BonusesClient.tsx'te `useState(false)` early return sonrasına yerleştirilmişti
+   - ✅ "Rendered more hooks than during the previous render" hatası
+   - ✅ Düzletme: `generatingPdf` state'i diğer useState'lerle birlikte componentin başına taşındı
+   - ✅ `useCallback(generatePdfReport)` da `if (loading) return` öncesine taşındı
 
 **Teknik Detaylar:**
-- **Bug Fix - Collaboration Dropdown**:
+
+- **PDF Rapor Kütüphaneleri**:
+  ```json
+  "jspdf": "2.5.2",
+  "jspdf-autotable": "3.8.4"
+  ```
+
+- **PDF Rapor Fonksiyonu**:
   ```typescript
-  // ÖNCE (Agent - HATALI): profiles tablosunda 'id' kolonu yok
-  const { data } = await supabase.from("profiles")
-    .select("id, full_name").neq("id", user.id);
-  
-  // SONRA (Agent - DOĞRU): user_id = UUID primary key
-  const { data } = await supabase.from("profiles")
-    .select("user_id, full_name").neq("user_id", user.id);
+  const generatePdfReport = useCallback(async () => {
+    const doc = new jsPDF("landscape", "mm", "a4");
+    // Cover + Summary → Listing Fee Breakdown → Monthly Team Bonus → Grand Totals
+    // autoTable kullanımı: theme, headStyles, footStyles, didParseCell
+    doc.save(`Bonus_Report_${leaderName}_${date}.pdf`);
+  }, [leaderName, overallTotals, monthlyBonuses, processedDeals]);
   ```
 
-- **Supabase Storage Bucket**:
-  ```sql
-  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-  VALUES ('Lease_agreements', 'Lease_agreements', true, 10485760,
-    ARRAY['application/pdf','application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg','image/jpg','image/png']);
-  ```
-
-- **Doküman Tipleri**:
+- **Agent Bonus Bildirim API**:
   ```typescript
-  const DOCUMENT_TYPES = [
-    { key: "lease_agreement", label: "Lease Agreement" },
-    { key: "inventory_list", label: "Inventory List" },
-    { key: "invoice_owner", label: "Invoice - Owner" },
-    { key: "invoice_client", label: "Invoice - Client" },
-  ];
+  // app/api/revenue/route.ts
+  async function checkAndNotifyAgentBonus(userId, supabase) {
+    // 1. Agent'ın tüm tamamlanmış deal'lerini çek
+    // 2. Mevcut bonus'u hesapla (calculateAgentBonusServer)
+    // 3. Önceki bonus ile karşılaştır (duplicate önleme)
+    // 4. Eşik aşıldıysa → email + push notification → teamleader/manager/boss
+  }
   ```
 
-- **Depolama Yapısı**:
-  ```
-  Lease_agreements/
-  └── ref_no/
-      ├── lease_agreement/contract.pdf
-      ├── inventory_list/list.pdf
-      ├── invoice_owner/invoice.pdf
-      └── invoice_client/invoice.pdf
-  ```
+- **Hooks Sıralama Düzeltmesi**:
+  ```typescript
+  // ÖNCE (HATALI): useState early return sonrasındaydı
+  if (loading) return <Loading/>;
+  const [generatingPdf, setGeneratingPdf] = useState(false); // ❌ hooks violation
 
-- **Oluşturulan Dosyalar**:
-  ```
-  components/revenue/DealDocumentUpload.tsx (paylaşımlı bileşen)
-  supabase/migrations/20260222_create_lease_agreements_bucket.sql (bucket + RLS)
+  // SONRA (DOĞRU): Tüm hooks component başında
+  const [generatingPdf, setGeneratingPdf] = useState(false); // ✅
+  const generatePdfReport = useCallback(...); // ✅
+  if (loading) return <Loading/>;
   ```
 
 - **Değiştirilen Dosyalar**:
   ```
-  app/dashboard/revenue/RevenueClient.tsx (collaboration fix + DealDocumentUpload)
-  app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (DealDocumentUpload)
-  app/(app)/teamleader/team-revenue/EditDealModal.tsx (DealDocumentUpload)
-  package.json (v2.7.4)
+  app/(app)/teamleader/bonuses/BonusesClient.tsx (PDF rapor + hooks fix)
+  app/api/revenue/route.ts (agent bonus bildirimi)
+  app/dashboard/revenue/RevenueClient.tsx (collaboration agent filtresi)
+  app/dashboard/DashboardClient.tsx (profile kartı ilk sıra)
+  package.json (v2.7.5, jspdf, jspdf-autotable)
   ```
 
-### Önceki Odak (22.02.2026) ✅ COMPLETED - Hired Agents Document Upload v2.7.3
+### Önceki Odak (22.02.2026) ✅ COMPLETED - Deal Documents & Collaboration Fix v2.7.4
 1. **Hired Agents Document Upload (v2.7.3)**:
    - ✅ Applications sayfasında Edit Applicant modal'ına doküman yükleme bölümü eklendi
    - ✅ "Hired" checkbox'ının altında Required Documents bölümü

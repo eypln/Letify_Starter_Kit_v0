@@ -175,6 +175,22 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link href="/dashboard/profile" className="block">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6 pb-4">
+                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+                  <Settings className="h-6 w-6 text-purple-600" />
+                  <span>Profile</span>
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Account settings and Facebook integration
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
+              </div>
+            </div>
+          </Link>
           <Link href="/dashboard/new-post" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
               <div className="p-6 pb-4">
@@ -255,22 +271,6 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
               </div>
             </div>
           </div>
-          <Link href="/dashboard/profile" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Settings className="h-6 w-6 text-purple-600" />
-                  <span>Profile</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Account settings and Facebook integration
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
-              </div>
-            </div>
-          </Link>
           <Link href="/dashboard/teamwork" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">

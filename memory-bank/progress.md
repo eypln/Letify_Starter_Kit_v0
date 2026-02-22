@@ -3,6 +3,59 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.7.5 - Bonus PDF Raporu & Agent Bonus Bildirimleri (22.02.2026) ✅
+**Yapılanlar:**
+
+#### Teamleader Bonus PDF Raporu ✅
+- **Bonuses sayfasına PDF rapor indirme özelliği eklendi**:
+  - jsPDF (v2.5.2) + jspdf-autotable (v3.8.4) kütüphaneleri kuruldu
+  - "Download PDF Report" butonu header'a eklendi (mor tema, spinner animasyonu)
+  - PDF landscape A4 formatında oluşturulur
+  - **Sayfa 1 - Kapak + Özet**: Koyu header, tarih, lider adı, Summary tablosu (personal/team/listing fee/grand total)
+  - **Sayfa 2 - Listing Fee Kırılımı**: Aylara göre gruplandırılmış deal tabloları (ref_no, agent, tarih, kira, listing fee + aylık toplamlar)
+  - **Sayfa 3+ - Aylık Team Bonus Detayları**: Her ay için tier bilgisi, deal tablosu (ref_no, agent, client, type, rent, effective_rent, collab, listing_fee), renkli kazanç özet satırı (personal=mor, team=pembe, listing=teal)
+  - **Grand Totals**: Vurgulu toplam tablosu (sarı arka plan)
+  - **Footer**: Her sayfada "Letify CRM — Confidential" + sayfa numarası
+  - Dosya adı: `Bonus_Report_{LeaderName}_{Tarih}.pdf`
+
+- **React Hooks Bug Fix**:
+  - `const [generatingPdf, setGeneratingPdf] = useState(false)` early return sonrasına yerleştirilmişti
+  - "Rendered more hooks than during the previous render" hatası oluşuyordu
+  - Düzeltme: useState ve useCallback hook'ları component başına (`if (loading) return` öncesine) taşındı
+
+#### Agent Bonus Bildirimleri ✅
+- **Revenue API'ye otomatik bonus bildirim sistemi eklendi**:
+  - `checkAndNotifyAgentBonus()`: Deal tamamlandığında (landlord + client paid) çağrılır
+  - `calculateAgentBonusServer()`: Agent'ın mevcut bonus miktarını hesaplar
+  - `generateBonusNotificationEmail()`: HTML email şablonu oluşturur
+  - Contract Bonus eşikleri: ≥6 deal → %50-%70 × ortalama kira
+  - Agency Fee Bonus eşikleri: <6 deal, ≥€3K → €150, ≥€5K → €300
+  - Bildirim alıcıları: teamleader, manager, boss (agent'a gitmez)
+  - Bildirim kanalları: Email (SMTP) + Push Notification (Web Push)
+  - Duplicate önleme: mevcut bonus vs önceki bonus karşılaştırması
+  - POST ve PUT handler'larında çağrılır
+
+#### Collaboration Dropdown Agent Filtresi ✅
+- **Agent RevenueClient'ta Collaboration With dropdown'u güncellendi**:
+  - `.eq("role", "agent")` filtresi eklendi
+  - Sadece agent rolündeki kullanıcılar listelenir
+  - admin, boss, teamleader, manager rolleri filtrelenir
+
+#### Profile Kartı Pozisyonu ✅
+- **Agent DashboardClient'ta Profile kartı grid'de ilk sıraya taşındı**
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/bonuses/BonusesClient.tsx (PDF rapor + hooks fix)
+app/api/revenue/route.ts (agent bonus bildirimi: checkAndNotifyAgentBonus, calculateAgentBonusServer, generateBonusNotificationEmail)
+app/dashboard/revenue/RevenueClient.tsx (collaboration dropdown agent filtresi)
+app/dashboard/DashboardClient.tsx (profile kartı ilk sıra)
+package.json (v2.7.5 + jspdf + jspdf-autotable)
+agent.md (güncellendi)
+memory-bank/activeContext.md (güncellendi)
+memory-bank/progress.md (güncellendi)
+```
+
 ### v2.7.4 - Deal Documents & Collaboration Fix (22.02.2026) ✅
 **Yapılanlar:**
 

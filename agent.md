@@ -149,20 +149,28 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (120 pages, 0 TypeScript errors)
-- **Version**: v2.7.4
+- **Version**: v2.7.5
 
 ### Son Eklenen Özellikler (22.02.2026)
-1. **Deal Documents & Collaboration Fix (v2.7.4)**:
+1. **Teamleader Bonus PDF Raporu & Agent Bonus Bildirimleri (v2.7.5)**:
+   - Teamleader Bonuses sayfasına PDF rapor indirme butonu eklendi (jsPDF + autoTable)
+   - PDF içeriği: Özet, Listing Fee kırılımı (ref_no/tarih/kira/listing fee), Aylık Team Bonus detayları, Grand Totals
+   - Agent bonus bildirimi: Deal tamamlandığında (her iki taraf ödediğinde) agent bonus eşiği geçtiyse teamleader/manager/boss'a email + push notification
+   - Collaboration With dropdown'unda sadece agent rolündeki kullanıcılar gösterilir
+   - Agent dashboard'unda Profile kartı ilk sıraya taşındı
+   - React hooks sıralama düzeltmesi (useState early return sonrası hata)
+
+2. **Deal Documents & Collaboration Fix (v2.7.4)**:
    - Agent Collaboration Dropdown Fix: profiles tablosunda `id` yerine `user_id` kullanılacak şekilde düzeltildi
    - Deal Documents Upload: Revenue modal'larına Lease Agreement, Inventory List, Invoice-Owner, Invoice-Client yükleme
    - Paylaşımlı DealDocumentUpload bileşeni (Agent + Teamleader)
    - Supabase Storage: `Lease_agreements` bucket (ref_no ile organize)
 
-2. **Hired Agents Document Upload (v2.7.3)**:
+3. **Hired Agents Document Upload (v2.7.3)**:
    - Applications sayfasında Hired teamleader doküman yükleme (Passport, CV, Selfie, Service Agreement)
    - Supabase Storage: `hired_agents` bucket (applicant_name ile organize)
 
-3. **Agent Bonus Tracker (v2.7.2)**:
+4. **Agent Bonus Tracker (v2.7.2)**:
    - Revenue sayfasında Agent Bonus Tracker eklendi
    - Contract Bonus (≥6 deal): %50-%70 × ortalama kira
    - Agency Fee Bonus (<6 deal): €3,000→€150, €5,000→€300

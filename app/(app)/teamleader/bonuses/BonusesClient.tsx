@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   BarChart,
   Bar,
@@ -177,6 +179,7 @@ export default function BonusesClient({ user }: { user: User }) {
   const [agentIds, setAgentIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // ─── Data Loading ────────────────────────────────────────────────────────
 
@@ -438,6 +441,296 @@ export default function BonusesClient({ user }: { user: User }) {
     };
   }, [monthlyBonuses]);
 
+  const leaderName = leaderProfile?.full_name || "Team Leader";
+
+  // ─── PDF Report Generator ──────────────────────────────────────────────
+
+  const generatePdfReport = useCallback(async () => {
+    setGeneratingPdf(true);
+    try {
+      const doc = new jsPDF("landscape", "mm", "a4");
+      const pw = doc.internal.pageSize.getWidth();
+      const ph = doc.internal.pageSize.getHeight();
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+      const fmtCur = (n: number) => `€${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+      // ── Page 1: Cover + Summary ────────────────────────────────────
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, pw, 42, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("TEAMLEADER BONUS REPORT", 14, 18);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Prepared for: ${leaderName}`, 14, 28);
+      doc.text(`Generated: ${dateStr}`, 14, 35);
+
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary Overview", 14, 54);
+
+      autoTable(doc, {
+        startY: 58,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Total Personal Earnings", fmtCur(overallTotals.totalLeaderEarnings)],
+          ["Total Team Bonus", fmtCur(overallTotals.totalTeamBonus)],
+          ["Total Listing Fee Income", fmtCur(overallTotals.totalListingFee)],
+          ["Grand Total Earnings", fmtCur(overallTotals.totalEarnings)],
+          ["Months with Data", monthlyBonuses.length.toString()],
+        ],
+        theme: "grid",
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold" },
+        styles: { fontSize: 10, cellPadding: 4 },
+        columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 70, halign: "right", fontStyle: "bold" } },
+        margin: { left: 14 },
+      });
+
+      // ── Page 2: Listing Fee Details ────────────────────────────────
+      doc.addPage();
+      doc.setFillColor(20, 184, 166); // teal
+      doc.rect(0, 0, pw, 16, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("LISTING FEE BREAKDOWN", 14, 11);
+
+      // Group listing fee deals by month
+      const listingFeeByMonth = new Map<string, DealWithAgent[]>();
+      processedDeals.forEach((d) => {
+        if (d.deal_listing_fee > 0) {
+          const m = d.completion_date;
+          if (!listingFeeByMonth.has(m)) listingFeeByMonth.set(m, []);
+          listingFeeByMonth.get(m)!.push(d);
+        }
+      });
+      const sortedLFMonths = [...listingFeeByMonth.entries()].sort(([a], [b]) => b.localeCompare(a));
+
+      let y = 24;
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Total Listing Fee Income: ${fmtCur(overallTotals.totalListingFee)}`, 14, y);
+      y += 6;
+
+      for (const [monthKey, deals] of sortedLFMonths) {
+        if (y > ph - 40) { doc.addPage(); y = 20; }
+        const monthTotal = deals.reduce((s, d) => s + d.deal_listing_fee, 0);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${formatMonthLabel(monthKey)} — Total: ${fmtCur(monthTotal)}`, 14, y);
+        y += 2;
+
+        autoTable(doc, {
+          startY: y,
+          head: [["#", "Ref No", "Agent", "Completion Date", "Rent Amount", "Listing Fee"]],
+          body: deals.map((d, i) => [
+            (i + 1).toString(),
+            d.ref_no || "-",
+            d.agent_name,
+            d.completion_date ? formatMonthLabel(d.completion_date) : "-",
+            fmtCur(d.rent_amount || 0),
+            fmtCur(d.deal_listing_fee),
+          ]),
+          theme: "striped",
+          headStyles: { fillColor: [20, 184, 166], textColor: 255, fontStyle: "bold", fontSize: 8 },
+          styles: { fontSize: 8, cellPadding: 2 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: "center" },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 50 },
+            3: { cellWidth: 45 },
+            4: { cellWidth: 35, halign: "right" },
+            5: { cellWidth: 35, halign: "right" },
+          },
+          foot: [["", "", "", "TOTAL", "", fmtCur(monthTotal)]],
+          footStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold", fontSize: 8 },
+          margin: { left: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      if (sortedLFMonths.length === 0) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text("No listing fee records found.", 14, y);
+      }
+
+      // ── Page 3+: Monthly Team Bonus Breakdown ─────────────────────
+      doc.addPage();
+      doc.setFillColor(139, 92, 246); // purple
+      doc.rect(0, 0, pw, 16, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("MONTHLY TEAM BONUS BREAKDOWN", 14, 11);
+
+      y = 24;
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.text("Tier 1: €0-5K (32%/0%) | Tier 2: €5K-10K (37%/5%) | Tier 3: €10K-15K (37%/7.5%) | Tier 4: €15K+ (37%/10%)", 14, y);
+      y += 8;
+
+      // Sort months descending
+      const sortedBonuses = [...monthlyBonuses].sort((a, b) => b.month.localeCompare(a.month));
+
+      for (const mb of sortedBonuses) {
+        if (y > ph - 50) { doc.addPage(); y = 20; }
+
+        // Month header
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text(mb.monthLabel, 14, y);
+
+        const tierLabel = getBonusTier(mb.totalRevenue).label;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+          `${tierLabel} | Total Revenue: ${fmtCur(mb.totalRevenue)} | Personal: ${fmtCur(mb.leaderRevenue)} x ${fmtPct(mb.leaderRate)} = ${fmtCur(mb.leaderEarnings)} | Team: ${fmtCur(mb.teamRevenue)} x ${fmtPct(mb.teamRate)} = ${fmtCur(mb.teamBonus)} | Listing Fee: ${fmtCur(mb.listingFee)}`,
+          14, y + 5
+        );
+        y += 9;
+
+        // Get deals for this month
+        const monthDeals = processedDeals
+          .filter((d) => d.completion_date === mb.month && !d.is_external_deal)
+          .sort((a, b) => a.agent_name.localeCompare(b.agent_name));
+
+        autoTable(doc, {
+          startY: y,
+          head: [["#", "Ref No", "Agent", "Client", "Type", "Rent", "Effective Rent", "Collab", "Listing Fee"]],
+          body: monthDeals.map((d, i) => [
+            (i + 1).toString(),
+            d.ref_no || "-",
+            d.agent_name,
+            d.client_name || "-",
+            d.is_leader_deal ? "Leader" : "Team",
+            fmtCur(d.rent_amount || 0),
+            fmtCur(d.effective_rent),
+            d.collaboration_with || "-",
+            fmtCur(d.deal_listing_fee),
+          ]),
+          theme: "striped",
+          headStyles: {
+            fillColor: mb.tier >= 2 ? [139, 92, 246] : [148, 163, 184],
+            textColor: 255,
+            fontStyle: "bold",
+            fontSize: 7,
+          },
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: 8, halign: "center" },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 18, halign: "center" },
+            5: { cellWidth: 28, halign: "right" },
+            6: { cellWidth: 28, halign: "right" },
+            7: { cellWidth: 35 },
+            8: { cellWidth: 25, halign: "right" },
+          },
+          foot: [[
+            "", "", "", "", "TOTAL",
+            fmtCur(monthDeals.reduce((s, d) => s + (d.rent_amount || 0), 0)),
+            fmtCur(monthDeals.reduce((s, d) => s + d.effective_rent, 0)),
+            "",
+            fmtCur(monthDeals.reduce((s, d) => s + d.deal_listing_fee, 0)),
+          ]],
+          footStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold", fontSize: 7 },
+          margin: { left: 14 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 6;
+
+        // Earnings summary row
+        if (y > ph - 20) { doc.addPage(); y = 20; }
+        doc.setFillColor(248, 250, 252);
+        doc.rect(14, y - 2, pw - 28, 10, "F");
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(22, 163, 74);
+        doc.text(`Month Total Earnings: ${fmtCur(mb.totalEarnings)}`, 18, y + 4);
+        doc.setTextColor(139, 92, 246);
+        doc.text(`Personal: ${fmtCur(mb.leaderEarnings)}`, 100, y + 4);
+        doc.setTextColor(236, 72, 153);
+        doc.text(`Team Bonus: ${fmtCur(mb.teamBonus)}`, 155, y + 4);
+        doc.setTextColor(20, 184, 166);
+        doc.text(`Listing Fee: ${fmtCur(mb.listingFee)}`, 210, y + 4);
+        y += 16;
+      }
+
+      // ── Page: Grand Totals ────────────────────────────────────────
+      if (y > ph - 60) { doc.addPage(); y = 20; }
+      doc.setFillColor(30, 41, 59);
+      doc.rect(14, y - 2, pw - 28, 12, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("GRAND TOTALS", 18, y + 6);
+      y += 16;
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Category", "Amount"]],
+        body: [
+          ["Total Personal Earnings", fmtCur(overallTotals.totalLeaderEarnings)],
+          ["Total Team Bonus", fmtCur(overallTotals.totalTeamBonus)],
+          ["Total Listing Fee Income", fmtCur(overallTotals.totalListingFee)],
+          ["GRAND TOTAL", fmtCur(overallTotals.totalEarnings)],
+        ],
+        theme: "grid",
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold" },
+        styles: { fontSize: 11, cellPadding: 5 },
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 80, halign: "right", fontStyle: "bold" } },
+        bodyStyles: { textColor: [30, 41, 59] },
+        margin: { left: 14 },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.row.index === 3) {
+            data.cell.styles.fillColor = [254, 243, 199];
+            data.cell.styles.textColor = [30, 41, 59];
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fontSize = 12;
+          }
+        },
+      });
+
+      // ── Footer on every page ──────────────────────────────────────
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFillColor(241, 245, 249);
+        doc.rect(0, ph - 12, pw, 12, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Letify CRM — Teamleader Bonus Report | Confidential", 14, ph - 5);
+        doc.text(`Page ${i} of ${totalPages}`, pw - 14, ph - 5, { align: "right" });
+      }
+
+      // Save
+      const filename = `Bonus_Report_${leaderName.replace(/\s+/g, "_")}_${now.toISOString().substring(0, 10)}.pdf`;
+      doc.save(filename);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("PDF generation failed. Please try again.");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }, [leaderName, overallTotals, monthlyBonuses, processedDeals]);
+
+  // Determine dashboard link based on user's role
+  const dashboardHref = leaderProfile?.role === "boss"
+    ? "/boss"
+    : leaderProfile?.role === "manager"
+      ? "/manager"
+      : "/teamleader";
+
   // ─── Render ─────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -449,15 +742,6 @@ export default function BonusesClient({ user }: { user: User }) {
       </div>
     );
   }
-
-  const leaderName = leaderProfile?.full_name || "Team Leader";
-
-  // Determine dashboard link based on user's role
-  const dashboardHref = leaderProfile?.role === "boss"
-    ? "/boss"
-    : leaderProfile?.role === "manager"
-      ? "/manager"
-      : "/teamleader";
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
@@ -474,7 +758,26 @@ export default function BonusesClient({ user }: { user: User }) {
         </Link>
       </div>
 
-      <h1 className="text-3xl font-bold mb-2 mt-4">Bonuses & Performance</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 mb-2">
+        <h1 className="text-3xl font-bold">Bonuses & Performance</h1>
+        <button
+          onClick={generatePdfReport}
+          disabled={generatingPdf || monthlyBonuses.length === 0}
+          className="mt-2 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {generatingPdf ? (
+            <>
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Download PDF Report
+            </>
+          )}
+        </button>
+      </div>
       <p className="text-muted-foreground mb-8">
         Track your leadership bonuses, team performance and earnings overview
       </p>
