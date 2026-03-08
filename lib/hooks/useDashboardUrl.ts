@@ -17,7 +17,9 @@ export function useDashboardUrl() {
           .eq('user_id', user.id)
           .single();
         
-        if (profile?.role === 'teamleader') {
+        if (profile?.role === 'intern') {
+          setDashboardUrl('/intern');
+        } else if (profile?.role === 'teamleader') {
           setDashboardUrl('/teamleader');
         } else if (profile?.role === 'manager') {
           setDashboardUrl('/manager');

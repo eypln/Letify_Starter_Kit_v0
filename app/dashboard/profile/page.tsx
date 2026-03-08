@@ -20,7 +20,14 @@ export default async function ProfilePage() {
   }
 
   // Determine dashboard URL based on role
-  const dashboardUrl = profile.role === 'teamleader' ? '/teamleader' : '/dashboard'
+  const roleRoutes: Record<string, string> = {
+    intern: '/intern',
+    teamleader: '/teamleader',
+    manager: '/manager',
+    boss: '/boss',
+    admin: '/admin',
+  }
+  const dashboardUrl = roleRoutes[profile.role] || '/dashboard'
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8 relative">

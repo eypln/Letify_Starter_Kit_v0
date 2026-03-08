@@ -2,7 +2,80 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (22.02.2026) ✅ COMPLETED - PDF Rapor & Bonus Bildirimleri v2.7.5
+### Ana Odak Alanları (08.03.2026) ✅ COMPLETED - Internship Task System v2.8.0
+
+1. **Intern Rolü & Staj Görev Yönetim Sistemi (v2.8.0)**:
+   - ✅ `intern` rolü RBAC'ye eklendi (DB constraint, middleware, sign-up)
+   - ✅ 3 yeni Supabase tablosu: `internship_task_definitions`, `internship_daily_logs`, `internship_client_queries`
+   - ✅ 3 API endpoint: `/api/internship-tasks`, `/api/internship-tasks/daily-logs`, `/api/internship-tasks/client-queries`
+   - ✅ Tam sayfa: `/dashboard/internship-tasks/page.tsx` (~1970 satır)
+   - ✅ RLS politikaları (intern=kendi verileri, teamleader+=tüm veriler)
+   - ✅ Supabase types güncellendi (`types/supabase.ts`) — 3 internship tablosu eklendi
+
+2. **Multi-Intern Teamleader Desteği (v2.8.0)**:
+   - ✅ `selectedInternId` state ile intern filtresi dropdown
+   - ✅ Per-intern progress kartları (Overview/Daily tabs)
+   - ✅ `effectiveInternId` ile filtrelenmiş `getLogCount`/`getOverallProgress`
+
+3. **Client Query Atama Sistemi (v2.8.0)**:
+   - ✅ Yeni client modal'da `assigned_to` zorunlu
+   - ✅ "Assigned to" kart üzerinde görünür
+   - ✅ Reassign butonu + dropdown (PATCH API `reassign` action)
+
+4. **+1 Butonu → Add Listing Entegrasyonu (v2.8.0)**:
+   - ✅ `AddListingDialog` external control props eklendi (`externalOpen`, `onOpenChange`, `onListingCreated`, `showTrigger`)
+   - ✅ `detail_only` API desteği (count artmadan sadece detail kaydı)
+   - ✅ `LogProgressButton` → `listingMode`: +1 butonu Add Listing dialog açar
+   - ✅ "Add log details" butonu detail-only log kaydeder
+
+5. **Log Details Görünürlüğü (v2.8.0)**:
+   - ✅ `LogDetailsViewer` bileşeni: Max 5 satır inline gösterim (link, owner, city, beds, price)
+   - ✅ `getLogDetails()` helper fonksiyonu
+   - ✅ 3 view'da aktif: Intern Daily Tasks, Teamleader All-Interns, Teamleader Single-Intern
+   - ✅ >5 kayıt olduğunda "View all (N)" → popup modal (tam tablo, 10/sayfa, pagination)
+
+6. **UI/Guide Güncellemeleri (v2.8.0)**:
+   - ✅ "Log Progress" → "Task Progress", "Client Research" → "Client Queries" label değişiklikleri
+   - ✅ City dropdown (60 Malta şehri) Property Suggestions formunda
+   - ✅ Facebook Marketplace Scraping Guide güncellendi (step 4: "If found → Jump to B14", step 6: "Add in Logs")
+   - ✅ Message template: "If you are available" → "If you are interested"
+   - ✅ DatePicker özel İngilizce locale (Türkçe takvim sorunu düzeltildi)
+
+7. **TypeScript & Build Düzeltmeleri (v2.8.0)**:
+   - ✅ `types/supabase.ts` — 3 internship tablosu type tanımları eklendi
+   - ✅ `daily-logs/route.ts` — JSONB `details` spread type hatası (`Array.isArray` kontrolü)
+   - ✅ `client-queries/route.ts` — JSONB `property_suggestions` spread type hatası
+   - ✅ Build başarılı: 0 TypeScript hatası, 128 sayfa
+
+**Teknik Detaylar:**
+
+- **Yeni Tablolar (DB)**:
+  ```sql
+  internship_task_definitions (id, title, slug, description, guide_content, category, daily_target, sub_targets jsonb, message_templates jsonb, ...)
+  internship_daily_logs (id, user_id, task_definition_id, log_date, sub_target_key, count, details jsonb, ...)
+  internship_client_queries (id, task_definition_id, client_name, client_description, assigned_to, property_suggestions jsonb, min_suggestions, ...)
+  ```
+
+- **Yeni/Değiştirilen Dosyalar**:
+  ```
+  app/dashboard/internship-tasks/page.tsx (yeni, ~1970 satır)
+  app/api/internship-tasks/route.ts (yeni)
+  app/api/internship-tasks/daily-logs/route.ts (yeni)
+  app/api/internship-tasks/client-queries/route.ts (yeni)
+  app/dashboard/listings/add-dialog.tsx (external control props)
+  types/supabase.ts (3 internship tablo tipi)
+  migration_internship_tasks.sql (tam migration)
+  update_fb_scraping_guide.sql (guide/template güncelleme)
+  package.json (v2.8.0)
+  ```
+
+- **Bileşenler (page.tsx içinde)**:
+  - `ProgressRing` — SVG dairesel progress göstergesi
+  - `CopyableMessage` — Kopyalanabilir mesaj şablonu
+  - `LogDetailsViewer` — Log detail satırları (max 5 inline + popup)
+  - `LogProgressButton` — +1 ve detail formu (listingMode desteği)
+
+### Önceki Odak (22.02.2026) ✅ COMPLETED - PDF Rapor & Bonus Bildirimleri v2.7.5
 
 1. **Teamleader Bonus PDF Raporu (v2.7.5)**:
    - ✅ Teamleader Bonuses sayfasına "Download PDF Report" butonu eklendi

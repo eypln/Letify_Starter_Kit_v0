@@ -200,6 +200,32 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Intern rotaları koruması
+  if (pathname.startsWith('/intern')) {
+    if (!user) {
+      url.pathname = '/sign-in'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+    if (!user.email_confirmed_at) {
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+    if (profile?.role !== 'intern') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+    if (profile?.status === 'denied') {
+      url.pathname = '/access-denied'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Dashboard rotaları koruması
   if (pathname.startsWith('/dashboard')) {
     // Kullanıcı giriş yapmamışsa sign-in'e yönlendir

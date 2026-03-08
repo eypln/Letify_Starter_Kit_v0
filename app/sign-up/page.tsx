@@ -83,6 +83,8 @@ function SignUpForm() {
       switch (existingUser.role) {
         case 'admin':
           return '/admin'
+        case 'intern':
+          return '/intern'
         case 'teamleader':
           return '/teamleader'
         case 'manager':
@@ -328,6 +330,7 @@ function SignUpForm() {
               suppressHydrationWarning
               className="auth-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             >
+              <option value={UserRole.INTERN}>Intern</option>
               <option value={UserRole.AGENT}>Agent</option>
               <option value={UserRole.TEAMLEADER}>Team Leader</option>
               <option value={UserRole.MANAGER}>Manager</option>

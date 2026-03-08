@@ -119,6 +119,8 @@ export default function AuthCallbackContent() {
             switch (profile.role) {
               case 'admin':
                 return '/admin'
+              case 'intern':
+                return '/intern'
               case 'teamleader':
                 return '/teamleader'
               case 'manager':

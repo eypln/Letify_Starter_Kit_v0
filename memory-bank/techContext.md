@@ -111,6 +111,13 @@ pnpm dev
 - Storage bucket configuration
 - RLS policies setup
 
+### Internship Tables (v2.8.0 — 08.03.2026)
+- `internship_task_definitions` — Görev tanımları (sub_targets jsonb, message_templates jsonb, guide_content text)
+- `internship_daily_logs` — Günlük log (user_id, task_definition_id, log_date, sub_target_key, count, details jsonb)
+- `internship_client_queries` — Client query (assigned_to, property_suggestions jsonb, min_suggestions)
+- RLS: intern=kendi verileri, teamleader+=tüm veriler
+- TypeScript tipleri: `types/supabase.ts`'ye eklendi
+
 ## Teknik Kısıtlamalar
 
 ### Performance

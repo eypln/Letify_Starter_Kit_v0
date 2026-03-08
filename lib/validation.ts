@@ -123,6 +123,7 @@ export type StatusCallbackInput = z.infer<typeof StatusCallbackSchema>
 
 // User Roles
 export const UserRole = {
+  INTERN: 'intern',
   AGENT: 'agent',
   TEAMLEADER: 'teamleader',
   MANAGER: 'manager',
@@ -134,6 +135,8 @@ export type UserRoleType = typeof UserRole[keyof typeof UserRole]
 
 export const getRoleLabel = (role: UserRoleType): string => {
   switch (role) {
+    case UserRole.INTERN:
+      return 'Intern'
     case UserRole.AGENT:
       return 'Agent'
     case UserRole.TEAMLEADER:

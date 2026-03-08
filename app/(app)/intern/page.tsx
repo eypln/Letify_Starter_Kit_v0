@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { LogOut, Settings, Plus, FileText, Users, Users2, Calendar, Euro, Bell, ClipboardList, Trophy, ClipboardCheck } from 'lucide-react'
+import { LogOut, Settings, FileText, Users, Users2, ClipboardCheck } from 'lucide-react'
 
-export default function TeamLeaderPage() {
+export default function InternPage() {
   const router = useRouter()
   const supabase = createClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -29,7 +29,7 @@ export default function TeamLeaderPage() {
         .eq('user_id', user.id)
         .single()
 
-      if (profileData?.role !== 'teamleader') {
+      if (profileData?.role !== 'intern') {
         router.push('/access-denied')
         return
       }
@@ -46,7 +46,6 @@ export default function TeamLeaderPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
-      // Reset theme preference to light for new user
       localStorage.removeItem('theme')
       document.documentElement.classList.remove('dark')
       
@@ -90,10 +89,10 @@ export default function TeamLeaderPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold">
-            Welcome, {profile?.full_name || profile?.email?.split('@')[0] || 'Team Leader'}!
+            Welcome, {profile?.full_name || profile?.email?.split('@')[0] || 'Intern'}! 🎓
           </h1>
           <p className="text-muted-foreground mt-2">
-            Manage your team, track performance, and oversee operations
+            Your internship dashboard — track your tasks, manage listings, and grow your career
           </p>
         </div>
 
@@ -112,24 +111,6 @@ export default function TeamLeaderPage() {
               </div>
               <div className="p-6 pt-0">
                 <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Settings</button>
-              </div>
-            </div>
-          </Link>
-
-          {/* Create New Post Card */}
-          <Link href="/dashboard/new-post" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Plus className="h-6 w-6 text-purple-600" />
-                  <span>Create New Post</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Generate content and share on Facebook
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Start</button>
               </div>
             </div>
           </Link>
@@ -161,7 +142,7 @@ export default function TeamLeaderPage() {
                   <span>Listings</span>
                 </h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  View created content and shares
+                  View and manage property listings
                 </p>
               </div>
               <div className="p-6 pt-0">
@@ -188,110 +169,20 @@ export default function TeamLeaderPage() {
             </div>
           </Link>
 
-          {/* Team Viewings Card */}
-          <Link href="/teamleader/team-viewings" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Calendar className="h-6 w-6 text-purple-600" />
-                  <span>Team Viewings</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your viewings and team viewing records
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
-              </div>
-            </div>
-          </Link>
-
-          {/* Team Revenue Card */}
-          <Link href="/teamleader/team-revenue" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Euro className="h-6 w-6 text-purple-600" />
-                  <span>Team Revenue</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your deals and team revenue records
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View All</button>
-              </div>
-            </div>
-          </Link>
-
-          {/* Applications Card */}
-          <Link href="/teamleader/applications" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <ClipboardList className="h-6 w-6 text-purple-600" />
-                  <span>Applications</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Job applications tracking and management
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Manage</button>
-              </div>
-            </div>
-          </Link>
-
-          {/* Bonuses Card */}
-          <Link href="/teamleader/bonuses" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Trophy className="h-6 w-6 text-purple-600" />
-                  <span>Bonuses</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Leadership bonuses, team performance & earnings
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Bonuses</button>
-              </div>
-            </div>
-          </Link>
-
-          {/* Notifications Card */}
-          <Link href="/teamleader/notifications" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Bell className="h-6 w-6 text-purple-600" />
-                  <span>Notifications</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  All system notifications and alerts
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">View Log</button>
-              </div>
-            </div>
-          </Link>
-
           {/* Internship Tasks Card */}
           <Link href="/dashboard/internship-tasks" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <div className="rounded-lg border bg-gradient-to-br from-purple-50 to-indigo-50 text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full ring-2 ring-purple-200">
               <div className="p-6 pb-4">
                 <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <ClipboardCheck className="h-6 w-6 text-purple-600" />
                   <span>Internship Tasks</span>
                 </h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Manage intern tasks, track progress & assign work
+                  Your daily tasks, progress tracking & guides
                 </p>
               </div>
               <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Manage Tasks</button>
+                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">View Tasks</button>
               </div>
             </div>
           </Link>

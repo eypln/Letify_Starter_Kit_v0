@@ -130,9 +130,13 @@ interface Listing {
 
 interface AddDialogProps {
   listings?: Listing[];
+  externalOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onListingCreated?: (listingId: string) => void;
+  showTrigger?: boolean;
 }
 
-export default function AddDialog({}: AddDialogProps) {
+export default function AddDialog({ externalOpen, onOpenChange, onListingCreated, showTrigger = true }: AddDialogProps) {
   const { toast } = useToast();
   const supabase = createClient();
   
@@ -286,6 +290,7 @@ export default function AddDialog({}: AddDialogProps) {
       setJobId(jobId);
     setStartDone(true);
     setTimerActive(true);
+    if (onListingCreated) onListingCreated(finalListingId);
     setSecondsLeft(300); // 5 dakika (tekrar eski haline getirildi)
           toast({
             title: 'Job created successfully!',
@@ -350,7 +355,9 @@ export default function AddDialog({}: AddDialogProps) {
              });
     }
   }
-  const [open, setOpen] = useState(false);
+  const [_openInt, _setOpenInt] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : _openInt;
+  const setOpen = (val: boolean) => { _setOpenInt(val); onOpenChange?.(val); };
   const [referenceNo, setReferenceNo] = useState("");
   const [suggestedNextNumber, setSuggestedNextNumber] = useState<number | null>(null);
   const [city, setCity] = useState("");
@@ -581,7 +588,7 @@ export default function AddDialog({}: AddDialogProps) {
 
   return (
     <div>
-      <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-purple-600 text-white">+ Add</button>
+      {showTrigger && <button onClick={() => setOpen(true)} className="px-3 py-2 rounded-lg bg-purple-600 text-white">+ Add</button>}
       {open && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <form onSubmit={handleCreate} className="w-full max-w-[640px] bg-white dark:bg-gray-900 rounded-2xl p-5 space-y-3 shadow-lg my-8">

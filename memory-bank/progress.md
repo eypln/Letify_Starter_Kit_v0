@@ -3,6 +3,81 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.0 - Internship Task Management System (08.03.2026) ✅
+**Yapılanlar:**
+
+#### Intern Rolü & Tam Staj Görev Sistemi ✅
+- **RBAC'ye `intern` rolü eklendi**:
+  - DB CHECK constraint güncellendi: `('agent','intern','teamleader','manager','boss','admin')`
+  - Middleware role routing: intern → `/dashboard` redirect
+  - Sign-up formda "Intern" seçeneği eklendi
+  - Profile routing intern desteği
+
+- **3 Yeni Veritabanı Tablosu**:
+  - `internship_task_definitions`: Görev tanımları (title, slug, guide_content, sub_targets jsonb, message_templates jsonb)
+  - `internship_daily_logs`: Günlük log kaydı (user_id, task_definition_id, log_date, sub_target_key, count, details jsonb)
+  - `internship_client_queries`: Client query'ler (client_name, assigned_to, property_suggestions jsonb, min_suggestions)
+  - RLS: intern kendi verileri, teamleader+ tüm veriler
+
+- **3 API Endpoint**:
+  - `GET/POST /api/internship-tasks` — Görev tanımlarını listeleme/oluşturma
+  - `GET/POST /api/internship-tasks/daily-logs` — Log okuma/yazma (detail_only desteği)
+  - `GET/POST/PATCH /api/internship-tasks/client-queries` — Client query CRUD + add_suggestion/reassign/complete aksiyonları
+
+- **Tam Sayfa: `/dashboard/internship-tasks`** (~1970 satır):
+  - 3 tab: Overview, Daily Tasks, Client Queries
+  - Intern görünümü: Progress ring, task kartları, +1 butonları, log detail formu
+  - Teamleader görünümü: Intern seçici dropdown, per-intern progress, görev oluşturma
+
+#### Multi-Intern Teamleader Desteği ✅
+- `selectedInternId` state + intern filtre dropdown
+- Per-intern progress kartları (Overview/Daily tabs)
+- `effectiveInternId` ile per-intern `getLogCount`/`getOverallProgress`
+
+#### Client Query Atama & Reassign ✅
+- Yeni client modal'da `assigned_to` zorunlu alan
+- "Assigned to" kart üzerinde görünür
+- Reassign butonu + dropdown (intern seçimi)
+- PATCH API `reassign` aksiyonu
+
+#### +1 → Add Listing Entegrasyonu ✅
+- `AddListingDialog` → external control props: `externalOpen`, `onOpenChange`, `onListingCreated`, `showTrigger`
+- `detail_only` API: count artmadan sadece detail append
+- `LogProgressButton` `listingMode`: +1 butonu → Add Listing dialog, "Add log details" → detail-only log
+
+#### Log Details Görünürlüğü ✅
+- `LogDetailsViewer` bileşeni: listing_link, owner_name, city, bedrooms, price satırları
+- Max 5 inline, >5 → "View all" butonu → full table popup modal (10/sayfa, pagination)
+- `getLogDetails()` helper fonksiyonu
+- 3 view: Intern Daily Tasks, Teamleader All-Interns, Teamleader Single-Intern
+
+#### UI/Guide Güncellemeleri ✅
+- Label değişiklikleri: "Log Progress" → "Task Progress", "Client Research" → "Client Queries"
+- Malta şehirleri dropdown (60 şehir) Property Suggestions formunda
+- Facebook Marketplace Scraping Guide: step 4 "If found → Jump to B14", step 6 "Add in Logs"
+- Message template: "available" → "interested"
+- Özel İngilizce DatePicker locale (Türkçe takvim sorunu)
+
+#### TypeScript & Build Düzeltmeleri ✅
+- `types/supabase.ts` → 3 internship tablo tipi eklendi
+- JSONB spread type hataları: `Array.isArray()` kontrolü ile düzeltildi
+- Build: 0 TypeScript hatası, 128 sayfa
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+app/dashboard/internship-tasks/page.tsx (yeni, ~1970 satır)
+app/api/internship-tasks/route.ts (yeni)
+app/api/internship-tasks/daily-logs/route.ts (yeni)
+app/api/internship-tasks/client-queries/route.ts (yeni)
+app/dashboard/listings/add-dialog.tsx (external control props)
+types/supabase.ts (3 internship tablo tipi)
+migration_internship_tasks.sql (tam migration SQL)
+update_fb_scraping_guide.sql (guide/template UPDATE SQL)
+package.json (v2.8.0)
+memory-bank/* (güncellendi)
+agent.md (güncellendi)
+```
+
 ### v2.7.5 - Bonus PDF Raporu & Agent Bonus Bildirimleri (22.02.2026) ✅
 **Yapılanlar:**
 

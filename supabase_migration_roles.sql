@@ -13,7 +13,7 @@ ALTER TABLE public.profiles
 -- Add new constraint with all roles
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_role_check 
-  CHECK (role IN ('agent', 'teamleader', 'manager', 'boss', 'admin'));
+  CHECK (role IN ('agent', 'intern', 'teamleader', 'manager', 'boss', 'admin'));
 
 -- 2. Update the trigger to set default role for new users
 -- This ensures new profiles get the correct role assignment

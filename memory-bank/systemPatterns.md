@@ -194,16 +194,62 @@ import { Analytics } from '@vercel/analytics/next'
 
 **Key Learning**: Always check analytics package imports when upgrading Next.js major versions
 
-### Role-Based Access Control (RBAC) Pattern (06.12.2025)
+### Internship Task Management Pattern (08.03.2026 — v2.8.0)
+
+**Mimari:**
+```
+Intern:
+  /dashboard/internship-tasks → 3 tab (Overview, Daily Tasks, Client Queries)
+  +1 butonları → listingMode ? Add Listing dialog : quick increment
+  "Add log details" → detail_only API (count artmaz, sadece detail append)
+  LogDetailsViewer → max 5 inline, >5 → popup modal
+
+Teamleader:
+  Aynı sayfa, isTeamleader flag ile farklı görünüm
+  Intern seçici dropdown (selectedInternId: 'all' | internId)
+  Per-intern progress kartları
+  Görev oluşturma, client query atama/reassign/complete
+```
+
+**detail_only Pattern (API):**
+```typescript
+// POST /api/internship-tasks/daily-logs
+// detail_only: true → count aynı kalır, detail array'e append
+// detail_only: false → count +1, detail varsa append
+const existingDetails = Array.isArray(existing.details) ? existing.details : []
+const newDetails = [...existingDetails, ...(detail ? [{ ...detail, timestamp }] : [])]
+update({ count: detail_only ? existing.count : existing.count + 1, details: newDetails })
+```
+
+**External Dialog Control Pattern (AddListingDialog):**
+```typescript
+// Parent kontrollü dialog açma
+<AddListingDialog
+  externalOpen={listingDialogOpen}        // parent state
+  onOpenChange={setListingDialogOpen}     // parent setter
+  onListingCreated={handleListingCreated} // callback: listing oluşturulunca
+  showTrigger={false}                     // kendi butonunu gizle
+/>
+```
+
+**JSONB Type Safety Pattern:**
+```typescript
+// Supabase Json tipi spread edilemez → Array.isArray kontrolü
+const existing = Array.isArray(row.property_suggestions) ? row.property_suggestions : []
+const updated = [...existing, newItem]
+```
+
+### Role-Based Access Control (RBAC) Pattern (06.12.2025, updated 08.03.2026)
 
 **System Architecture:**
 ```typescript
-// Role Hierarchy
-type UserRole = 'agent' | 'teamleader' | 'manager' | 'boss' | 'admin'
+// Role Hierarchy (v2.8.0: intern eklendi)
+type UserRole = 'agent' | 'intern' | 'teamleader' | 'manager' | 'boss' | 'admin'
 
 // Route Mapping
 ROLE_ROUTES = {
   agent: '/dashboard',
+  intern: '/dashboard',    // intern, agent ile aynı dashboard'u kullanır
   teamleader: '/teamleader',
   manager: '/manager',
   boss: '/boss',

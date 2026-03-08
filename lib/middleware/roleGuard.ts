@@ -7,13 +7,14 @@
 
 import { createClient } from '@/lib/supabase/client';
 
-export type UserRole = 'agent' | 'teamleader' | 'manager' | 'boss' | 'admin';
+export type UserRole = 'intern' | 'agent' | 'teamleader' | 'manager' | 'boss' | 'admin';
 
 /**
  * Rol bazlı route mapping
  * Her rol için izin verilen base path
  */
 export const ROLE_ROUTES: Record<UserRole, string> = {
+  intern: '/intern',
   agent: '/dashboard',
   teamleader: '/teamleader',
   manager: '/manager',
@@ -45,7 +46,8 @@ export function hasAccess(userRole: UserRole, currentPath: string): boolean {
     '/dashboard/teamwork',
     '/dashboard/viewings',
     '/dashboard/revenue',
-    '/dashboard/analytics'
+    '/dashboard/analytics',
+    '/dashboard/internship-tasks'
   ];
   
   if (sharedPaths.some(path => currentPath.startsWith(path))) {

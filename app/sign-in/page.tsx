@@ -92,6 +92,8 @@ function SignInForm() {
       switch (existingUser.role) {
         case 'admin':
           return '/admin'
+        case 'intern':
+          return '/intern'
         case 'teamleader':
           return '/teamleader'
         case 'manager':
@@ -146,6 +148,8 @@ function SignInForm() {
           switch (profile?.role) {
             case 'admin':
               return '/admin'
+            case 'intern':
+              return '/intern'
             case 'teamleader':
               return '/teamleader'
             case 'manager':
