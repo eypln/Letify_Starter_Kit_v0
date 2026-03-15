@@ -2,7 +2,82 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (08.03.2026) ✅ COMPLETED - Internship Task System v2.8.0
+### Ana Odak Alanları (15.03.2026) ✅ COMPLETED - Job Applications UX Sprint v2.9.0
+
+1. **Job Applications 7 UX Feature (v2.9.0)**:
+   - ✅ Summary stats kartları (8 kart: 7 statü + 1 Hired, mor tema)
+   - ✅ Status filter (kartlara tıkla → filtrele, aktif filtreler pill olarak gösterilir)
+   - ✅ Inline status edit (statü badge'ine tıkla → dropdown → PATCH API)
+   - ✅ Bulk actions (checkbox seçim, toplu statü değiştirme + silme, onay modal)
+   - ✅ Row tint (statüye göre satır arka plan rengi)
+   - ✅ XLSX export (`xlsx` kütüphanesi ile Excel formatında dışa aktarma)
+   - ✅ Debounced search (300ms gecikme ile arama)
+
+2. **Hired Team Members Tablosu Geliştirmeleri (v2.9.0)**:
+   - ✅ Hired count kartı (mor tema, 8. kart olarak eklendi)
+   - ✅ Hired tablo + kart tamamen mor tonlara çevrildi (yeşilden)
+   - ✅ Hired tablo pagination (20 kayıt/sayfa, First/Prev/sayfa numaraları/Next/Last)
+   - ✅ Sayfa numaralandırması ellipsis desteği ile (1...3 4 5...10 formatı)
+   - ✅ Satır numaraları sayfa bazlı doğru hesaplanıyor
+
+3. **Pie Chart — Statü Dağılımı (v2.9.0)**:
+   - ✅ Recharts ile donut (halka) grafiği eklendi (kartların altına)
+   - ✅ 7 statü + Hired = 8 dilim, %100 oransal dağılım
+   - ✅ Her dilimde statü adı + yüzde oranı etiketi
+   - ✅ Tooltip: adet + yüzde gösterimi
+   - ✅ Renk eşleştirmesi: PIE_COLORS map (No Reply=kırmızı, Hired=mor vs.)
+   - ✅ max-w-2xl kart, height=380, outerRadius=120, fontSize=13
+
+4. **PDF Rapor İndirme (v2.9.0)**:
+   - ✅ "PDF Report" butonu Excel butonunun yanına eklendi (mor tema)
+   - ✅ jsPDF + jspdf-autotable ile PDF oluşturma
+   - ✅ **Başlık**: "Job Applications Report" + "From 01.06.2025 | Generated: {tarih}"
+   - ✅ **Overview**: Total Applications, Hired Team Members, Grand Total
+   - ✅ **Status Breakdown tablosu**: Her statü adet + yüzde, mor temalı tablo, kalın Total satır
+   - ✅ **Key Insights** (5 madde):
+     - En yaygın statü
+     - Hire oranı (%)
+     - Scheduled interviews sayısı + oranı
+     - No reply oranı
+     - Interview to hire conversion (Scheduled + Hired → kaçı hired, dönüşüm oranı)
+   - ✅ **Footer**: "Letify HR — Confidential"
+   - ✅ Dosya adı: `applications_report_{tarih}.pdf`
+
+5. **Önceki Oturum Değişiklikleri (v2.9.0)**:
+   - ✅ Teamleader EditDealModal'a Shortlet/Longlet toggle eklendi
+   - ✅ Agent ↔ Teamleader revenue sayfaları arasında bidirectional realtime sync
+   - ✅ Job Applications tablosuna isim/telefon araması eklendi
+   - ✅ Actions kolonu Date ile Applicant arasına taşındı
+
+**Teknik Detaylar:**
+
+- **Değiştirilen Ana Dosya**:
+  ```
+  app/(app)/teamleader/applications/ApplicationsClient.tsx
+  ```
+
+- **Yeni Import'lar**:
+  - `useMemo` (React)
+  - `PieChart, Pie, Cell, Tooltip, ResponsiveContainer` (recharts)
+  - `jsPDF` (jspdf)
+  - `autoTable` (jspdf-autotable)
+
+- **Yeni State'ler**:
+  - `hiredPage`, `hiredPageCount` — Hired tablo pagination
+  - `pieData`, `pieTotal` — useMemo ile hesaplanan pie chart verileri
+
+- **Yeni Fonksiyonlar**:
+  - `handleExportPdfReport()` — PDF rapor oluşturma ve indirme
+  - `HIRED_PER_PAGE = 20` — Hired tabloda sayfa başına kayıt
+
+- **Yeni Sabitler**:
+  - `PIE_COLORS` — 8 statü için renk eşleştirmesi
+
+- **API Endpoint'leri**:
+  - `/api/applications` — GET, POST, PUT, DELETE (bulk), PATCH (bulk/inline status)
+  - `fetchHiredApplicants()` — `.range(from, to)` ile sayfalı veri çekme
+
+### Önceki Odak (08.03.2026) ✅ COMPLETED - Internship Task System v2.8.0
 
 1. **Intern Rolü & Staj Görev Yönetim Sistemi (v2.8.0)**:
    - ✅ `intern` rolü RBAC'ye eklendi (DB constraint, middleware, sign-up)

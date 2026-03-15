@@ -62,7 +62,8 @@ function SignInForm() {
     }
     
     checkExistingSession()
-  }, [searchParams, toast, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSignOut = async () => {
     setLoading(true)

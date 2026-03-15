@@ -340,6 +340,30 @@ export default function RevenueClient({ user }: { user: User }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // Realtime subscription for revenue changes (sync with teamleader edits)
+  useEffect(() => {
+    const channel = supabase
+      .channel('agent-revenue-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'revenue',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          getUserAndRevenues();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
   const resetForm = () => {
     setForm({
       id: undefined,

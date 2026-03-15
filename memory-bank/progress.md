@@ -3,6 +3,59 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.9.0 - Job Applications UX Sprint & Analytics (15.03.2026) ✅
+**Yapılanlar:**
+
+#### 7 UX Feature — ApplicationsClient.tsx ✅
+- **Summary Stats Kartları**: 8 kartlık grid (lg:grid-cols-8), 7 statü + 1 Hired (mor tema)
+- **Status Filter**: Kartlara tıklayarak filtre, aktif filtreler pill badge, "Clear all" butonu
+- **Inline Status Edit**: Statü badge'ine tıkla → dropdown → PATCH /api/applications ile anında güncelleme
+- **Bulk Actions**: Checkbox seçim + select-all, "Bulk Actions" dropdown (toplu statü değiştirme + silme, onay modal)
+- **Row Tint**: `getRowTint()` fonksiyonu ile statüye göre satır arka plan rengi
+- **XLSX Export**: `xlsx` kütüphanesi ile Excel dışa aktarma (kolon genişlikleri ayarlı)
+- **Debounced Search**: 300ms timeout ile isim/telefon araması
+
+#### Hired Team Members Geliştirmeleri ✅
+- **Hired Count Kartı**: Mor tema, 8. kart olarak stats grid'e eklendi
+- **Mor Tema**: Hired kart + tablo tamamen yeşilden mora çevrildi (border, bg, text, hover)
+- **Pagination**: 20 kayıt/sayfa, First/Prev/sayfa numaraları (ellipsis)/Next/Last
+- **Satır Numaralama**: `(hiredPage - 1) * HIRED_PER_PAGE + idx + 1` ile sayfa bazlı doğru numaralama
+- **`fetchHiredApplicants()`**: `.range(from, to)` ile sayfalı Supabase sorgusu
+
+#### Pie Chart — Statü Dağılımı ✅
+- **Recharts Donut Chart**: Kartların altında, 7 statü + Hired = 8 dilim
+- **Oransal Dağılım**: %100 üzerinden her dilimde label (statü adı + yüzde)
+- **Tooltip**: Adet + yüzde gösterimi
+- **PIE_COLORS**: Sabit renk haritası (No Reply=#991b1b, Hired=#a855f7 vs.)
+- **Boyut**: max-w-2xl kart, height=380, innerRadius=70, outerRadius=120, fontSize=13
+
+#### PDF Rapor İndirme ✅
+- **"PDF Report" butonu**: Excel butonunun yanında, mor tema
+- **jsPDF + jspdf-autotable**: PDF oluşturma
+- **Rapor İçeriği**:
+  - Başlık: "Job Applications Report" + "From 01.06.2025 | Generated: {tarih}"
+  - Overview: Total Applications (pipeline), Hired Team Members, Grand Total
+  - Status Breakdown tablosu: Mor temalı grid tablo, her statü adet + yüzde, kalın Total satır
+  - Key Insights (5 madde): En yaygın statü, Hire oranı, Scheduled interviews, No reply oranı, Interview→Hire conversion
+  - Footer: "Letify HR — Confidential"
+- **Dosya adı**: `applications_report_{tarih}.pdf`
+
+#### Önceki Oturum (Revenue & Search) ✅
+- **EditDealModal**: Shortlet/Longlet toggle (deal_type)
+- **Bidirectional Realtime Sync**: Agent ↔ Teamleader revenue Supabase realtime
+- **Job Applications Search**: İsim/telefon araması
+- **Actions Kolonu**: Date ile Applicant arasına taşındı
+
+**Oluşturulan/Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/applications/ApplicationsClient.tsx (ana dosya — tüm UX features, pie chart, PDF rapor, pagination)
+app/api/applications/route.ts (GET, POST, PUT, DELETE bulk, PATCH bulk/inline)
+app/(app)/teamleader/team-revenue/EditDealModal.tsx (deal_type toggle)
+app/dashboard/revenue/RevenueClient.tsx (realtime sync)
+memory-bank/activeContext.md (güncellendi)
+memory-bank/progress.md (güncellendi)
+```
+
 ### v2.8.0 - Internship Task Management System (08.03.2026) ✅
 **Yapılanlar:**
 

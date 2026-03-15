@@ -1,3 +1,6 @@
+// Suppress baseline-browser-mapping stale data warning
+process.env.BROWSERSLIST_IGNORE_OLD_DATA = 'true'
+
 /** @type {import('next').NextConfig} */
 
 // PWA configuration

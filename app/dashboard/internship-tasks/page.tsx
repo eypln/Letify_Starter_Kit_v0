@@ -521,8 +521,8 @@ export default function InternshipTasksPage() {
       const logsData = await logsRes.json()
       setDailyLogs(logsData.logs || [])
 
-      // Fetch client queries
-      const queriesRes = await fetch('/api/internship-tasks/client-queries?status=active')
+      // Fetch client queries (active + completed)
+      const queriesRes = await fetch('/api/internship-tasks/client-queries')
       const queriesData = await queriesRes.json()
       setClientQueries(queriesData.queries || [])
 
@@ -621,7 +621,7 @@ export default function InternshipTasksPage() {
         setSuggestion({ ref_no: '', city: '', bedrooms: '', price: '' })
         setShowSuggestionForm(null)
         // Refresh queries
-        const queriesRes = await fetch('/api/internship-tasks/client-queries?status=active')
+        const queriesRes = await fetch('/api/internship-tasks/client-queries')
         const queriesData = await queriesRes.json()
         setClientQueries(queriesData.queries || [])
       }
@@ -641,7 +641,7 @@ export default function InternshipTasksPage() {
         body: JSON.stringify({ query_id: queryId, action: 'complete' }),
       })
       if (res.ok) {
-        const queriesRes = await fetch('/api/internship-tasks/client-queries?status=active')
+        const queriesRes = await fetch('/api/internship-tasks/client-queries')
         const queriesData = await queriesRes.json()
         setClientQueries(queriesData.queries || [])
       }
@@ -662,7 +662,7 @@ export default function InternshipTasksPage() {
         body: JSON.stringify({ query_id: queryId, action: 'reassign', assigned_to: newInternId }),
       })
       if (res.ok) {
-        const queriesRes = await fetch('/api/internship-tasks/client-queries?status=active')
+        const queriesRes = await fetch('/api/internship-tasks/client-queries')
         const queriesData = await queriesRes.json()
         setClientQueries(queriesData.queries || [])
         setReassignQueryId(null)
@@ -1388,29 +1388,34 @@ export default function InternshipTasksPage() {
             ))}
 
             {/* Client Query Cards */}
-            <h3 className="text-lg font-bold flex items-center gap-2 mt-8">
-              <Users className="h-5 w-5 text-indigo-600" />
-              Active Client Queries
-              <span className="text-sm font-normal text-muted-foreground">({clientQueries.length})</span>
-            </h3>
+            {(() => {
+              const activeQueries = clientQueries.filter(q => q.status === 'active')
+              const completedQueries = clientQueries.filter(q => q.status === 'completed')
+              return (
+                <>
+                  <h3 className="text-lg font-bold flex items-center gap-2 mt-8">
+                    <Users className="h-5 w-5 text-indigo-600" />
+                    Active Client Queries
+                    <span className="text-sm font-normal text-muted-foreground">({activeQueries.length})</span>
+                  </h3>
 
-            {clientQueries.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-xl border">
-                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No active client queries.</p>
-                {isTeamleader && (
-                  <button
-                    onClick={() => setShowNewClientModal(true)}
-                    className="mt-4 text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
-                  >
-                    <Plus className="h-4 w-4 inline mr-1" />
-                    Add First Client Query
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {clientQueries.map(query => (
+                  {activeQueries.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-xl border">
+                      <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No active client queries.</p>
+                      {isTeamleader && (
+                        <button
+                          onClick={() => setShowNewClientModal(true)}
+                          className="mt-4 text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+                        >
+                          <Plus className="h-4 w-4 inline mr-1" />
+                          Add First Client Query
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {activeQueries.map(query => (
                   <div key={query.id} className="bg-white rounded-xl border shadow-sm overflow-hidden">
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 border-b">
                       <div className="flex items-start justify-between">
@@ -1603,9 +1608,84 @@ export default function InternshipTasksPage() {
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Passive Client Queries */}
+                  {completedQueries.length > 0 && (
+                    <>
+                      <h3 className="text-lg font-bold flex items-center gap-2 mt-10">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        Passive Client Queries
+                        <span className="text-sm font-normal text-muted-foreground">({completedQueries.length})</span>
+                      </h3>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {completedQueries.map(query => (
+                          <div key={query.id} className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden opacity-80">
+                            <div className="p-5 border-b bg-gray-100/50">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-semibold text-gray-700">{query.client_name}</h4>
+                                  <p className="text-sm text-gray-500 mt-1">{query.client_description}</p>
+                                </div>
+                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+                                  Completed
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {query.budget && (
+                                  <span className="text-xs bg-white px-2.5 py-1 rounded-full border">💰 {query.budget}</span>
+                                )}
+                                {query.location_preference && (
+                                  <span className="text-xs bg-white px-2.5 py-1 rounded-full border">📍 {query.location_preference}</span>
+                                )}
+                                {query.bedrooms && (
+                                  <span className="text-xs bg-white px-2.5 py-1 rounded-full border">🛏️ {query.bedrooms} bed</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="p-5">
+                              {/* Property Suggestions */}
+                              {(query.property_suggestions || []).length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+                                    <Home className="h-4 w-4 text-gray-500" />
+                                    Property Suggestions ({(query.property_suggestions || []).length})
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {(query.property_suggestions || []).map((s, i) => (
+                                      <div key={i} className="flex items-center justify-between text-xs bg-white rounded-lg px-3 py-2 border">
+                                        <span className="font-mono font-medium text-gray-600">Ref: {s.ref_no}</span>
+                                        <span>{s.city}</span>
+                                        <span>{s.bedrooms} bed</span>
+                                        <span>€{s.price}</span>
+                                        <span className={`px-1.5 py-0.5 rounded ${s.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                          {s.status}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Assigned Info */}
+                              {query.assigned_to && (
+                                <div className="mt-3 text-xs text-gray-400">
+                                  Assigned to: {getInternName(query.assigned_to)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )
+            })()}
           </div>
         )}
 

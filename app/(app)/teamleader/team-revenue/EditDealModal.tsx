@@ -13,6 +13,9 @@ import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
 
+// Deal Type enum
+type DealType = 'longlet' | 'shortlet';
+
 // Revenue form interface
 interface RevenueForm {
   id?: number | null;
@@ -24,6 +27,7 @@ interface RevenueForm {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type: DealType;
   date_rented: string;
   date_signed: string;
   date_move_in: string;
@@ -48,6 +52,7 @@ interface Revenue {
   client_discount: boolean;
   has_listing_fee: boolean;
   vat_type: VatType;
+  deal_type?: DealType;
   vatable?: boolean;
   date_rented: string | null;
   date_signed: string | null;
@@ -120,6 +125,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
       vat_type: vatType,
+      deal_type: revenue.deal_type || 'longlet',
       date_rented: revenue.date_rented || "",
       date_signed: revenue.date_signed || "",
       date_move_in: revenue.date_move_in || "",
@@ -172,14 +178,33 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
   useEffect(() => {
     const rentAmount = parseFloat(form.rent_amount) || 0;
     
-    let landlord_fee = rentAmount / 2;
-    if (form.landlord_discount) {
-      landlord_fee = landlord_fee * 0.85; // 15% discount
-    }
+    let landlord_fee = 0;
+    let client_fee = 0;
+    let listing_fee = 0;
 
-    let client_fee = rentAmount / 2;
-    if (form.client_discount) {
-      client_fee = client_fee * 0.85; // 15% discount
+    if (form.deal_type === 'shortlet') {
+      // Shortlet: Total Owner Rent Income calculation
+      landlord_fee = rentAmount * 0.10;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85;
+      }
+      client_fee = rentAmount * 0.10;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85;
+      }
+      // No listing fee for shortlet
+      listing_fee = 0;
+    } else {
+      // Longlet: Rent Amount calculation
+      landlord_fee = rentAmount / 2;
+      if (form.landlord_discount) {
+        landlord_fee = landlord_fee * 0.85;
+      }
+      client_fee = rentAmount / 2;
+      if (form.client_discount) {
+        client_fee = client_fee * 0.85;
+      }
+      listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0;
     }
 
     // Calculate VAT (18%) for landlord and client fees
@@ -188,8 +213,6 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
 
     const client_fee_vat = client_fee * 0.18;
     const client_fee_total = client_fee + client_fee_vat;
-
-    const listing_fee = form.has_listing_fee ? rentAmount * 0.05 : 0; // 5% of rent amount if checked
     
     // Calculate total revenue (with discounts applied)
     const totalRevenue = landlord_fee + client_fee;
@@ -226,7 +249,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       agent_income: Math.round(agent_income * 100) / 100,
       agent_tax: Math.round(agent_tax * 100) / 100,
     });
-  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type]);
+  }, [form.rent_amount, form.landlord_discount, form.client_discount, form.has_listing_fee, form.vat_type, form.deal_type]);
 
   // Fetch listings, clients, and profiles
   useEffect(() => {
@@ -325,6 +348,35 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
           <h2 className="text-2xl font-bold mb-4">Edit Deal</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Deal Type Toggle */}
+            <div className="mb-2">
+              <label className="block text-sm font-medium mb-2">Deal Type</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, deal_type: 'longlet', has_listing_fee: false })}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    form.deal_type === 'longlet'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Longlet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, deal_type: 'shortlet', has_listing_fee: false })}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    form.deal_type === 'shortlet'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Shortlet
+                </button>
+              </div>
+            </div>
+
             {/* Row 1: Ref No, Client Name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -392,13 +444,15 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
             {/* Row 2: Rent Amount, VAT Type */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Rent Amount (€) *</label>
+                <label className="block text-sm font-medium mb-1">
+                  {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                </label>
                 <Input
                   type="number"
                   step="0.01"
                   value={form.rent_amount}
                   onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                  placeholder="Enter rent amount"
+                  placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
                   required
                 />
               </div>
@@ -445,9 +499,12 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   id="has_listing_fee"
                   checked={form.has_listing_fee}
                   onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
-                  className="h-4 w-4 mr-2"
+                  disabled={form.deal_type === 'shortlet'}
+                  className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <label htmlFor="has_listing_fee" className="text-sm font-medium">
+                <label htmlFor="has_listing_fee" className={`text-sm font-medium ${
+                  form.deal_type === 'shortlet' ? 'text-gray-400' : ''
+                }`}>
                   Listing Fee (5%)
                 </label>
               </div>
