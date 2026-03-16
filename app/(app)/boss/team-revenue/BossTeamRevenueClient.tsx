@@ -38,6 +38,7 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee?: boolean;
   vat_type: VatType;
   vatable?: boolean;
   date_rented: string | null;
@@ -165,6 +166,12 @@ export default function BossTeamRevenueClient({ user }: { user: User }) {
             <span className="inline-block w-3 h-3 rounded-full bg-yellow-400"></span>
             Pending Deals
             <span className="text-sm font-normal text-muted-foreground">({pendingRevenues.length} deals)</span>
+            <span className="ml-auto flex flex-col items-end">
+              <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                Total Deals: {allRevenues.length}
+              </span>
+              <span className="text-[10px] text-gray-400 mt-0.5">from September 2025</span>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -41,6 +41,7 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee?: boolean;
   vat_type: string;
   deal_type?: string;
   date_rented: string | null;
@@ -67,7 +68,10 @@ interface DealWithAgent extends Revenue {
   is_team_deal: boolean;
   is_external_deal: boolean;
   is_collaboration_external: boolean;
+  is_only_listing_fee: boolean;
   deal_listing_fee: number; // listing_fee from DB
+  is_collab_virtual?: boolean; // true = virtual entry for collaboration partner
+  original_deal_id?: number; // original deal id for dedup
 }
 
 interface MonthlyBonus {
@@ -126,7 +130,7 @@ const AGENT_COLORS = [
 // Helper: Check if a profile name indicates an external/generic agent (not a real team member)
 function isExternalAgentName(name: string): boolean {
   const normalized = name.trim().toLowerCase();
-  return normalized === "agent" || normalized === "unknown agent";
+  return normalized === "agent" || normalized === "unknown agent" || normalized.startsWith("agent (");
 }
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
@@ -141,9 +145,9 @@ function getCompletionMonth(deal: Revenue): string {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // Take the later of the two dates
+  // Take the later of the two dates (use UTC to avoid timezone shift on DB dates)
   const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-  return `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, "0")}`;
+  return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatMonthLabel(monthKey: string): string {
@@ -244,42 +248,50 @@ export default function BonusesClient({ user }: { user: User }) {
     return map;
   }, [profiles]);
 
+  // ─── Profile Name → user_id lookup ────────────────────────────────────
+
+  const nameToProfileMap = useMemo(() => {
+    const map = new Map<string, Profile>();
+    profiles.forEach((p) => {
+      const key = p.full_name?.trim().toLowerCase();
+      if (key) map.set(key, p);
+    });
+    return map;
+  }, [profiles]);
+
   // ─── Process Deals ──────────────────────────────────────────────────────
 
   const processedDeals = useMemo((): DealWithAgent[] => {
-    return allRevenues.map((deal) => {
+    const results: DealWithAgent[] = [];
+
+    allRevenues.forEach((deal) => {
       const profile = profileMap.get(deal.user_id);
       const agentName = profile?.full_name || "Unknown Agent";
-      // Leader match: check against ALL user_ids that belong to the teamleader
-      // (covers the case where teamleader has a separate agent account)
       const isLeader = leaderUserIds.has(deal.user_id);
-
-      // External agent = user with role='agent' whose name is "Agent" (generic placeholder)
-      // These are NOT team members - their deals only generate listing fee income
       const isExternal = isExternalAgentName(agentName);
-
-      // Team agent = role='agent' user who is NOT the leader and NOT the generic "Agent"
       const isTeamAgent = agentIds.has(deal.user_id) && !isLeader && !isExternal;
 
-      // Check if there is any collaboration partner
       const collabName = deal.collaboration_with?.trim() || "";
       const hasCollaboration = collabName !== "";
       const isCollabExternal = hasCollaboration && isExternalAgentName(collabName);
 
       const rentAmount = deal.rent_amount || 0;
+      const isOnlyListingFee = deal.only_listing_fee || false;
 
       // Effective rent for bonus calculations
       let effectiveRent = rentAmount;
       if (isExternal) {
-        // External agent deal: rent excluded from bonus, only listing fee matters
+        effectiveRent = 0;
+      } else if (isOnlyListingFee) {
+        // Only listing fee deal: rent should not count for bonus
         effectiveRent = 0;
       } else if (hasCollaboration) {
-        // ANY collaboration (internal team or external): halve the rent
-        // The revenue is split 50/50 between the deal owner and the collaborator
+        // Both internal and outside collab: half rent
         effectiveRent = rentAmount / 2;
       }
 
-      return {
+      // Original deal entry (owner's side)
+      results.push({
         ...deal,
         agent_name: agentName,
         effective_rent: effectiveRent,
@@ -288,10 +300,45 @@ export default function BonusesClient({ user }: { user: User }) {
         is_team_deal: isTeamAgent,
         is_external_deal: isExternal,
         is_collaboration_external: isCollabExternal,
-        deal_listing_fee: deal.listing_fee || 0,
-      };
+        is_only_listing_fee: isOnlyListingFee,
+        deal_listing_fee: isExternal ? 0 : (deal.listing_fee || 0),
+        is_collab_virtual: false,
+        original_deal_id: deal.id,
+      });
+
+      // If there is an internal collaboration partner, create a virtual entry for them
+      if (hasCollaboration && !isCollabExternal) {
+        const collabProfile = nameToProfileMap.get(collabName.toLowerCase());
+        if (collabProfile) {
+          const collabIsLeader = leaderUserIds.has(collabProfile.user_id);
+          const collabIsExternal = isExternalAgentName(collabProfile.full_name);
+          const collabIsTeamAgent = agentIds.has(collabProfile.user_id) && !collabIsLeader && !collabIsExternal;
+
+          // Only add if the collab partner is a real team member (leader or team agent)
+          if (collabIsLeader || collabIsTeamAgent) {
+            results.push({
+              ...deal,
+              // Override the user_id and agent info for the virtual entry
+              user_id: collabProfile.user_id,
+              agent_name: collabProfile.full_name,
+              effective_rent: isOnlyListingFee ? 0 : rentAmount / 2,
+              completion_date: getCompletionMonth(deal),
+              is_leader_deal: collabIsLeader,
+              is_team_deal: collabIsTeamAgent,
+              is_external_deal: false,
+              is_collaboration_external: false,
+              is_only_listing_fee: isOnlyListingFee,
+              deal_listing_fee: 0, // listing fee stays with the original deal owner only
+              is_collab_virtual: true,
+              original_deal_id: deal.id,
+            });
+          }
+        }
+      }
     });
-  }, [allRevenues, profileMap, agentIds, leaderUserIds]);
+
+    return results;
+  }, [allRevenues, profileMap, agentIds, leaderUserIds, nameToProfileMap]);
 
   // ─── Monthly Bonus Calculation ──────────────────────────────────────────
 
@@ -307,12 +354,12 @@ export default function BonusesClient({ user }: { user: User }) {
     const results: MonthlyBonus[] = [];
 
     monthGroups.forEach((deals, month) => {
-      // Calculate leader revenue (effective rent from leader's deals)
+      // Calculate leader revenue (effective rent from leader's deals — includes virtual collab entries)
       const leaderRevenue = deals
         .filter((d) => d.is_leader_deal)
         .reduce((sum, d) => sum + d.effective_rent, 0);
 
-      // Calculate team revenue (effective rent from team agent deals)
+      // Calculate team revenue (effective rent from team agent deals — includes virtual collab entries)
       const teamRevenue = deals
         .filter((d) => d.is_team_deal)
         .reduce((sum, d) => sum + d.effective_rent, 0);
@@ -371,12 +418,15 @@ export default function BonusesClient({ user }: { user: User }) {
       (d) => (d.is_leader_deal || d.is_team_deal) && !isExternalAgentName(d.agent_name)
     );
 
-    // Group by agent
+    // Group by agent — each agent gets their virtual collab entries too
     const agentMap = new Map<string, { totalRent: number; dealCount: number }>();
     relevantDeals.forEach((deal) => {
       const existing = agentMap.get(deal.agent_name) || { totalRent: 0, dealCount: 0 };
       existing.totalRent += deal.effective_rent;
-      existing.dealCount += 1;
+      // Only listing fee deals don't count as deals
+      if (!deal.is_only_listing_fee) {
+        existing.dealCount += 1;
+      }
       agentMap.set(deal.agent_name, existing);
     });
 
@@ -389,6 +439,20 @@ export default function BonusesClient({ user }: { user: User }) {
         color: AGENT_COLORS[idx % AGENT_COLORS.length],
       }))
       .sort((a, b) => b.totalRent - a.totalRent);
+  }, [processedDeals, selectedMonth]);
+
+  // ─── Team total deals (unique DB records, no double counting for collab) ──
+
+  const teamTotalDeals = useMemo(() => {
+    const filteredDeals = selectedMonth
+      ? processedDeals.filter((d) => d.completion_date === selectedMonth)
+      : processedDeals;
+    const uniqueIds = new Set(
+      filteredDeals
+        .filter((d) => (d.is_leader_deal || d.is_team_deal) && !isExternalAgentName(d.agent_name) && !d.is_only_listing_fee)
+        .map((d) => d.original_deal_id)
+    );
+    return uniqueIds.size;
   }, [processedDeals, selectedMonth]);
 
   // ─── Generate month options ─────────────────────────────────────────────
@@ -945,6 +1009,15 @@ export default function BonusesClient({ user }: { user: User }) {
 
               {/* Rankings Table */}
               <div className="mt-6 overflow-x-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-gray-600">Agent Rankings</span>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                      Total Team Deals: {teamTotalDeals}
+                    </span>
+                    <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
+                  </div>
+                </div>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-purple-50">
                     <tr>

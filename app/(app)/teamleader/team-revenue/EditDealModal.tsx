@@ -26,6 +26,7 @@ interface RevenueForm {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee: boolean;
   vat_type: VatType;
   deal_type: DealType;
   date_rented: string;
@@ -51,6 +52,7 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee?: boolean;
   vat_type: VatType;
   deal_type?: DealType;
   vatable?: boolean;
@@ -124,6 +126,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
+      only_listing_fee: revenue.only_listing_fee || false,
       vat_type: vatType,
       deal_type: revenue.deal_type || 'longlet',
       date_rented: revenue.date_rented || "",
@@ -498,7 +501,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   type="checkbox"
                   id="has_listing_fee"
                   checked={form.has_listing_fee}
-                  onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
+                  onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked, only_listing_fee: e.target.checked ? form.only_listing_fee : false })}
                   disabled={form.deal_type === 'shortlet'}
                   className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -506,6 +509,21 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   form.deal_type === 'shortlet' ? 'text-gray-400' : ''
                 }`}>
                   Listing Fee (5%)
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="only_listing_fee"
+                  checked={form.only_listing_fee}
+                  onChange={(e) => setForm({ ...form, only_listing_fee: e.target.checked })}
+                  disabled={!form.has_listing_fee}
+                  className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <label htmlFor="only_listing_fee" className={`text-sm font-medium ${
+                  !form.has_listing_fee ? 'text-gray-400' : 'text-orange-600'
+                }`}>
+                  Only Listing Fee
                 </label>
               </div>
             </div>

@@ -795,7 +795,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     outerRadius={120}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, value }) => `${name} ${((value / pieTotal) * 100).toFixed(1)}%`}
+                    label={(props: any) => `${props.name} ${((props.value / pieTotal) * 100).toFixed(1)}%`}
                     labelLine={true}
                     style={{ fontSize: 13 }}
                   >

@@ -150,22 +150,26 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (128 pages, 0 TypeScript errors)
-- **Version**: v2.8.0
+- **Version**: v2.9.1
 
-### Son Eklenen Özellikler (08.03.2026)
-1. **Internship Task Management System (v2.8.0)**:
-   - Intern rolü RBAC'ye eklendi (DB constraint, middleware, sign-up, profile routing)
-   - 3 yeni Supabase tablosu: internship_task_definitions, internship_daily_logs, internship_client_queries
-   - 3 API endpoint: /api/internship-tasks, daily-logs, client-queries (detail_only, reassign, add_suggestion)
-   - Tam sayfa: /dashboard/internship-tasks (~1970 satır, 3 tab: Overview, Daily Tasks, Client Queries)
-   - Multi-intern teamleader desteği (per-intern filtre, progress kartları)
-   - Client query atama/reassign sistemi
-   - +1 butonları → Add Listing dialog entegrasyonu (listingMode, detail_only)
-   - LogDetailsViewer: inline detail satırları (max 5) + popup modal (>5, paginated tablo)
-   - UI: Label güncellemeleri, Malta şehirleri dropdown, DatePicker İngilizce locale
-   - Guide: Facebook Marketplace Scraping güncellemesi (step 4/6), message template düzeltmesi
-   - TypeScript: types/supabase.ts'ye 3 tablo tipi, JSONB spread hataları düzeltildi
-   - Build: 128 sayfa, 0 hata
+### Son Eklenen Özellikler (15.03.2026)
+1. **Collaboration Revenue Split Fix (v2.9.1)**:
+   - API GET endpoint collab ortağı deal'larını döndürüyor (`collaboration_with` = `full_name` eşleştirmesi)
+   - BonusesClient: Virtual collab entries — DB'ye yeni kayıt yapmadan sanal kayıtlarla collab ortağına +1 deal ve yarım gelir
+   - teamTotalDeals: `new Set(original_deal_id)` ile benzersiz sayım — 1 collab = 1 takım deal
+   - AgentBonusSection + MonthlyAgentRevenueChart: Collab partner deal'ları dahil, yarım kira/gelir
+   - TeamRevenueClient, BossTeamRevenueClient, ManagerTeamRevenueClient: "Total Deals: X" rozeti + "from September 2025" alt yazısı
+   - Temel tasarım kararı: Sanal kayıtlar sadece veri işleme katmanında — DB şeması değişmedi
+
+### Önceki Eklenen Özellikler (15.03.2026)
+1. **Job Applications UX Sprint (v2.9.0)**:
+   - Summary stats kartları (8 kart: 7 statü + 1 Hired, mor tema)
+   - Status filter, Inline status edit, Bulk actions, Row tint, XLSX export, Debounced search
+   - Hired Team Members tablosu: mor tema, pagination (20/sayfa)
+   - Pie Chart — Statü Dağılımı (Recharts donut, 8 dilim)
+   - PDF Rapor İndirme (jsPDF, Overview + Status Breakdown + Key Insights)
+   - EditDealModal: Shortlet/Longlet toggle
+   - Agent ↔ Teamleader bidirectional realtime sync
 
 ### Önceki Eklenen Özellikler (22.02.2026)
 1. **Teamleader Bonus PDF Raporu & Agent Bonus Bildirimleri (v2.7.5)**:

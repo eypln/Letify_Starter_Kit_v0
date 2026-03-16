@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data, error } = await supabase
+  // Fetch user's own deals
+  const { data: ownDeals, error } = await supabase
     .from('revenue')
     .select('*')
     .eq('user_id', user.id)
@@ -44,7 +45,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, data });
+  // Get user's full_name to find collaboration partner deals
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('user_id', user.id)
+    .single();
+
+  let collabDeals: any[] = [];
+  if (userProfile?.full_name) {
+    const { data: partnerDeals } = await supabase
+      .from('revenue')
+      .select('*')
+      .neq('user_id', user.id)
+      .eq('collaboration_with', userProfile.full_name)
+      .order('created_at', { ascending: false });
+
+    if (partnerDeals) {
+      collabDeals = partnerDeals.map(deal => ({
+        ...deal,
+        is_collab_partner: true,
+      }));
+    }
+  }
+
+  // Mark own deals explicitly
+  const ownData = (ownDeals || []).map(deal => ({
+    ...deal,
+    is_collab_partner: false,
+  }));
+
+  return NextResponse.json({ success: true, data: [...ownData, ...collabDeals] });
 }
 
 // POST - Create new revenue record
@@ -72,6 +103,7 @@ export async function POST(req: NextRequest) {
     client_paid_date,
     collaboration_with,
     inform_boss_after_both_sides_paid,
+    only_listing_fee,
     target_user_id
   } = body;
 
@@ -208,6 +240,7 @@ export async function POST(req: NextRequest) {
     client_paid_date: client_paid_date ?? null,
     collaboration_with: collaboration_with ?? null,
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
+    only_listing_fee: only_listing_fee ?? false,
     boss_notified: false,
   };
 
@@ -272,6 +305,7 @@ export async function PUT(req: NextRequest) {
     client_paid_date,
     collaboration_with,
     inform_boss_after_both_sides_paid,
+    only_listing_fee,
     target_user_id
   } = body;
 
@@ -419,6 +453,7 @@ export async function PUT(req: NextRequest) {
     client_paid_date: client_paid_date ?? null,
     collaboration_with: collaboration_with ?? null,
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
+    only_listing_fee: only_listing_fee ?? false,
   };
 
   // If elevated user wants to reassign the deal to another agent

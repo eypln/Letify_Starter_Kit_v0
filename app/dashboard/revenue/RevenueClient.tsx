@@ -31,6 +31,7 @@ interface RevenueForm {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee: boolean;
   vat_type: VatType;
   deal_type: DealType;
   date_rented: string;
@@ -89,6 +90,7 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee?: boolean;
   vat_type: VatType;
   deal_type?: DealType; // Optional for backward compatibility
   vatable?: boolean; // Backward compatibility
@@ -140,6 +142,7 @@ export default function RevenueClient({ user }: { user: User }) {
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
+    only_listing_fee: false,
     vat_type: 'non-vatable',
     deal_type: 'longlet',
     date_rented: "",
@@ -374,6 +377,7 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
+      only_listing_fee: false,
       vat_type: 'non-vatable',
       deal_type: 'longlet',
       date_rented: "",
@@ -414,6 +418,7 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
+      only_listing_fee: revenue.only_listing_fee || false,
       vat_type: vatType,
       deal_type: revenue.deal_type || 'longlet', // Use stored deal_type or default to longlet
       date_rented: revenue.date_rented || "",
@@ -741,7 +746,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, deal_type: 'shortlet', has_listing_fee: false })}
+                      onClick={() => setForm({ ...form, deal_type: 'shortlet', has_listing_fee: false, only_listing_fee: false })}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         form.deal_type === 'shortlet'
                           ? 'bg-purple-600 text-white'
@@ -880,7 +885,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       type="checkbox"
                       id="has_listing_fee"
                       checked={form.has_listing_fee}
-                      onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked })}
+                      onChange={(e) => setForm({ ...form, has_listing_fee: e.target.checked, only_listing_fee: e.target.checked ? form.only_listing_fee : false })}
                       disabled={form.deal_type === 'shortlet'}
                       className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -888,6 +893,21 @@ export default function RevenueClient({ user }: { user: User }) {
                       form.deal_type === 'shortlet' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'
                     }`}>
                       Listing Fee (5%)
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="only_listing_fee"
+                      checked={form.only_listing_fee}
+                      onChange={(e) => setForm({ ...form, only_listing_fee: e.target.checked })}
+                      disabled={!form.has_listing_fee}
+                      className="h-4 w-4 mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <label htmlFor="only_listing_fee" className={`text-sm font-medium ${
+                      !form.has_listing_fee ? 'text-gray-400 dark:text-gray-500' : 'text-orange-600 dark:text-orange-400'
+                    }`}>
+                      Only Listing Fee
                     </label>
                   </div>
                 </div>
@@ -1090,33 +1110,63 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
     async function fetchMonthlyData() {
       setLoading(true);
 
-      // Fetch only this agent's revenue records
-      const { data: revenueData, error } = await supabase
+      // Fetch this agent's own revenue records
+      const { data: ownData, error } = await supabase
         .from("revenue")
-        .select("date_rented, rent_amount, agent_income")
+        .select("date_rented, rent_amount, agent_income, collaboration_with, only_listing_fee")
         .eq("user_id", userId)
         .order("date_rented", { ascending: true });
 
-      if (!error && revenueData) {
+      // Fetch deals where this agent is the collaboration partner
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", userId)
+        .single();
+
+      let collabPartnerData: any[] = [];
+      if (profileData?.full_name) {
+        const { data: partnerDeals } = await supabase
+          .from("revenue")
+          .select("date_rented, rent_amount, agent_income, collaboration_with, only_listing_fee")
+          .neq("user_id", userId)
+          .eq("collaboration_with", profileData.full_name)
+          .order("date_rented", { ascending: true });
+        if (partnerDeals) collabPartnerData = partnerDeals;
+      }
+
+      const allDeals = [
+        ...(ownData || []).map((d: any) => ({ ...d, is_collab_partner: false })),
+        ...collabPartnerData.map((d: any) => ({ ...d, is_collab_partner: true })),
+      ];
+
+      if (!error && allDeals.length > 0) {
         // Group by month and calculate total rent amount and agent income
         const monthlyRentMap = new Map<string, number>();
         const monthlyIncomeMap = new Map<string, number>();
 
-        revenueData.forEach((revenue: any) => {
+        allDeals.forEach((revenue: any) => {
           if (revenue.date_rented) {
+            // Skip only_listing_fee deals from chart rent/income accumulation
+            if (revenue.only_listing_fee) return;
+
             const date = new Date(revenue.date_rented);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
             
+            const hasCollab = (revenue.collaboration_with?.trim() || '') !== '';
+            // For any collab deal (internal or outside), use half rent/income
+            const rentMultiplier = hasCollab ? 0.5 : 1;
+
             // Accumulate rent amount
             if (revenue.rent_amount) {
               const currentRent = monthlyRentMap.get(monthKey) || 0;
-              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount));
+              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount) * rentMultiplier);
             }
             
             // Accumulate agent income
             if (revenue.agent_income) {
               const currentIncome = monthlyIncomeMap.get(monthKey) || 0;
-              monthlyIncomeMap.set(monthKey, currentIncome + parseFloat(revenue.agent_income));
+              monthlyIncomeMap.set(monthKey, currentIncome + parseFloat(revenue.agent_income) * rentMultiplier);
             }
           }
         });
@@ -1299,9 +1349,9 @@ function getAgentBonusCompletionMonth(deal: Revenue): string | null {
   // Both dates must be present for a deal to be considered "completed"
   if (!landlordDate || !clientDate) return null;
 
-  // Completion month = the later of the two dates
+  // Completion month = the later of the two dates (use UTC to avoid timezone shift on DB dates)
   const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-  return `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, '0')}`;
+  return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function formatBonusMonthLabel(monthKey: string): string {
@@ -1343,13 +1393,43 @@ function AgentBonusSection({ userId }: { userId: string }) {
   useEffect(() => {
     async function loadBonusData() {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch own deals
+      const { data: ownData, error: ownError } = await supabase
         .from('revenue')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) setAllRevenues(data);
+      // Get user's full_name to find collaboration partner deals
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', userId)
+        .single();
+
+      let collabPartnerDeals: Revenue[] = [];
+      if (profileData?.full_name) {
+        const { data: partnerDeals } = await supabase
+          .from('revenue')
+          .select('*')
+          .neq('user_id', userId)
+          .eq('collaboration_with', profileData.full_name)
+          .order('created_at', { ascending: false });
+        if (partnerDeals) {
+          collabPartnerDeals = partnerDeals.map((d: any) => ({
+            ...d,
+            is_collab_partner: true,
+          }));
+        }
+      }
+
+      const ownDeals = (ownData || []).map((d: any) => ({
+        ...d,
+        is_collab_partner: false,
+      }));
+
+      if (!ownError) setAllRevenues([...ownDeals, ...collabPartnerDeals]);
       setLoading(false);
     }
     loadBonusData();
@@ -1364,19 +1444,35 @@ function AgentBonusSection({ userId }: { userId: string }) {
 
         const rentAmount = deal.rent_amount || 0;
         const hasCollaboration = (deal.collaboration_with?.trim() || '') !== '';
-        const effectiveRent = hasCollaboration ? rentAmount / 2 : rentAmount;
+        const isOnlyListingFee = deal.only_listing_fee || false;
+        // Check if collaboration partner is an external agent
+        const collabName = deal.collaboration_with?.trim().toLowerCase() || '';
+        const isCollabExternal = hasCollaboration && (collabName === 'agent' || collabName === 'unknown agent');
+
+        // Effective rent: 0 for only_listing_fee, half for any collab
+        let effectiveRent = rentAmount;
+        if (isOnlyListingFee) {
+          effectiveRent = 0;
+        } else if (hasCollaboration) {
+          // Both internal and outside collab: half rent
+          effectiveRent = rentAmount / 2;
+        }
 
         return {
           ...deal,
           completion_month: completionMonth,
           effective_rent: effectiveRent,
           is_collaboration: hasCollaboration,
+          is_only_listing_fee: isOnlyListingFee,
+          is_collab_external: isCollabExternal,
         };
       })
       .filter(Boolean) as (Revenue & {
         completion_month: string;
         effective_rent: number;
         is_collaboration: boolean;
+        is_only_listing_fee: boolean;
+        is_collab_external: boolean;
       })[];
   }, [allRevenues]);
 
@@ -1392,7 +1488,9 @@ function AgentBonusSection({ userId }: { userId: string }) {
     const results: AgentMonthlyBonus[] = [];
     monthGroups.forEach((deals, month) => {
       const totalRent = deals.reduce((sum, d) => sum + d.effective_rent, 0);
-      const dealCount = deals.length;
+      // Exclude only_listing_fee deals from deal count
+      const countableDeals = deals.filter(d => !d.is_only_listing_fee);
+      const dealCount = countableDeals.length;
       const averageRent = dealCount > 0 ? totalRent / dealCount : 0;
 
       const bonusCalc = calculateAgentBonus(dealCount, totalRent);

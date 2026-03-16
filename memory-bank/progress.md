@@ -3,6 +3,89 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.2 - Bug Fixes, Payment Audit & Build Fix (16.03.2026) ✅
+**Yapılanlar:**
+
+#### 3 Kritik Bug Fix ✅
+- **Timezone Bug (BonusesClient + RevenueClient)**: `getMonth()`/`getFullYear()` → `getUTCMonth()`/`getUTCFullYear()` — Deal'ler yanlış aya atanmasını önlüyor. 3 lokasyon:
+  1. `BonusesClient.tsx` → `getCompletionMonth()` fonksiyonu
+  2. `RevenueClient.tsx` → `getAgentBonusCompletionMonth()` fonksiyonu
+  3. `RevenueClient.tsx` → chart monthKey hesaplaması
+- **isExternalAgentName Bug (BonusesClient)**: "Agent (outside)" formatı dış ajan olarak algılanmıyordu → `normalized.startsWith("agent (")` eklendi
+- **External Agent Listing Fee Bug (BonusesClient)**: Dış ajan deal'leri yanlışlıkla listing fee hesabına giriyordu → `deal_listing_fee: isExternal ? 0 : (deal.listing_fee || 0)`
+
+#### Pie Chart TypeScript Fix ✅
+- `ApplicationsClient.tsx`: Recharts Pie label callback'inde `value` unknown type hatası
+- Düzeltme: `(props: any) => ...` ile tip güvenliği sağlandı
+- Build: 0 TypeScript hatası, 128 sayfa
+
+#### 4 Aylık Patron Ödeme Audit'i ✅
+- Ekim 2025 - Ocak 2026 arası tüm deal'ler patron'un el yazısı ödeme listeleriyle karşılaştırıldı
+- Toplam 57 deal tarandı, 8 ödenmemiş deal kesin olarak belirlendi
+- Yinelenen deal ID 72 (ref 88286) tespit ve silindi
+- Patron'un ödeme listeleri ile sistemdeki ay atamaları arasındaki farklar belgelendi
+
+#### Şubat 2026 Bekleyen Ödeme PDF ✅
+- `generate_feb_pdf.js` → jsPDF + jspdf-autotable ile landscape A4 PDF
+- 3 bölüm: Eski ödenmemiş (8 deal / 10,350 EUR), Yeni Şubat (8 deal / 9,980 EUR), Özet (16 deal / 20,330 EUR)
+- Dosya: `feb_2026_pending_v2.pdf`
+
+**Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/bonuses/BonusesClient.tsx (3 fix: timezone, isExternalAgentName, listing fee)
+app/dashboard/revenue/RevenueClient.tsx (2 fix: timezone x2)
+app/(app)/teamleader/applications/ApplicationsClient.tsx (pie chart label type fix)
+package.json (v2.8.2)
+```
+
+### v2.9.1 - Collaboration Revenue Split Fix (15.03.2026) ✅
+**Yapılanlar:**
+
+#### Collaboration Ortaklık Mantığı Tam Düzeltme ✅
+- **Problem**: Agent A bir deal oluştururken Agent B'yi `collaboration_with` olarak seçtiğinde, Agent B deal'i hiç göremiyordu. Bonus hesaplarına dahil olmuyordu. Gelir paylaşımı sadece deal sahibi tarafında yarılanıyordu.
+- **Çözüm**: "Virtual deal entries" yaklaşımı — DB'de yeni kayıt oluşturmadan, veri işleme katmanında sanal kayıtlar enjekte ediliyor.
+
+#### API GET Endpoint — Collab Partner Deal'ları ✅
+- `app/api/revenue/route.ts` → Kullanıcının `full_name`'ini profiles tablosundan çekiyor
+- `collaboration_with = full_name` olan diğer agentların deal'larını da döndürüyor
+- Her collab partner deal `is_collab_partner: true` flag'i ile işaretleniyor
+
+#### BonusesClient — Virtual Collab Entries ✅
+- `DealWithAgent` interface'ine `is_collab_virtual?: boolean` ve `original_deal_id?: number` alanları eklendi
+- `nameToProfileMap` useMemo: `full_name` (lowercase) → Profile eşleştirmesi
+- `processedDeals`: Her deal için orijinal entry oluşturulur + collab ortağı takım içiyse sanal entry oluşturulur (yarım kira, `is_collab_virtual: true`)
+- `agentPerformance`: Sanal entries dahil, otomatik olarak collab ortağının performansına yansıyor
+- `teamTotalDeals`: `new Set(original_deal_id).size` ile benzersiz deal sayımı — 1 collab = 1 takım deal
+
+#### BonusesClient UI — Total Team Deals Rozeti ✅
+- Rankings tablosu başlığında "Total Team Deals: X" mor rozet
+- Altında "from September 2025" küçük gri yazı
+
+#### RevenueClient — Agent Bonus Tracker Collab Desteği ✅
+- `AgentBonusSection`: Kendi deal'ları + collab ortağı deal'larını profil isim eşleştirmesiyle çekiyor
+- `completedDeals`: `hasCollaboration` kontrolü — her iki taraf (sahip ve ortak) yarım kira alıyor
+- Tüm bonus hesapları (Contract Bonus, Agency Fee Bonus) collab farkında
+
+#### RevenueClient — Chart Collab Desteği ✅
+- `MonthlyAgentRevenueChart`: Hem kendi hem collab partner deal'larını çekiyor
+- `rentMultiplier = hasCollab ? 0.5 : 1` ile doğru tam/yarım kira gösterimi
+
+#### Team Revenue Tabloları — Total Deals Rozeti ✅
+- `TeamRevenueClient`: "Total Deals: X" rozet + `TeamTotalDealCount` bileşeni (Supabase count query)
+- `BossTeamRevenueClient`: Pending Deals başlığında "Total Deals: X" rozet (`allRevenues.length`)
+- `ManagerTeamRevenueClient`: "Total Deals: X" rozet + `ManagerTotalDealCount` bileşeni
+- Tüm rozetlerde "from September 2025" alt yazısı
+
+**Değiştirilen Dosyalar:**
+```
+app/api/revenue/route.ts (GET: collab partner deal query)
+app/(app)/teamleader/bonuses/BonusesClient.tsx (virtual entries, teamTotalDeals, UI rozet)
+app/dashboard/revenue/RevenueClient.tsx (AgentBonusSection + MonthlyAgentRevenueChart collab)
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (TeamTotalDealCount + rozet)
+app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx (Total Deals rozet)
+app/(app)/manager/team-revenue/ManagerTeamRevenueClient.tsx (ManagerTotalDealCount + rozet)
+```
+
 ### v2.9.0 - Job Applications UX Sprint & Analytics (15.03.2026) ✅
 **Yapılanlar:**
 

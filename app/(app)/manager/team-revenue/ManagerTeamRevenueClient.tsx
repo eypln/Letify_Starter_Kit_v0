@@ -38,6 +38,7 @@ interface Revenue {
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
+  only_listing_fee?: boolean;
   vat_type: VatType;
   vatable?: boolean;
   date_rented: string | null;
@@ -76,7 +77,15 @@ export default function ManagerTeamRevenueClient({ user }: { user: User }) {
       {/* Team Revenue Records */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Team Revenue Records</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Team Revenue Records</CardTitle>
+            <div className="text-right">
+              <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                Total Deals: <ManagerTotalDealCount />
+              </span>
+              <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <TeamRevenueTable formatDate={formatDate} formatCurrency={formatCurrency} />
@@ -94,6 +103,24 @@ export default function ManagerTeamRevenueClient({ user }: { user: User }) {
       </Card>
     </div>
   );
+}
+
+// Total Deal Count Component
+function ManagerTotalDealCount() {
+  const [count, setCount] = useState<number>(0);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchCount() {
+      const { count: totalCount, error } = await supabase
+        .from("revenue")
+        .select("id", { count: "exact", head: true });
+      if (!error && totalCount !== null) setCount(totalCount);
+    }
+    fetchCount();
+  }, [supabase]);
+
+  return <>{count}</>;
 }
 
 // Team Revenue Table Component

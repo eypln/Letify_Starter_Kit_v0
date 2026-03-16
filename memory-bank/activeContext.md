@@ -2,7 +2,83 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (15.03.2026) ✅ COMPLETED - Job Applications UX Sprint v2.9.0
+### Ana Odak Alanları (16.03.2026) ✅ COMPLETED - Bug Fixes & Payment Audit v2.8.2
+
+1. **3 Kritik Bug Fix (v2.8.2)**:
+   - ✅ **Timezone Bug**: `getMonth()` → `getUTCMonth()`, `getFullYear()` → `getUTCFullYear()` — BonusesClient.tsx (getCompletionMonth) ve RevenueClient.tsx (getAgentBonusCompletionMonth + chart monthKey) — toplam 3 lokasyon
+   - ✅ **isExternalAgentName Bug**: "Agent (outside)" dış ajan olarak algılanmıyordu → `normalized.startsWith("agent (")` kontrolü eklendi
+   - ✅ **External Agent Listing Fee Bug**: Dış ajanların deal'leri yanlışlıkla listing fee'ye katkıda bulunuyordu → `deal_listing_fee: isExternal ? 0 : (deal.listing_fee || 0)`
+
+2. **4 Aylık Ödeme Çapraz Denetimi (Eki-Oca 2025-2026)**:
+   - ✅ Patron'un ödeme listesi (2 fotoğraf) ile veritabanı kayıtları karşılaştırıldı
+   - ✅ Ekim 2025: 11/11 deal eşleşti ve ödendi
+   - ✅ Kasım 2025: 14/14 deal ödendi (dış ajan hariç)
+   - ✅ Aralık 2025: 10 ödendi, 5 ödenmemiş tespit edildi
+   - ✅ Ocak 2026: 13 ödendi, 3 ödenmemiş tespit edildi
+   - ✅ Toplam 8 ödenmemiş deal belirlendi
+   - ✅ Yinelenen deal ID 72 (ref 88286) kullanıcı tarafından silindi
+
+3. **Şubat 2026 Bekleyen Ödeme PDF Raporu (v2.8.2)**:
+   - ✅ jsPDF + jspdf-autotable ile PDF oluşturuldu
+   - ✅ 3 bölüm: Eski ödenmemiş (8 deal, 10,350 EUR) + Yeni Şubat (8 deal, 9,980 EUR) + Özet (16 deal, 20,330 EUR)
+   - ✅ Kırmızı/mavi/gri temalı tablolar, landscape A4
+   - ✅ Dosya: `feb_2026_pending_v2.pdf`
+
+4. **TypeScript Build Fix (v2.8.2)**:
+   - ✅ ApplicationsClient.tsx: Pie chart label callback `value` unknown type hatası → `(props: any)` ile düzeltildi
+   - ✅ Build başarılı: 0 TypeScript hatası, 128 sayfa
+
+   **Değiştirilen Dosyalar:**
+   ```
+   app/(app)/teamleader/bonuses/BonusesClient.tsx (timezone fix, isExternalAgentName fix, listing fee fix)
+   app/dashboard/revenue/RevenueClient.tsx (timezone fix x2)
+   app/(app)/teamleader/applications/ApplicationsClient.tsx (pie chart label type fix)
+   package.json (v2.8.2)
+   generate_feb_pdf.js (PDF rapor scripti — geçici)
+   feb_2026_pending_v2.pdf (oluşturulan rapor)
+   ```
+
+   **8 Ödenmemiş Deal:**
+   | Ref | Agent | Kira | Ay |
+   |---|---|---|---|
+   | 86985 | Erhan Yurdakul | €1,500 | 2025-12 |
+   | 15536 | Ailen Suarez | €1,350 | 2025-12 |
+   | 87564 | Renato Gjata | €700 | 2025-12 |
+   | 9074 | Brenda Davila | €1,550 | 2025-12 |
+   | 87739 | NimOzin(Nim) | €1,600 | 2025-12 |
+   | 87851 | Yagiz Tomek | €550 | 2026-01 |
+   | 30123 | ALI SARIKAYA | €1,500 | 2026-01 |
+   | 35189 | ALI SARIKAYA | €1,600 | 2026-01 |
+
+### Önceki Odak (15.03.2026) ✅ COMPLETED - Collaboration Revenue Split Fix v2.9.1
+
+1. **Collaboration (Ortaklık) Deal Mantığı Tam Düzeltme (v2.9.1)**:
+   - ✅ **API GET endpoint**: Collab ortağının deal'larını da döndürüyor (`collaboration_with` = agentın `full_name` eşleştirmesi, `is_collab_partner: true` flag)
+   - ✅ **BonusesClient — Virtual Collab Entries**: `processedDeals` içinde collab ortağı için sanal kayıtlar oluşturuluyor (yarım kira, `is_collab_virtual: true`, `original_deal_id`). Her iki agent +1 deal ve yarım gelir alıyor.
+   - ✅ **BonusesClient — teamTotalDeals**: `new Set(original_deal_id)` ile benzersiz deal sayımı — 1 collab deal = takımda 1 deal. Rankings tablosunda "Total Team Deals: X" rozeti + "from September 2025" alt yazısı
+   - ✅ **AgentBonusSection**: Profil isim eşleştirmesiyle collab ortağı deal'larını da çekiyor, her iki taraf yarım kirayla bonus hesabına dahil
+   - ✅ **MonthlyAgentRevenueChart**: Hem kendi hem collab ortağı deal'larını çekiyor, collab deal'ları grafikte yarım kira/gelir olarak gösteriliyor
+   - ✅ **TeamRevenueClient**: Başlığa "Total Deals: X" rozeti + "from September 2025" eklendi
+   - ✅ **BossTeamRevenueClient**: Pending Deals başlığına "Total Deals: X" rozeti + "from September 2025" eklendi
+   - ✅ **ManagerTeamRevenueClient**: Başlığa "Total Deals: X" rozeti + "from September 2025" eklendi
+
+   **Temel Tasarım Kararları:**
+   - DB'de yeni kayıt oluşturulmuyor — sanal kayıtlar sadece veri işleme katmanında enjekte ediliyor
+   - `collaboration_with` TEXT alanı `full_name` tutuyor, `nameToProfileMap` ile eşleştirme yapılıyor
+   - Takım grafikleri tek DB kaydını (tam kirayı) gösteriyor — çift sayma yok
+   - Agent kendi deal tablosunu değiştirmeden görüyor, bonus tracker + chart collab farkında
+
+   **Değiştirilen Dosyalar:**
+   ```
+   app/api/revenue/route.ts (GET: collab partner deal'ları eklendi)
+   app/(app)/teamleader/bonuses/BonusesClient.tsx (virtual collab entries, teamTotalDeals, UI rozet)
+   app/dashboard/revenue/RevenueClient.tsx (AgentBonusSection + MonthlyAgentRevenueChart collab desteği)
+   app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (Total Deals rozeti + TeamTotalDealCount bileşeni)
+   app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx (Total Deals rozeti)
+   app/(app)/manager/team-revenue/ManagerTeamRevenueClient.tsx (Total Deals rozeti + ManagerTotalDealCount bileşeni)
+   ```
+
+### Önceki Odak (15.03.2026) ✅ COMPLETED - Job Applications UX Sprint v2.9.0
 
 1. **Job Applications 7 UX Feature (v2.9.0)**:
    - ✅ Summary stats kartları (8 kart: 7 statü + 1 Hired, mor tema)
