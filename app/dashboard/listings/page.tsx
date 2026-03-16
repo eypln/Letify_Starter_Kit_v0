@@ -289,7 +289,7 @@ function ListingsContent() {
         {/* Listings title + Add */}
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">Listings</h1>
-          <AddDialog listings={rows || []} />
+          <AddDialog listings={rows || []} onListingCreated={handleRefresh} />
         </div>
       </div>
       {/* Active Listings Table (Available & Soon) */}

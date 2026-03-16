@@ -110,6 +110,21 @@ export default function BossTeamRevenueClient({ user }: { user: User }) {
     fetchTeamRevenues();
   }, [supabase]);
 
+  // Realtime subscription for revenue changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('boss-revenue-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'revenue' },
+        () => { refreshData(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Update revenue status in shared state
   const handleStatusChange = (revenueId: number, newStatus: string) => {
     setAllRevenues(prev => 

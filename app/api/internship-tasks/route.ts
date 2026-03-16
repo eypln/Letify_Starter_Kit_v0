@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// DELETE: Görev tanımını kaldır (soft-delete: is_active = false)
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!profile || !['teamleader', 'manager', 'boss', 'admin'].includes(profile.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const taskId = searchParams.get('id')
+    if (!taskId) {
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
+    }
+
+    const { error } = await supabase
+      .from('internship_task_definitions')
+      .update({ is_active: false })
+      .eq('id', taskId)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting task definition:', error)
+    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })
+  }
+}
+
 // GET: Tüm görev tanımlarını getir
 export async function GET() {
   try {

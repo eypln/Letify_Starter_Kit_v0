@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -110,15 +110,24 @@ function ManagerTotalDealCount() {
   const [count, setCount] = useState<number>(0);
   const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchCount() {
-      const { count: totalCount, error } = await supabase
-        .from("revenue")
-        .select("id", { count: "exact", head: true });
-      if (!error && totalCount !== null) setCount(totalCount);
-    }
-    fetchCount();
+  const fetchCount = useCallback(async () => {
+    const { count: totalCount, error } = await supabase
+      .from("revenue")
+      .select("id", { count: "exact", head: true });
+    if (!error && totalCount !== null) setCount(totalCount);
   }, [supabase]);
+
+  useEffect(() => {
+    fetchCount();
+  }, [fetchCount]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('manager-deal-count-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'revenue' }, () => { fetchCount(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, fetchCount]);
 
   return <>{count}</>;
 }
@@ -199,6 +208,42 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
     }
 
     fetchTeamRevenues();
+  }, [supabase]);
+
+  // Realtime subscription for revenue changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('manager-revenue-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'revenue' },
+        () => { refreshData(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshData = useCallback(async () => {
+    const { data: revenueData } = await supabase
+      .from("revenue")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (revenueData) {
+      const userIds = [...new Set(revenueData.map(r => r.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      const profileMap = new Map(
+        profilesData?.map(p => [p.user_id, p.full_name]) || []
+      );
+      const mappedData = revenueData.map((revenue: Revenue) => ({
+        ...revenue,
+        agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+      }));
+      setAllRevenues(mappedData);
+    }
   }, [supabase]);
 
   useEffect(() => {
@@ -425,32 +470,6 @@ function TeamRevenueTable({ formatDate, formatCurrency }: { formatDate: (date: s
           onClose={() => setEditingRevenue(null)}
           onSuccess={() => {
             setEditingRevenue(null);
-            // Refresh data
-            async function refreshData() {
-              const { data: revenueData } = await supabase
-                .from("revenue")
-                .select("*")
-                .order("created_at", { ascending: false });
-              
-              if (revenueData) {
-                const userIds = [...new Set(revenueData.map(r => r.user_id))];
-                const { data: profilesData } = await supabase
-                  .from("profiles")
-                  .select("user_id, full_name")
-                  .in("user_id", userIds);
-                
-                const profileMap = new Map(
-                  profilesData?.map(p => [p.user_id, p.full_name]) || []
-                );
-                
-                const mappedData = revenueData.map((revenue: any) => ({
-                  ...revenue,
-                  agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
-                }));
-                
-                setAllRevenues(mappedData);
-              }
-            }
             refreshData();
           }}
         />

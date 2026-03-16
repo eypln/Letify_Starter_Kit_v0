@@ -28,7 +28,8 @@ import {
   Calendar,
   BarChart3,
   Star,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -482,6 +483,9 @@ export default function InternshipTasksPage() {
   // Details modal state (for "View all" popup when >5 details)
   const [detailsModal, setDetailsModal] = useState<{ details: Array<Record<string, unknown>>; title: string; page: number } | null>(null)
 
+  // Delete task confirmation state
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+
   const isTeamleader = ['teamleader', 'manager', 'boss', 'admin'].includes(userRole)
 
   // Helper: get intern name by id
@@ -699,6 +703,23 @@ export default function InternshipTasksPage() {
       }
     } catch (error) {
       console.error('Error creating task:', error)
+    }
+  }
+
+  // ==========================================
+  // DELETE TASK (teamleader)
+  // ==========================================
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const res = await fetch(`/api/internship-tasks?id=${encodeURIComponent(taskId)}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setDeleteTaskId(null)
+        fetchData()
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error)
     }
   }
 
@@ -1035,9 +1056,20 @@ export default function InternshipTasksPage() {
                           {task.category === 'coming_soon' && <Clock className="h-5 w-5 text-gray-400 flex-shrink-0" />}
                           <h3 className="font-semibold text-sm">{task.title}</h3>
                         </div>
-                        {!isComing && totalTarget > 0 && (
-                          <ProgressRing progress={progress} size={48} strokeWidth={5} />
-                        )}
+                        <div className="flex items-center gap-2">
+                          {!isComing && totalTarget > 0 && (
+                            <ProgressRing progress={progress} size={48} strokeWidth={5} />
+                          )}
+                          {isTeamleader && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteTaskId(task.id) }}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Remove Task"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3">{task.description}</p>
                       
@@ -1082,12 +1114,23 @@ export default function InternshipTasksPage() {
                   {/* Task Header */}
                   <div className="p-6 border-b bg-gradient-to-r from-purple-50 to-indigo-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <h2 className="text-lg font-bold flex items-center gap-2">
-                          <Target className="h-5 w-5 text-purple-600" />
-                          {task.title}
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                      <div className="flex items-start gap-3">
+                        <div>
+                          <h2 className="text-lg font-bold flex items-center gap-2">
+                            <Target className="h-5 w-5 text-purple-600" />
+                            {task.title}
+                          </h2>
+                          <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                        </div>
+                        {isTeamleader && (
+                          <button
+                            onClick={() => setDeleteTaskId(task.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                            title="Remove Task"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-4">
@@ -1306,12 +1349,23 @@ export default function InternshipTasksPage() {
                 <h3 className="text-lg font-semibold text-gray-500 mb-4">Coming Soon</h3>
                 {comingSoonTasks.map(task => (
                   <div key={task.id} className="bg-white rounded-xl border shadow-sm p-6 opacity-60">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-6 w-6 text-gray-400" />
-                      <div>
-                        <h3 className="font-semibold">{task.title}</h3>
-                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-6 w-6 text-gray-400" />
+                        <div>
+                          <h3 className="font-semibold">{task.title}</h3>
+                          <p className="text-sm text-muted-foreground">{task.description}</p>
+                        </div>
                       </div>
+                      {isTeamleader && (
+                        <button
+                          onClick={() => setDeleteTaskId(task.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                          title="Remove Task"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2042,6 +2096,40 @@ export default function InternshipTasksPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Task Confirmation Modal */}
+        {deleteTaskId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDeleteTaskId(null)}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-100 rounded-full">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold">Remove Task</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">
+                Are you sure you want to remove <strong>{tasks.find(t => t.id === deleteTaskId)?.title}</strong>?
+              </p>
+              <p className="text-xs text-gray-400 mb-6">
+                This will hide the task from all views. Existing logs will be preserved.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteTaskId(null)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteTask(deleteTaskId)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           </div>
         )}

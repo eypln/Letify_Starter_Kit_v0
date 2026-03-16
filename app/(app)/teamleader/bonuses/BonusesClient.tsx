@@ -455,6 +455,10 @@ export default function BonusesClient({ user }: { user: User }) {
     return uniqueIds.size;
   }, [processedDeals, selectedMonth]);
 
+  const teamTotalRevenue = useMemo(() => {
+    return agentPerformance.reduce((sum, agent) => sum + agent.totalRent, 0);
+  }, [agentPerformance]);
+
   // ─── Generate month options ─────────────────────────────────────────────
 
   const monthOptions = useMemo(() => {
@@ -1012,10 +1016,17 @@ export default function BonusesClient({ user }: { user: User }) {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-semibold text-gray-600">Agent Rankings</span>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
-                      Total Team Deals: {teamTotalDeals}
-                    </span>
-                    <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                        Total Team Deals: {teamTotalDeals}
+                      </span>
+                      <span className="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full">
+                        Total Revenue: {formatCurrency(teamTotalRevenue)}
+                      </span>
+                    </div>
+                    {!selectedMonth && (
+                      <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
+                    )}
                   </div>
                 </div>
                 <table className="min-w-full divide-y divide-gray-200">

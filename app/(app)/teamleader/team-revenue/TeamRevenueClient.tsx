@@ -137,6 +137,7 @@ export default function RevenueClient({ user }: { user: User }) {
   const [pageCount, setPageCount] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [teamRefreshKey, setTeamRefreshKey] = useState(0);
   const supabase = createClient();
 
   const [form, setForm] = useState<RevenueForm>({
@@ -379,6 +380,7 @@ export default function RevenueClient({ user }: { user: User }) {
           console.log('Revenue change detected:', payload);
           // Refresh the current page data
           getUserAndRevenues();
+          setTeamRefreshKey(k => k + 1);
         }
       )
       .subscribe();
@@ -514,6 +516,7 @@ export default function RevenueClient({ user }: { user: User }) {
         setShowModal(false);
         resetForm();
         await getUserAndRevenues(1);
+        setTeamRefreshKey(k => k + 1);
       } else {
         toast({
           title: "Error",
@@ -1165,14 +1168,14 @@ export default function RevenueClient({ user }: { user: User }) {
             <CardTitle>Team Revenue Records</CardTitle>
             <div className="text-right">
               <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
-                Total Deals: <TeamTotalDealCount />
+                Total Deals: <TeamTotalDealCount refreshKey={teamRefreshKey} />
               </span>
               <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <TeamRevenueTable />
+          <TeamRevenueTable refreshKey={teamRefreshKey} onRefresh={() => setTeamRefreshKey(k => k + 1)} />
         </CardContent>
       </Card>
     </div>
@@ -1180,7 +1183,7 @@ export default function RevenueClient({ user }: { user: User }) {
 }
 
 // Total Deal Count Component (counts unique DB records, not double-counting collab)
-function TeamTotalDealCount() {
+function TeamTotalDealCount({ refreshKey = 0 }: { refreshKey?: number }) {
   const [count, setCount] = useState<number>(0);
   const supabase = createClient();
 
@@ -1192,13 +1195,13 @@ function TeamTotalDealCount() {
       if (!error && totalCount !== null) setCount(totalCount);
     }
     fetchCount();
-  }, [supabase]);
+  }, [supabase, refreshKey]);
 
   return <>{count}</>;
 }
 
 // Team Revenue Table Component
-function TeamRevenueTable() {
+function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; onRefresh?: () => void }) {
   const [teamRevenues, setTeamRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
   const [allRevenues, setAllRevenues] = useState<(Revenue & { agent_name: string })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1279,7 +1282,7 @@ function TeamRevenueTable() {
     }
 
     fetchTeamRevenues();
-  }, [supabase]);
+  }, [supabase, refreshKey]);
 
   // Client-side filtering and pagination
   useEffect(() => {
@@ -1559,6 +1562,7 @@ function TeamRevenueTable() {
               }
             }
             refreshData();
+            if (onRefresh) onRefresh();
           }}
         />
       )}
