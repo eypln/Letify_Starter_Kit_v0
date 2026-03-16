@@ -241,6 +241,57 @@ const updated = [...existing, newItem]
 
 ### Role-Based Access Control (RBAC) Pattern (06.12.2025, updated 08.03.2026)
 
+**Soft-Delete Pattern (v2.8.4 — Internship Tasks):**
+```typescript
+// DELETE /api/internship-tasks?id=taskId
+// Soft-delete: is_active = false (daily log'lar korunur)
+await supabase.from('internship_task_definitions')
+  .update({ is_active: false })
+  .eq('id', taskId)
+// UI: Trash2 icon + confirmation modal (görev adı + "Existing logs will be preserved" uyarısı)
+```
+
+### Data Refresh Pattern — refreshKey + Realtime (v2.8.4)
+
+**Problem**: Child bileşenler bağımsız useEffect ile veri çekiyordu, parent'taki değişiklikler tetiklenmiyordu.
+
+**refreshKey Pattern (Parent → Child Sync):**
+```typescript
+// Parent:
+const [teamRefreshKey, setTeamRefreshKey] = useState(0)
+const handleSubmit = async () => { /* save */ setTeamRefreshKey(k => k + 1) }
+
+// Realtime handler'da da:
+supabase.channel('...').on('postgres_changes', ..., () => {
+  setTeamRefreshKey(k => k + 1)
+})
+
+// Child:
+<TeamRevenueTable refreshKey={teamRefreshKey} />
+<TeamTotalDealCount refreshKey={teamRefreshKey} />
+
+// Child içinde:
+useEffect(() => { fetchData() }, [refreshKey, ...otherDeps])
+```
+
+**Supabase Realtime Subscription Pattern:**
+```typescript
+useEffect(() => {
+  const channel = supabase
+    .channel('unique-channel-name')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'revenue' }, () => {
+      refreshData()
+    })
+    .subscribe()
+  return () => { supabase.removeChannel(channel) }
+}, [supabase])
+```
+
+**Uygulandığı Yerler:**
+- Teamleader TeamRevenue: `teamRefreshKey` pattern (parent→child)
+- Boss TeamRevenue: `boss-revenue-changes` Realtime channel
+- Manager TeamRevenue: `manager-revenue-changes` + `manager-deal-count-changes` channels + `useCallback` refactor
+
 **System Architecture:**
 ```typescript
 // Role Hierarchy (v2.8.0: intern eklendi)

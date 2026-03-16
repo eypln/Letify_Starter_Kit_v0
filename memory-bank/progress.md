@@ -3,6 +3,45 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.4 - Data Refresh Fixes, Task Removal & UI Enhancements (17.03.2026) ✅
+**Yapılanlar:**
+
+#### Internship Tasks — Remove Task Özelliği ✅
+- **Problem**: Teamleader UI'dan görev silemiyordu, sadece ekleme vardı
+- **Çözüm**: Soft-delete yaklaşımı (`is_active = false`) — Daily log'lar korunur
+- **DELETE API**: `app/api/internship-tasks/route.ts` — Auth check + role check (teamleader+) + `?id=` query param
+- **UI**: 3 lokasyona Trash2 ikonu (Overview, Daily Tasks, Coming Soon) + confirmation modal (görev adı + uyarı)
+- **State**: `deleteTaskId`, `handleDeleteTask(taskId)` → fetch DELETE → `fetchData()` ile tablo refresh
+
+#### Data Refresh Fix — Listings Sayfası ✅
+- **Problem**: Yeni listing eklendikten sonra tabloda görünmüyordu, sayfa yenilenmesi gerekiyordu
+- **Root Cause**: `<AddDialog>` bileşenine `onListingCreated` callback geçirilmemişti
+- **Düzeltme**: `<AddDialog listings={rows || []} onListingCreated={handleRefresh} />` (satır ~292)
+
+#### Data Refresh Fix — Team Revenue (3 Rol) ✅
+- **Problem**: Teamleader/Boss/Manager revenue sayfalarında yeni deal eklendikten sonra tablo güncellenmiyor
+- **Teamleader (TeamRevenueClient)**: `teamRefreshKey` state pattern — `handleSubmit` + Realtime handler'da artırılıyor → `TeamRevenueTable` ve `TeamTotalDealCount` child prop olarak alıyor → useEffect dependency'lere eklendi
+- **Boss (BossTeamRevenueClient)**: Supabase Realtime subscription eklendi — `boss-revenue-changes` kanalı, `revenue` tablosu `*` event → `refreshData()` tetikleme + cleanup
+- **Manager (ManagerTeamRevenueClient)**: Realtime subscriptions eklendi — `manager-revenue-changes` + `manager-deal-count-changes` kanalları, `refreshData` → `useCallback` refactor, `ManagerTotalDealCount` bileşenine de Realtime eklendi
+
+#### Bonuses UI Geliştirmeleri ✅
+- **Total Revenue Rozeti**: Agent Rankings'te "Total Team Deals" yanına yeşil rozet — `teamTotalRevenue = useMemo(() => agentPerformance.reduce(...))`
+- **Conditional Subtitle**: `{!selectedMonth && (...)}` — "from September 2025" sadece All Time modunda gösterilir (ay seçildiğinde gizlenir)
+
+#### Build Doğrulama ✅
+- `npx next build` — 128 sayfa, 0 TypeScript hatası
+
+**Değiştirilen Dosyalar:**
+```
+app/api/internship-tasks/route.ts (DELETE method)
+app/dashboard/internship-tasks/page.tsx (delete UI: Trash2 x3, modal, state, handler)
+app/dashboard/listings/page.tsx (onListingCreated callback fix)
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (teamRefreshKey pattern)
+app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx (Realtime subscription)
+app/(app)/manager/team-revenue/ManagerTeamRevenueClient.tsx (Realtime + useCallback refactor)
+app/(app)/teamleader/bonuses/BonusesClient.tsx (teamTotalRevenue rozeti + conditional subtitle)
+```
+
 ### v2.8.2 - Bug Fixes, Payment Audit & Build Fix (16.03.2026) ✅
 **Yapılanlar:**
 

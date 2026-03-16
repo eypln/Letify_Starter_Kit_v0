@@ -2,7 +2,42 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (16.03.2026) ✅ COMPLETED - Bug Fixes & Payment Audit v2.8.2
+### Ana Odak Alanları (17.03.2026) ✅ COMPLETED - Data Refresh Fixes, Task Removal & UI Enhancements v2.8.4
+
+1. **Internship Tasks — Remove Task Özelliği (v2.8.4)**:
+   - ✅ **DELETE API Endpoint**: `app/api/internship-tasks/route.ts` — Soft-delete (`is_active = false`), auth + role check (teamleader+)
+   - ✅ **UI Delete Buttons**: 3 lokasyona Trash2 ikonu eklendi (Overview tab, Daily Tasks tab, Coming Soon section)
+   - ✅ **Confirmation Modal**: Görev adı gösterilir, "Existing logs will be preserved" uyarısı, Cancel/Remove butonları
+   - ✅ State: `deleteTaskId`, handler: `handleDeleteTask(taskId)` → `DELETE /api/internship-tasks?id=${taskId}` → `fetchData()`
+
+2. **Data Refresh Fix — Listings Sayfası (v2.8.4)**:
+   - ✅ **Listings**: `onListingCreated={handleRefresh}` callback'i `<AddDialog>` bileşenine eklendi — yeni listing eklediğinde tablo otomatik yenileniyor
+
+3. **Data Refresh Fix — Team Revenue (3 Rol) (v2.8.4)**:
+   - ✅ **Teamleader (TeamRevenueClient)**: `teamRefreshKey` state pattern — `handleSubmit` ve Realtime handler'da artırılıyor, `TeamRevenueTable` ve `TeamTotalDealCount` child bileşenlerine prop olarak geçiliyor, useEffect dependency'lerine eklendi
+   - ✅ **Boss (BossTeamRevenueClient)**: Supabase Realtime subscription eklendi — `boss-revenue-changes` kanalı, `revenue` tablosu `*` event dinleme → `refreshData()` tetikleme
+   - ✅ **Manager (ManagerTeamRevenueClient)**: Supabase Realtime subscription eklendi — `manager-revenue-changes` + `manager-deal-count-changes` kanalları, `refreshData` → `useCallback` refactor, `ManagerTotalDealCount` bileşenine Realtime eklendi
+
+4. **Bonuses UI Geliştirmeleri (v2.8.4)**:
+   - ✅ **Total Revenue Rozeti**: Leadership Performance — Agent Rankings bölümünde "Total Team Deals" rozetinin yanına yeşil "Total Revenue: {formatCurrency(teamTotalRevenue)}" rozeti eklendi
+   - ✅ **teamTotalRevenue**: `useMemo(() => agentPerformance.reduce((sum, agent) => sum + agent.totalRent, 0), [agentPerformance])`
+   - ✅ **"from September 2025" Subtitle**: `{!selectedMonth && (...)}` koşullu gösterim — sadece All Time modunda görünür
+
+5. **Build Doğrulama (v2.8.4)**:
+   - ✅ `npx next build` — 128 sayfa, 0 TypeScript hatası
+
+   **Değiştirilen Dosyalar:**
+   ```
+   app/api/internship-tasks/route.ts (DELETE method eklendi)
+   app/dashboard/internship-tasks/page.tsx (delete UI: state, handler, Trash2 buttons x3, modal)
+   app/dashboard/listings/page.tsx (onListingCreated={handleRefresh} eklendi)
+   app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (teamRefreshKey pattern)
+   app/(app)/boss/team-revenue/BossTeamRevenueClient.tsx (Realtime subscription)
+   app/(app)/manager/team-revenue/ManagerTeamRevenueClient.tsx (Realtime + useCallback refactor)
+   app/(app)/teamleader/bonuses/BonusesClient.tsx (teamTotalRevenue rozeti + conditional subtitle)
+   ```
+
+### Önceki Odak (16.03.2026) ✅ COMPLETED - Bug Fixes & Payment Audit v2.8.2
 
 1. **3 Kritik Bug Fix (v2.8.2)**:
    - ✅ **Timezone Bug**: `getMonth()` → `getUTCMonth()`, `getFullYear()` → `getUTCFullYear()` — BonusesClient.tsx (getCompletionMonth) ve RevenueClient.tsx (getAgentBonusCompletionMonth + chart monthKey) — toplam 3 lokasyon
