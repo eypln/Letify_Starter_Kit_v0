@@ -193,6 +193,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
     vat_type: "",
     start_date: "",
     hired: false,
+    cv_webviewlink: "",
   });
 
   // Date states
