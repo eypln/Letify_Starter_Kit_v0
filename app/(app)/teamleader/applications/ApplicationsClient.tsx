@@ -69,6 +69,7 @@ interface Application {
   vat_type: string | null;
   start_date: string | null;
   hired: boolean;
+  cv_webviewlink: string | null;
   created_at?: string;
 }
 
@@ -87,6 +88,7 @@ interface ApplicationForm {
   vat_type: string;
   start_date: string;
   hired: boolean;
+  cv_webviewlink: string;
 }
 
 // Hired team members table columns
@@ -354,6 +356,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       vat_type: "",
       start_date: "",
       hired: false,
+      cv_webviewlink: "",
     });
     setApplicationDate(null);
     setAppointmentDate(null);
@@ -382,6 +385,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       vat_type: app.vat_type || "",
       start_date: app.start_date || "",
       hired: app.hired || false,
+      cv_webviewlink: app.cv_webviewlink || "",
     });
 
     setApplicationDate(app.application_date ? new Date(app.application_date) : null);
@@ -727,7 +731,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
 
   const pieTotal = useMemo(() => pieData.reduce((s, e) => s + e.value, 0), [pieData]);
 
-  const colCount = 15; // checkbox + 14 data columns
+  const colCount = 16; // checkbox + 15 data columns (includes CV)
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
@@ -970,6 +974,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Interview Point</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">VAT Type</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Start Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">CV</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1111,6 +1116,23 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {formatDate(app.start_date)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm">
+                          {app.cv_webviewlink ? (
+                            <a
+                              href={app.cv_webviewlink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded text-xs font-medium transition-colors"
+                            >
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              View CV
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1479,6 +1501,30 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                       className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"
                       placeholderText="Select date"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">CV Link (Google Drive)</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.cv_webviewlink}
+                      onChange={(e) => setForm({ ...form, cv_webviewlink: e.target.value })}
+                      placeholder="Paste Google Drive webViewLink here"
+                    />
+                    {form.cv_webviewlink && (
+                      <a
+                        href={form.cv_webviewlink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 rounded text-sm whitespace-nowrap"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open
+                      </a>
+                    )}
                   </div>
                 </div>
 

@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       vat_type: body.vat_type || null,
       start_date: body.start_date || null,
       hired: body.hired || false,
+      cv_webviewlink: body.cv_webviewlink || null,
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,6 +162,7 @@ export async function PUT(request: NextRequest) {
       vat_type: body.vat_type || null,
       start_date: body.start_date || null,
       hired: body.hired || false,
+      cv_webviewlink: body.cv_webviewlink || null,
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

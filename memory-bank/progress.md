@@ -3,6 +3,44 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.5 - Admin Block Fix, CV Webviewlink & Minor Fixes (17.03.2026) ✅
+**Yapılanlar:**
+
+#### Admin Panel — Block User Fix ✅
+- **Problem**: Admin panelde kullanıcı block fonksiyonu çalışmıyordu
+- **Root Cause**: `profiles` tablosundaki `profiles_status_check` constraint sadece `'pending_admin'`, `'approved'`, `'denied'` kabul ediyordu — `'blocked'` yoktu
+- **Düzeltme**: Constraint güncellendi → `'blocked'` eklendi
+- **SQL**: `ALTER TABLE profiles DROP/ADD CONSTRAINT profiles_status_check` (4 değer: pending_admin, approved, denied, blocked)
+
+#### Job Applications — CV Webviewlink ✅
+- **Problem**: n8n'den gelen CV dosyalarını (Google Drive webViewLink) görebilme ihtiyacı
+- **DB**: `applications` tablosuna `cv_webviewlink TEXT` kolonu eklendi
+- **API**: POST ve PUT payload'larına `cv_webviewlink` eklendi (`app/api/applications/route.ts`)
+- **UI (ApplicationsClient.tsx)**: 
+  - Tabloda "CV" kolonu eklendi — link varsa mavi "View CV" butonu, yoksa "-"
+  - Edit/Add modalda "CV Link (Google Drive)" input alanı + "Open" butonu
+  - Interface, form, resetForm, handleEdit güncellendi
+  - colCount 15→16
+- **Manager & Boss**: Aynı `ApplicationsClient` bileşenini kullandıkları için otomatik olarak CV kolonu görünüyor
+
+#### Teamwork — Pagination Artırımı ✅
+- `TeamworkClient.tsx`: `itemsPerPage` 10→15 olarak güncellendi
+
+#### Kullanıcı İsim Güncelleme ✅
+- Martina Bartibas Rodríguez → "Martina" olarak güncellendi (profiles + teamwork_listings tabloları)
+
+#### Version Bump ✅
+- `package.json`: v2.8.2 → v2.8.5 (UI açılış sayfasında gösteriliyor)
+
+**Değiştirilen Dosyalar:**
+```
+add_blocked_status_to_profiles.sql (yeni — constraint fix)
+app/api/applications/route.ts (cv_webviewlink POST/PUT)
+app/(app)/teamleader/applications/ApplicationsClient.tsx (CV kolonu tablo + modal + interface)
+app/dashboard/teamwork/TeamworkClient.tsx (itemsPerPage 10→15)
+package.json (v2.8.5)
+```
+
 ### v2.8.4 - Data Refresh Fixes, Task Removal & UI Enhancements (17.03.2026) ✅
 **Yapılanlar:**
 

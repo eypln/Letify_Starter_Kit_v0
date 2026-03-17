@@ -2,7 +2,38 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (17.03.2026) ✅ COMPLETED - Data Refresh Fixes, Task Removal & UI Enhancements v2.8.4
+### Ana Odak Alanları (17.03.2026) ✅ COMPLETED - Admin Fix, CV Webviewlink & Minor Updates v2.8.5
+
+1. **Admin Panel — Block User Fix (v2.8.5)**:
+   - ✅ `profiles_status_check` constraint'e `'blocked'` değeri eklendi
+   - ✅ SQL: `ALTER TABLE profiles DROP/ADD CONSTRAINT` — 4 değer: pending_admin, approved, denied, blocked
+
+2. **Job Applications — CV Webviewlink (v2.8.5)**:
+   - ✅ **DB**: `applications` tablosuna `cv_webviewlink TEXT` kolonu eklendi
+   - ✅ **API**: `app/api/applications/route.ts` — POST/PUT payload'larına cv_webviewlink eklendi
+   - ✅ **UI**: ApplicationsClient.tsx — tabloda "CV" kolonu (View CV butonu), modalda "CV Link" input + Open butonu
+   - ✅ **Manager & Boss**: Aynı bileşeni kullandıkları için otomatik CV desteği
+   - ℹ️ Geçmiş kayıtlar için n8n workflow güncellenmeli (cv_webviewlink alanı eklenmeli)
+
+3. **Teamwork Pagination (v2.8.5)**:
+   - ✅ `itemsPerPage` 10 → 15
+
+4. **Martina İsim Güncelleme (v2.8.5)**:
+   - ✅ profiles + teamwork_listings tablolarında "Martina" olarak güncellendi
+
+5. **Version Bump (v2.8.5)**:
+   - ✅ package.json v2.8.5 — UI açılış sayfasında otomatik yansıyor
+
+   **Değiştirilen Dosyalar:**
+   ```
+   add_blocked_status_to_profiles.sql (constraint fix)
+   app/api/applications/route.ts (cv_webviewlink)
+   app/(app)/teamleader/applications/ApplicationsClient.tsx (CV kolonu + modal)
+   app/dashboard/teamwork/TeamworkClient.tsx (pagination)
+   package.json (v2.8.5)
+   ```
+
+### Önceki Odak (17.03.2026) ✅ COMPLETED - Data Refresh Fixes, Task Removal & UI Enhancements v2.8.4
 
 1. **Internship Tasks — Remove Task Özelliği (v2.8.4)**:
    - ✅ **DELETE API Endpoint**: `app/api/internship-tasks/route.ts` — Soft-delete (`is_active = false`), auth + role check (teamleader+)
