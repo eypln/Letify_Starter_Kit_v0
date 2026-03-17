@@ -64,7 +64,7 @@ export default function TeamworkClient() {
   // Pagination states
   const [listingsPage, setListingsPage] = useState(1);
   const [clientsPage, setClientsPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
 
   // Filter states for Listings
   const [filterCity, setFilterCity] = useState('');
