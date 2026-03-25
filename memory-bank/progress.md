@@ -3,6 +3,44 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.6 - Blocked User Auth Enforcement & Profile Status Fix (25.03.2026) ✅
+**Yapılanlar:**
+
+#### Blocked Kullanıcı Giriş Engeli ✅
+- **Problem**: Admin panelden block edilen kullanıcılar hâlâ giriş yapabiliyordu. Sign-in flow'da ve RoleGuard'da `blocked` status kontrolü yoktu.
+- **Çözüm — 4 katmanlı koruma**:
+  1. **Sign-in page** (`app/sign-in/page.tsx`): Login sonrası `profile.status === 'blocked'` → `/access-denied` yönlendirme
+  2. **Existing session kontrolü** (`app/sign-in/page.tsx`): Zaten giriş yapmış blocked/denied kullanıcı → otomatik `signOut()`
+  3. **Auth callback** (`app/auth/callback/AuthCallbackContent.tsx`): Email doğrulama sonrası blocked kontrolü → `/access-denied`
+  4. **RoleGuard middleware** (`lib/middleware/roleGuard.ts`): `checkRoleAccess()` → profiles tablosundan `status` da çekiliyor, blocked/denied → `/access-denied`, pending_admin → `/waiting-approval`
+
+#### Profil Sayfası Status Gösterimi Fix ✅
+- **Problem**: Blocked kullanıcılar kendi profil sayfasında "Unknown" status görüyordu
+- **Root Cause**: `ProfileStatus` sabitinde ve `getStatusLabel()`/`getStatusBadgeVariant()` fonksiyonlarında `'blocked'` değeri tanımlı değildi → `default: 'Unknown'` döndürüyordu
+- **Düzeltme**:
+  - `lib/validation.ts`: `ProfileStatus.BLOCKED = 'blocked'` eklendi
+  - `getStatusLabel('blocked')` → `'Blocked'`
+  - `getStatusBadgeVariant('blocked')` → `'destructive'` (kırmızı badge)
+  - `components/profile/profile-header.tsx`: `ProfileStatus` type'a `'blocked'` eklendi, kırmızı badge + "Your account has been blocked" mesajı
+
+#### Access Denied Sayfası — Blocked Kullanıcı Ayrımı ✅
+- **Problem**: Blocked kullanıcı access-denied sayfasında "Back to Dashboard" ile dashboard'a geri dönebiliyordu
+- **Çözüm**: `app/access-denied/page.tsx` tamamen yeniden yapılandırıldı:
+  - Blocked/denied kullanıcı: Sadece kırmızı "Sign Out" butonu, dashboard'a dönüş yok
+  - Normal yetki dışı erişim: Eski davranış korunuyor (Back to Dashboard + Go Back)
+  - Mesaj: "Your account has been blocked. Please contact your system administrator."
+
+**Değiştirilen Dosyalar:**
+```
+lib/validation.ts (ProfileStatus.BLOCKED, getStatusLabel, getStatusBadgeVariant)
+components/profile/profile-header.tsx (blocked type, kırmızı badge, mesaj)
+app/sign-in/page.tsx (blocked login engeli + existing session sign-out)
+app/auth/callback/AuthCallbackContent.tsx (blocked status redirect)
+lib/middleware/roleGuard.ts (status kontrolü: blocked/denied/pending_admin)
+app/access-denied/page.tsx (blocked vs normal ayrımı, sign-out butonu)
+package.json (v2.8.6)
+```
+
 ### v2.8.5 - Admin Block Fix, CV Webviewlink & Minor Fixes (17.03.2026) ✅
 **Yapılanlar:**
 

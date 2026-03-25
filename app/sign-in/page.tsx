@@ -38,13 +38,20 @@ function SignInForm() {
         
         // CRITICAL: Only show "Already Signed In" if email is verified
         if (user && user.email_confirmed_at) {
-          // Get user's role
+          // Get user's role and status
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, status')
             .eq('user_id', user.id)
             .single()
           
+          // Blocked or denied users should be signed out
+          if (profile?.status === 'blocked' || profile?.status === 'denied') {
+            await supabase.auth.signOut()
+            setCheckingSession(false)
+            return
+          }
+
           setExistingUser({
             email: user.email || '',
             role: profile?.role || 'user'
@@ -142,7 +149,7 @@ function SignInForm() {
           if (profile?.status === 'pending_admin') {
             return '/waiting-approval'
           }
-          if (profile?.status === 'denied') {
+          if (profile?.status === 'denied' || profile?.status === 'blocked') {
             return '/access-denied'
           }
           

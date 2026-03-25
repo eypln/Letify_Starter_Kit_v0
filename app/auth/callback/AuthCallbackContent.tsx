@@ -112,7 +112,7 @@ export default function AuthCallbackContent() {
           
           router.push('/waiting-approval')
           return
-        } else if (profile.status === 'denied') {
+        } else if (profile.status === 'denied' || profile.status === 'blocked') {
           router.push('/access-denied')
         } else if (profile.status === 'approved') {
           const redirectPath = (() => {

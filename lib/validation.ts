@@ -157,6 +157,7 @@ export const ProfileStatus = {
   PENDING_ADMIN: 'pending_admin',
   APPROVED: 'approved',
   DENIED: 'denied',
+  BLOCKED: 'blocked',
 } as const
 
 export type ProfileStatusType = typeof ProfileStatus[keyof typeof ProfileStatus]
@@ -169,6 +170,8 @@ export const getStatusLabel = (status: ProfileStatusType) => {
       return 'Approved'
     case ProfileStatus.DENIED:
       return 'Denied'
+    case ProfileStatus.BLOCKED:
+      return 'Blocked'
     default:
       return 'Unknown'
   }
@@ -181,6 +184,8 @@ export const getStatusBadgeVariant = (status: ProfileStatusType) => {
     case ProfileStatus.APPROVED:
       return 'default'
     case ProfileStatus.DENIED:
+      return 'destructive'
+    case ProfileStatus.BLOCKED:
       return 'destructive'
     default:
       return 'secondary'

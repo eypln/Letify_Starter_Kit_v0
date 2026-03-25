@@ -18,7 +18,7 @@ interface ProfileHeaderProps {
   profile: Profile
 }
 
-type ProfileStatus = 'pending_admin' | 'approved' | 'denied';
+type ProfileStatus = 'pending_admin' | 'approved' | 'denied' | 'blocked';
 
 export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
   const statusLabel = getStatusLabel(profile.status as ProfileStatus);
@@ -91,7 +91,7 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
             <div className="border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium">Account Status</p>
-                <Badge variant={statusVariant as 'default' | 'secondary' | 'destructive' | 'outline'} className={profile.status === 'approved' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-purple-500 text-white'}>
+                <Badge variant={statusVariant as 'default' | 'secondary' | 'destructive' | 'outline'} className={profile.status === 'approved' ? 'bg-green-500 hover:bg-green-600 text-white' : profile.status === 'blocked' ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-purple-500 text-white'}>
                   {statusLabel}
                 </Badge>
               </div>
@@ -108,6 +108,11 @@ export default function ProfileHeader({ user, profile }: ProfileHeaderProps) {
               {profile.status === 'denied' && (
                 <p className="text-xs text-red-600">
                   Account access denied. Please contact support.
+                </p>
+              )}
+              {profile.status === 'blocked' && (
+                <p className="text-xs text-red-600">
+                  Your account has been blocked. Please contact support.
                 </p>
               )}
             </div>

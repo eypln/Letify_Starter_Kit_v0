@@ -567,6 +567,15 @@ const { data: { session } } = await supabase.auth.getSession()
 - Email verification UX: Adım adım ekranlar (Verify Email → Waiting Approval)
 - Session check: email_confirmed_at kontrolü her auth flow'da olmalı
 
+**Blocked User Auth Enforcement (v2.8.6):**
+- `profiles.status` değerleri: `pending_admin`, `approved`, `denied`, `blocked`
+- Login flow (sign-in + auth callback): `blocked` → `/access-denied` yönlendirme
+- Existing session: Blocked kullanıcı sign-in sayfasına gelirse otomatik `signOut()`
+- `checkRoleAccess()` (roleGuard.ts): `profiles.status` kontrolü — blocked/denied → `/access-denied`, pending_admin → `/waiting-approval`
+- `access-denied` sayfası: Blocked kullanıcıya sadece "Sign Out" butonu gösterilir (dashboard'a dönüş yok)
+- `getStatusLabel('blocked')` → "Blocked", `getStatusBadgeVariant('blocked')` → "destructive" (kırmızı badge)
+- Profile sayfasında blocked kullanıcı "Blocked" etiketini kırmızı badge ile görür
+
 ### SMTP, Auth, Admin, UI ve Memory Bank Pattern'leri (20.06.2024)
 
 - **Ortam Bazlı SMTP Seçimi:**

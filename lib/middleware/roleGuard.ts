@@ -85,11 +85,29 @@ export async function checkRoleAccess(currentPath: string): Promise<{
   // Kullanıcının rolünü al
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, status')
     .eq('id', user.id)
     .single();
   
   if (!profile || !profile.role) {
+    return {
+      authorized: false,
+      userRole: null,
+      redirectTo: '/waiting-approval'
+    };
+  }
+
+  // Blocked veya denied kullanıcıları engelle
+  if (profile.status === 'blocked' || profile.status === 'denied') {
+    return {
+      authorized: false,
+      userRole: null,
+      redirectTo: '/access-denied'
+    };
+  }
+
+  // Pending kullanıcıları yönlendir
+  if (profile.status === 'pending_admin') {
     return {
       authorized: false,
       userRole: null,

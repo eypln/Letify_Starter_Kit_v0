@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShieldAlert, Home } from "lucide-react";
+import { ShieldAlert, Home, LogOut } from "lucide-react";
 import { getDashboardUrl } from "@/lib/middleware/roleGuard";
 import type { UserRole } from "@/lib/middleware/roleGuard";
 
@@ -13,6 +13,8 @@ export default function AccessDeniedPage() {
   const router = useRouter();
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -26,14 +28,15 @@ export default function AccessDeniedPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, status")
         .eq("user_id", user.id)
         .single();
 
-      if (profile?.role) {
+      if (profile?.status === 'blocked' || profile?.status === 'denied') {
+        setIsBlocked(true);
+      } else if (profile?.role) {
         setDashboardUrl(getDashboardUrl(profile.role as UserRole));
       } else {
-        // Fallback if no role found
         setDashboardUrl("/dashboard");
       }
       
@@ -42,6 +45,13 @@ export default function AccessDeniedPage() {
 
     fetchUserRole();
   }, [router]);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/sign-in");
+  };
 
   if (loading) {
     return (
@@ -65,34 +75,58 @@ export default function AccessDeniedPage() {
             Access Denied
           </h1>
           
-          <p className="text-gray-600 mb-2 text-lg">
-            You don't have permission to access this page.
-          </p>
-          
-          <p className="text-gray-500 mb-8 text-sm">
-            Please use pages appropriate to your permission level or contact your system administrator.
-          </p>
+          {isBlocked ? (
+            <>
+              <p className="text-gray-600 mb-2 text-lg">
+                Your account has been blocked.
+              </p>
+              <p className="text-gray-500 mb-8 text-sm">
+                Please contact your system administrator for more information.
+              </p>
 
-          <div className="space-y-3">
-            <Button
-              onClick={() => dashboardUrl && router.push(dashboardUrl)}
-              disabled={!dashboardUrl}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
-              size="lg"
-            >
-              <Home className="mr-2 h-5 w-5" />
-              Back to Dashboard
-            </Button>
-            
-            <Button
-              onClick={() => router.back()}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              Go Back
-            </Button>
-          </div>
+              <div className="space-y-3">
+                <Button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                  size="lg"
+                >
+                  <LogOut className="mr-2 h-5 w-5" />
+                  {signingOut ? "Signing out..." : "Sign Out"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-600 mb-2 text-lg">
+                You don&apos;t have permission to access this page.
+              </p>
+              <p className="text-gray-500 mb-8 text-sm">
+                Please use pages appropriate to your permission level or contact your system administrator.
+              </p>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => dashboardUrl && router.push(dashboardUrl)}
+                  disabled={!dashboardUrl}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                  size="lg"
+                >
+                  <Home className="mr-2 h-5 w-5" />
+                  Back to Dashboard
+                </Button>
+                
+                <Button
+                  onClick={() => router.back()}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Go Back
+                </Button>
+              </div>
+            </>
+          )}
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500">

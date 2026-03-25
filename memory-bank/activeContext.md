@@ -2,7 +2,37 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (17.03.2026) ✅ COMPLETED - Admin Fix, CV Webviewlink & Minor Updates v2.8.5
+### Ana Odak Alanları (25.03.2026) ✅ COMPLETED - Blocked User Auth Enforcement v2.8.6
+
+1. **Blocked Kullanıcı Giriş Engeli (v2.8.6)**:
+   - ✅ **Sign-in page**: `blocked` status kontrolü eklendi → `/access-denied`'a yönlendirme
+   - ✅ **Sign-in existing session**: Blocked kullanıcı zaten giriş yapmışsa otomatik sign-out
+   - ✅ **Auth callback**: Email doğrulama sonrası `blocked` status kontrolü eklendi
+   - ✅ **RoleGuard middleware**: `checkRoleAccess()` fonksiyonuna blocked/denied/pending_admin status kontrolü eklendi — dashboard erişimi engelleniyor
+
+2. **Profil Sayfası Status Gösterimi Fix (v2.8.6)**:
+   - ✅ **ProfileStatus type**: `'blocked'` eklendi (profile-header.tsx)
+   - ✅ **validation.ts**: `ProfileStatus.BLOCKED` eklendi, `getStatusLabel()` → "Blocked", `getStatusBadgeVariant()` → "destructive" (kırmızı)
+   - ✅ **Profile badge**: Blocked için kırmızı badge (`bg-red-500`) + "Your account has been blocked" mesajı
+   - ✅ **Sorun çözümü**: Blocked kullanıcılar artık "Unknown" yerine "Blocked" görüyor
+
+3. **Access Denied Sayfası Blocked Ayrımı (v2.8.6)**:
+   - ✅ **Blocked/denied kullanıcı**: Sadece "Sign Out" butonu (kırmızı), dashboard'a dönüş yok
+   - ✅ **Normal yetki dışı erişim**: Eski davranış korunuyor (Back to Dashboard + Go Back)
+   - ✅ **Mesaj**: "Your account has been blocked. Please contact your system administrator."
+
+   **Değiştirilen Dosyalar:**
+   ```
+   lib/validation.ts (ProfileStatus.BLOCKED, getStatusLabel, getStatusBadgeVariant)
+   components/profile/profile-header.tsx (blocked type, badge, mesaj)
+   app/sign-in/page.tsx (blocked login engeli + existing session sign-out)
+   app/auth/callback/AuthCallbackContent.tsx (blocked redirect)
+   lib/middleware/roleGuard.ts (status kontrolü: blocked/denied/pending_admin)
+   app/access-denied/page.tsx (blocked vs normal ayrımı, sign-out butonu)
+   package.json (v2.8.6)
+   ```
+
+### Önceki Odak (17.03.2026) ✅ COMPLETED - Admin Fix, CV Webviewlink & Minor Updates v2.8.5
 
 1. **Admin Panel — Block User Fix (v2.8.5)**:
    - ✅ `profiles_status_check` constraint'e `'blocked'` değeri eklendi
