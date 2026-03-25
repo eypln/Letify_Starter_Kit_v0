@@ -86,7 +86,7 @@ export interface Database {
           email: string | null;
           full_name: string | null;
           phone: string | null;
-          status: 'pending_admin' | 'approved' | 'denied';
+          status: 'pending_admin' | 'approved' | 'denied' | 'blocked';
           role: string;
           created_at: string;
           updated_at: string;
@@ -96,7 +96,7 @@ export interface Database {
           email?: string | null;
           full_name?: string | null;
           phone?: string | null;
-          status?: 'pending_admin' | 'approved' | 'denied';
+          status?: 'pending_admin' | 'approved' | 'denied' | 'blocked';
           role?: string;
           created_at?: string;
           updated_at?: string;
@@ -106,7 +106,7 @@ export interface Database {
           email?: string | null;
           full_name?: string | null;
           phone?: string | null;
-          status?: 'pending_admin' | 'approved' | 'denied';
+          status?: 'pending_admin' | 'approved' | 'denied' | 'blocked';
           role?: string;
           created_at?: string;
           updated_at?: string;
