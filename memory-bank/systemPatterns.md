@@ -567,7 +567,7 @@ const { data: { session } } = await supabase.auth.getSession()
 - Email verification UX: Adım adım ekranlar (Verify Email → Waiting Approval)
 - Session check: email_confirmed_at kontrolü her auth flow'da olmalı
 
-**Blocked User Auth Enforcement (v2.8.6):**
+**Blocked User Auth Enforcement (v2.8.7):**
 - `profiles.status` değerleri: `pending_admin`, `approved`, `denied`, `blocked`
 - Login flow (sign-in + auth callback): `blocked` → `/access-denied` yönlendirme
 - Existing session: Blocked kullanıcı sign-in sayfasına gelirse otomatik `signOut()`

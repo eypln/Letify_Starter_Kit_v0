@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Edit2, Trophy, Target, Award, TrendingUp, FileText, Gift } from "lucide-react";
+import { Plus, Edit2, Trophy, Target, Award, TrendingUp, FileText, Gift, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
@@ -45,6 +45,7 @@ interface RevenueForm {
 
 const columns = [
   "#",
+  "Actions",
   "Date Rented",
   "Ref No",
   "Client Name",
@@ -60,7 +61,6 @@ const columns = [
   "Client Paid Date",
   "Collaboration with",
   "Inform Boss",
-  "Actions",
 ];
 
 const pageSize = 10;
@@ -102,6 +102,7 @@ interface Revenue {
   collaboration_with: string | null;
   inform_boss_after_both_sides_paid: boolean;
   created_at?: string;
+  is_collab_partner?: boolean;
 }
 
 interface Listing {
@@ -131,7 +132,9 @@ export default function RevenueClient({ user }: { user: User }) {
   const [pageCount, setPageCount] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const supabase = createClient();
+  const [userFullName, setUserFullName] = useState<string>('');
 
   const [form, setForm] = useState<RevenueForm>({
     id: undefined,
@@ -289,17 +292,52 @@ export default function RevenueClient({ user }: { user: User }) {
   async function getUserAndRevenues(currentPage = page) {
     setLoading(true);
 
-    // Fetch revenues
-    const { data, error, count } = await supabase
-      .from("revenue")
-      .select("*", { count: "exact" })
+    // Fetch user's full_name for collaboration matching
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("full_name")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+      .single();
 
-    if (!error && data) {
-      setRevenues(data);
-      setPageCount(Math.ceil((count || 0) / pageSize));
+    if (profileData?.full_name) {
+      setUserFullName(profileData.full_name);
+    }
+
+    // Fetch user's own deals
+    const { data: ownData, error } = await supabase
+      .from("revenue")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    // Fetch collaboration partner deals (where this user is the collab partner)
+    let collabData: Revenue[] = [];
+    if (profileData?.full_name) {
+      const { data: partnerDeals } = await supabase
+        .from("revenue")
+        .select("*")
+        .neq("user_id", user.id)
+        .eq("collaboration_with", profileData.full_name)
+        .order("created_at", { ascending: false });
+
+      if (partnerDeals) {
+        collabData = partnerDeals.map((d: any) => ({ ...d, is_collab_partner: true }));
+      }
+    }
+
+    // Combine own + collab deals and sort by created_at
+    const allDeals = [
+      ...(ownData || []).map((d: any) => ({ ...d, is_collab_partner: false })),
+      ...collabData,
+    ].sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
+
+    // Client-side pagination
+    const start = (currentPage - 1) * pageSize;
+    const pageData = allDeals.slice(start, start + pageSize);
+
+    if (!error) {
+      setRevenues(pageData);
+      setPageCount(Math.ceil(allDeals.length / pageSize));
     }
 
     // Fetch listings for Ref No dropdown
@@ -345,8 +383,11 @@ export default function RevenueClient({ user }: { user: User }) {
 
   // Realtime subscription for revenue changes (sync with teamleader edits)
   useEffect(() => {
-    const channel = supabase
-      .channel('agent-revenue-changes')
+    const channels: ReturnType<typeof supabase.channel>[] = [];
+
+    // Own deals channel
+    const ownChannel = supabase
+      .channel('agent-revenue-own')
       .on(
         'postgres_changes',
         {
@@ -360,12 +401,33 @@ export default function RevenueClient({ user }: { user: User }) {
         }
       )
       .subscribe();
+    channels.push(ownChannel);
+
+    // Collaboration partner deals channel
+    if (userFullName) {
+      const collabChannel = supabase
+        .channel('agent-revenue-collab')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'revenue',
+            filter: `collaboration_with=eq.${userFullName}`
+          },
+          () => {
+            getUserAndRevenues();
+          }
+        )
+        .subscribe();
+      channels.push(collabChannel);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      channels.forEach(ch => supabase.removeChannel(ch));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, userFullName]);
 
   const resetForm = () => {
     setForm({
@@ -562,9 +624,25 @@ export default function RevenueClient({ user }: { user: User }) {
                   </tr>
                 ) : (
                   revenues.map((revenue: Revenue, idx: number) => (
-                    <tr key={revenue.id} className="table-row-hover">
+                    <tr key={revenue.id} className={`table-row-hover ${revenue.is_collab_partner ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {(page - 1) * pageSize + idx + 1}
+                        <div className="flex items-center gap-1">
+                          {(page - 1) * pageSize + idx + 1}
+                          {revenue.is_collab_partner && (
+                            <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full">
+                              Collab
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(revenue)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatDate(revenue.date_rented)}
@@ -620,15 +698,6 @@ export default function RevenueClient({ user }: { user: User }) {
                           disabled
                           className="h-4 w-4"
                         />
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(revenue)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
                       </td>
                     </tr>
                   ))
@@ -1063,20 +1132,54 @@ export default function RevenueClient({ user }: { user: User }) {
                 <DealDocumentUpload refNo={form.ref_no} />
 
                 {/* Form Buttons */}
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Saving..." : form.id ? "Update" : "Add"}
-                  </Button>
+                <div className="flex items-center pt-4">
+                  {form.id && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={deleting || submitting}
+                      className="flex items-center gap-2"
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to delete this deal? This action cannot be undone.')) return;
+                        setDeleting(true);
+                        try {
+                          const res = await fetch(`/api/revenue?id=${form.id}`, { method: 'DELETE' });
+                          const result = await res.json();
+                          if (result.success) {
+                            toast({ title: 'Deal deleted successfully', variant: 'default' });
+                            setShowModal(false);
+                            resetForm();
+                            await getUserAndRevenues(1);
+                          } else {
+                            toast({ title: 'Error', description: result.error || 'Failed to delete deal', variant: 'destructive' });
+                          }
+                        } catch {
+                          toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+                        } finally {
+                          setDeleting(false);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deleting ? 'Deleting...' : 'Delete Deal'}
+                    </Button>
+                  )}
+                  <div className="flex-1" />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowModal(false);
+                        resetForm();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? "Saving..." : form.id ? "Update" : "Add"}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </div>

@@ -2,21 +2,21 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (25.03.2026) ✅ COMPLETED - Blocked User Auth Enforcement v2.8.6
+### Ana Odak Alanları (25.03.2026) ✅ COMPLETED - Blocked User Auth Enforcement v2.8.7
 
-1. **Blocked Kullanıcı Giriş Engeli (v2.8.6)**:
+1. **Blocked Kullanıcı Giriş Engeli (v2.8.7)**:
    - ✅ **Sign-in page**: `blocked` status kontrolü eklendi → `/access-denied`'a yönlendirme
    - ✅ **Sign-in existing session**: Blocked kullanıcı zaten giriş yapmışsa otomatik sign-out
    - ✅ **Auth callback**: Email doğrulama sonrası `blocked` status kontrolü eklendi
    - ✅ **RoleGuard middleware**: `checkRoleAccess()` fonksiyonuna blocked/denied/pending_admin status kontrolü eklendi — dashboard erişimi engelleniyor
 
-2. **Profil Sayfası Status Gösterimi Fix (v2.8.6)**:
+2. **Profil Sayfası Status Gösterimi Fix (v2.8.7)**:
    - ✅ **ProfileStatus type**: `'blocked'` eklendi (profile-header.tsx)
    - ✅ **validation.ts**: `ProfileStatus.BLOCKED` eklendi, `getStatusLabel()` → "Blocked", `getStatusBadgeVariant()` → "destructive" (kırmızı)
    - ✅ **Profile badge**: Blocked için kırmızı badge (`bg-red-500`) + "Your account has been blocked" mesajı
    - ✅ **Sorun çözümü**: Blocked kullanıcılar artık "Unknown" yerine "Blocked" görüyor
 
-3. **Access Denied Sayfası Blocked Ayrımı (v2.8.6)**:
+3. **Access Denied Sayfası Blocked Ayrımı (v2.8.7)**:
    - ✅ **Blocked/denied kullanıcı**: Sadece "Sign Out" butonu (kırmızı), dashboard'a dönüş yok
    - ✅ **Normal yetki dışı erişim**: Eski davranış korunuyor (Back to Dashboard + Go Back)
    - ✅ **Mesaj**: "Your account has been blocked. Please contact your system administrator."
@@ -29,7 +29,7 @@
    app/auth/callback/AuthCallbackContent.tsx (blocked redirect)
    lib/middleware/roleGuard.ts (status kontrolü: blocked/denied/pending_admin)
    app/access-denied/page.tsx (blocked vs normal ayrımı, sign-out butonu)
-   package.json (v2.8.6)
+  package.json (v2.8.7)
    ```
 
 ### Önceki Odak (17.03.2026) ✅ COMPLETED - Admin Fix, CV Webviewlink & Minor Updates v2.8.5

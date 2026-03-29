@@ -401,34 +401,41 @@ export async function PUT(req: NextRequest) {
     agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
   }
 
-  // Get user role to check permissions
+  // Get user role and full_name to check permissions
   const { data: userProfile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, full_name')
     .eq('user_id', user_id)
     .single();
 
   const userRole = userProfile?.role;
   const isElevatedUser = ['teamleader', 'manager', 'boss', 'admin'].includes(userRole || '');
 
-  // Get previous record to check if boss notification is needed
-  // Elevated users can update any revenue, normal users can only update their own
-  let prevRecordQuery = supabase
+  // Get previous record to check permissions and boss notification
+  const { data: prevRecord } = await supabase
     .from('revenue')
     .select('*')
-    .eq('id', id);
-  
-  if (!isElevatedUser) {
-    prevRecordQuery = prevRecordQuery.eq('user_id', user_id);
-  }
-  
-  const { data: prevRecord } = await prevRecordQuery.single();
+    .eq('id', id)
+    .single();
 
   if (!prevRecord) {
     return NextResponse.json({ 
       success: false, 
-      error: 'Revenue record not found or you do not have permission to update it' 
+      error: 'Revenue record not found' 
     }, { status: 404 });
+  }
+
+  // Permission check: owner, elevated user, or collaboration partner
+  const isOwner = prevRecord.user_id === user_id;
+  const isCollabPartner = !!(userProfile?.full_name && 
+    prevRecord.collaboration_with === userProfile.full_name &&
+    prevRecord.user_id !== user_id);
+
+  if (!isOwner && !isElevatedUser && !isCollabPartner) {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'You do not have permission to update this record' 
+    }, { status: 403 });
   }
 
   const updateData: Record<string, any> = {
@@ -461,17 +468,11 @@ export async function PUT(req: NextRequest) {
     updateData.user_id = target_user_id;
   }
 
-  // Update query - elevated users can update any revenue
-  let updateQuery = supabase
+  // Update query - permissions already verified above
+  const { data, error } = await supabase
     .from('revenue')
     .update(updateData)
-    .eq('id', id);
-  
-  if (!isElevatedUser) {
-    updateQuery = updateQuery.eq('user_id', user_id);
-  }
-
-  const { data, error } = await updateQuery
+    .eq('id', id)
     .select()
     .single();
 
@@ -503,6 +504,81 @@ export async function PUT(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true, data });
+}
+
+// DELETE - Delete a revenue record
+export async function DELETE(req: NextRequest) {
+  const rateLimitResult = await rateLimit(req, RateLimitPresets.MEDIUM);
+  if (rateLimitResult) return rateLimitResult;
+  const supabase = await createClient();
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ success: false, error: 'Missing revenue id' }, { status: 400 });
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Get user profile for permission check
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('role, full_name')
+    .eq('user_id', user.id)
+    .single();
+
+  const userRole = userProfile?.role;
+  const isElevatedUser = ['teamleader', 'manager', 'boss', 'admin'].includes(userRole || '');
+
+  // Get the record to check permissions
+  const { data: record } = await supabase
+    .from('revenue')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (!record) {
+    return NextResponse.json({ success: false, error: 'Revenue record not found' }, { status: 404 });
+  }
+
+  // Permission check: owner, elevated user, or collaboration partner
+  const isOwner = record.user_id === user.id;
+  const isCollabPartner = !!(userProfile?.full_name &&
+    record.collaboration_with === userProfile.full_name &&
+    record.user_id !== user.id);
+
+  if (!isOwner && !isElevatedUser && !isCollabPartner) {
+    return NextResponse.json({
+      success: false,
+      error: 'You do not have permission to delete this record'
+    }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from('revenue')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
+
+  // Log activity
+  await logActivity(supabase, {
+    user_id: user.id,
+    type: 'revenue_deleted',
+    data: { ref_no: record.ref_no, client_name: record.client_name, rent_amount: record.rent_amount }
+  });
+
+  return NextResponse.json({ success: true });
 }
 
 import type { SupabaseClient } from '@supabase/supabase-js'

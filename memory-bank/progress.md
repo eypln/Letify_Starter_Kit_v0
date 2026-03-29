@@ -3,7 +3,7 @@
 
 ## Ne Çalışıyor ✅
 
-### v2.8.6 - Blocked User Auth Enforcement & Profile Status Fix (25.03.2026) ✅
+### v2.8.7 - Blocked User Auth Enforcement & Profile Status Fix (25.03.2026) ✅
 **Yapılanlar:**
 
 #### Blocked Kullanıcı Giriş Engeli ✅
@@ -38,7 +38,7 @@ app/sign-in/page.tsx (blocked login engeli + existing session sign-out)
 app/auth/callback/AuthCallbackContent.tsx (blocked status redirect)
 lib/middleware/roleGuard.ts (status kontrolü: blocked/denied/pending_admin)
 app/access-denied/page.tsx (blocked vs normal ayrımı, sign-out butonu)
-package.json (v2.8.6)
+package.json (v2.8.7)
 ```
 
 ### v2.8.5 - Admin Block Fix, CV Webviewlink & Minor Fixes (17.03.2026) ✅

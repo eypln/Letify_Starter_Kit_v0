@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Edit2 } from "lucide-react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import EditDealModal from "./EditDealModal";
@@ -1140,20 +1140,52 @@ export default function RevenueClient({ user }: { user: User }) {
                 <DealDocumentUpload refNo={form.ref_no} />
 
                 {/* Form Buttons */}
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? "Saving..." : form.id ? "Update" : "Add"}
-                  </Button>
+                <div className="flex items-center pt-4">
+                  {form.id && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={submitting}
+                      className="flex items-center gap-2"
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to delete this deal? This action cannot be undone.')) return;
+                        try {
+                          const res = await fetch(`/api/revenue?id=${form.id}`, { method: 'DELETE' });
+                          const result = await res.json();
+                          if (result.success) {
+                            toast({ title: 'Deal deleted successfully', variant: 'default' });
+                            setShowModal(false);
+                            resetForm();
+                            await getUserAndRevenues(1);
+                            setTeamRefreshKey(k => k + 1);
+                          } else {
+                            toast({ title: 'Error', description: result.error || 'Failed to delete deal', variant: 'destructive' });
+                          }
+                        } catch {
+                          toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Deal
+                    </Button>
+                  )}
+                  <div className="flex-1" />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowModal(false);
+                        resetForm();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? "Saving..." : form.id ? "Update" : "Add"}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -1212,10 +1244,11 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
   const [filterRefNo, setFilterRefNo] = useState('');
   const supabase = createClient();
 
-  const pageSize = 10;
+  const pageSize = 20;
 
   const teamColumns = [
     "#",
+    "Actions",
     "Agent Name",
     "Date Rented",
     "Ref No",
@@ -1232,7 +1265,6 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
     "Client Paid",
     "Collaboration",
     "Inform Boss",
-    "Actions",
   ];
   
   const [editingRevenue, setEditingRevenue] = useState<Revenue | null>(null);
@@ -1288,10 +1320,11 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
   useEffect(() => {
     let filtered = [...allRevenues];
 
-    // Filter by agent name
+    // Filter by agent name (includes deals where agent is the owner OR collaboration partner)
     if (filterAgentName) {
       filtered = filtered.filter(r => 
-        r.agent_name.toLowerCase().includes(filterAgentName.toLowerCase())
+        r.agent_name.toLowerCase().includes(filterAgentName.toLowerCase()) ||
+        (r.collaboration_with && r.collaboration_with.toLowerCase().includes(filterAgentName.toLowerCase()))
       );
     }
 
@@ -1352,8 +1385,13 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
     }
   }
 
-  // Get unique agent names for dropdown
-  const uniqueAgentNames = [...new Set(allRevenues.map(r => r.agent_name))].sort();
+  // Get unique agent names for dropdown (includes collaboration partners)
+  const uniqueAgentNames = [...new Set([
+    ...allRevenues.map(r => r.agent_name),
+    ...allRevenues
+      .filter(r => r.collaboration_with && r.collaboration_with.trim() !== '')
+      .map(r => r.collaboration_with!.trim())
+  ])].sort();
 
   return (
     <>
@@ -1454,6 +1492,15 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(page - 1) * pageSize + idx + 1}
                   </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">
+                    <button
+                      onClick={() => setEditingRevenue(revenue)}
+                      className="text-purple-600 hover:text-purple-900 font-medium flex items-center gap-1"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Edit
+                    </button>
+                  </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {revenue.agent_name}
                   </td>
@@ -1511,15 +1558,6 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                       disabled
                       className="h-4 w-4"
                     />
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => setEditingRevenue(revenue)}
-                      className="text-purple-600 hover:text-purple-900 font-medium flex items-center gap-1"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      Edit
-                    </button>
                   </td>
                 </tr>
               ))

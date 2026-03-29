@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import { Trash2 } from "lucide-react";
 import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
 
 // VAT Type enum
@@ -102,6 +103,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
   const { toast } = useToast();
   const supabase = createClient();
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -707,17 +709,48 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
             <DealDocumentUpload refNo={form.ref_no} />
 
             {/* Form Buttons */}
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex items-center pt-4">
               <Button
                 type="button"
-                variant="outline"
-                onClick={onClose}
+                variant="destructive"
+                disabled={deleting || submitting}
+                className="flex items-center gap-2"
+                onClick={async () => {
+                  if (!confirm('Are you sure you want to delete this deal? This action cannot be undone.')) return;
+                  setDeleting(true);
+                  try {
+                    const res = await fetch(`/api/revenue?id=${form.id}`, { method: 'DELETE' });
+                    const result = await res.json();
+                    if (result.success) {
+                      toast({ title: 'Deal deleted successfully', variant: 'default' });
+                      onClose();
+                      onSuccess();
+                    } else {
+                      toast({ title: 'Error', description: result.error || 'Failed to delete deal', variant: 'destructive' });
+                    }
+                  } catch {
+                    toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
               >
-                Cancel
+                <Trash2 className="h-4 w-4" />
+                {deleting ? 'Deleting...' : 'Delete Deal'}
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Saving..." : "Update"}
-              </Button>
+              <div className="flex-1" />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Saving..." : "Update"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>
