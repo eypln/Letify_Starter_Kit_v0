@@ -308,18 +308,22 @@ export default function TeamViewingsPage() {
         // Fetch profile names for these users
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, role")
           .in("user_id", userIds);
         
         // Create a map of user_id to full_name
         const profileMap = new Map(
           profilesData?.map(p => [p.user_id, p.full_name]) || []
         );
+        const roleMap = new Map(
+          profilesData?.map(p => [p.user_id, p.role]) || []
+        );
         
         // Map viewings with agent names
         const mappedData = viewingsData.map((viewing: any) => ({
           ...viewing,
-          agent_name: profileMap.get(viewing.user_id) || 'Unknown Agent'
+          agent_name: profileMap.get(viewing.user_id) || 'Unknown Agent',
+          agent_role: roleMap.get(viewing.user_id) || 'agent',
         }));
         
         setTeamViewings(mappedData);
@@ -569,7 +573,10 @@ export default function TeamViewingsPage() {
               <div className="text-[9px] sm:text-[10px]">{viewing.viewing_time ? viewing.viewing_time.substring(0, 5) : ''}</div>
               <div className="truncate text-[9px] sm:text-[10px]">{viewing.ref_no}</div>
               {isTeamleader && viewing.user_id !== user?.id && (
-                <div className="text-[8px] sm:text-[9px] text-gray-600 italic truncate">{(viewing as TeamViewing).agent_name}</div>
+                <div className="text-[8px] sm:text-[9px] text-gray-600 italic truncate">
+                  {(viewing as TeamViewing).agent_name}
+                  {(viewing as any).agent_role === 'intern' && <span className="text-orange-600"> (I)</span>}
+                </div>
               )}
             </div>
           ))}
@@ -1196,7 +1203,12 @@ export default function TeamViewingsPage() {
                         className="border-b hover:bg-blue-50"
                       >
                         <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm">{(teamPage - 1) * pageSize + idx + 1}</td>
-                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap font-medium">{viewing.agent_name}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap font-medium">
+                          {viewing.agent_name}
+                          {(viewing as any).agent_role === 'intern' && (
+                            <span className="ml-1 text-xs text-orange-600 font-medium">(Intern)</span>
+                          )}
+                        </td>
                         <td className="px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
                           {viewing.created_at ? new Date(viewing.created_at).toLocaleDateString('en-GB') : ''}
                         </td>

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { LogOut, Settings, Plus, FileText, Users, Users2, Calendar, Euro, Bell, ClipboardList, Trophy, ClipboardCheck } from 'lucide-react'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { PWAInstallButton } from '@/components/system/PWAInstallButton'
 
 export default function TeamLeaderPage() {
   const router = useRouter()
@@ -74,10 +76,12 @@ export default function TeamLeaderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen">
       <div className="pt-8 pb-8 container mx-auto px-4 md:px-8 lg:px-16">
         {/* Logout Button */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end items-center gap-2 mb-4">
+          <PWAInstallButton />
+          <ThemeToggle />
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}

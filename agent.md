@@ -150,19 +150,26 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (128 pages, 0 TypeScript errors)
-- **Version**: v2.9.1
+- **Version**: v2.8.8
 
-### Son Eklenen Özellikler (15.03.2026)
-1. **Collaboration Revenue Split Fix (v2.9.1)**:
-   - API GET endpoint collab ortağı deal'larını döndürüyor (`collaboration_with` = `full_name` eşleştirmesi)
-   - BonusesClient: Virtual collab entries — DB'ye yeni kayıt yapmadan sanal kayıtlarla collab ortağına +1 deal ve yarım gelir
-   - teamTotalDeals: `new Set(original_deal_id)` ile benzersiz sayım — 1 collab = 1 takım deal
-   - AgentBonusSection + MonthlyAgentRevenueChart: Collab partner deal'ları dahil, yarım kira/gelir
-   - TeamRevenueClient, BossTeamRevenueClient, ManagerTeamRevenueClient: "Total Deals: X" rozeti + "from September 2025" alt yazısı
-   - Temel tasarım kararı: Sanal kayıtlar sadece veri işleme katmanında — DB şeması değişmedi
+### Son Eklenen Özellikler (02.04.2026)
+1. **Dark Mode, PWA Install, RLS & UX Fixes (v2.8.8)**:
+   - Teamwork delete RLS fix: `OR is_elevated_user()` — teamleader başkasının kaydını silebilir
+   - PWA install prompt global fix: `beforeinstallprompt` module seviyesinde yakalanarak Edge/Opera desteği
+   - PWAInstallButton: Agent + Teamleader dashboard'larına download butonu
+   - Dark mode fix: 16 React-Select bileşenine `classNamePrefix="react-select"` eklendi
+   - Dark mode fix: TeamRevenueClient + EditDealModal ~15+ `dark:` Tailwind classı eklendi
+   - Teamleader dashboard'a ThemeToggle + PWAInstallButton eklendi
+   - Client Name zorunluluğu kaldırıldı (Add New Deal formunda opsiyonel)
+   - Build fix: Boss/Manager teamwork sayfalarına eksik props eklendi
 
-### Önceki Eklenen Özellikler (15.03.2026)
-1. **Job Applications UX Sprint (v2.9.0)**:
+### Önceki Eklenen Özellikler (25.03.2026)
+1. **Blocked User Auth Enforcement (v2.8.7)**:
+   - Sign-in + Auth callback + RoleGuard middleware'de blocked/denied/pending_admin status kontrolü
+   - Profil sayfasında "Blocked" badge gösterimi
+   - Access Denied sayfasında blocked kullanıcıya sadece "Sign Out" butonu
+
+2. **Job Applications UX Sprint (v2.9.0)**:
    - Summary stats kartları (8 kart: 7 statü + 1 Hired, mor tema)
    - Status filter, Inline status edit, Bulk actions, Row tint, XLSX export, Debounced search
    - Hired Team Members tablosu: mor tema, pagination (20/sayfa)

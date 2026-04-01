@@ -13,5 +13,5 @@ export default async function Page() {
 		redirect('/sign-in')
 	}
 
-	return <TeamworkClient />
+	return <TeamworkClient userId={user.id} userRole={profile.role || 'agent'} />
 }

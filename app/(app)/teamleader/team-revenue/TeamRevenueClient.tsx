@@ -47,7 +47,6 @@ const columns = [
   "#",
   "Date Rented",
   "Ref No",
-  "Client Name",
   "Rent Amount (€)",
   "Landlord Fee (€)",
   "Client Fee (€)",
@@ -476,10 +475,10 @@ export default function RevenueClient({ user }: { user: User }) {
     e.preventDefault();
     
     // Validate required fields
-    if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+    if (!form.ref_no || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields: Ref No, Client Name, Rent Amount, Date Rented, Date Signed, and Date Move In",
+        description: "Please fill in all required fields: Ref No, Rent Amount, Date Rented, Date Signed, and Date Move In",
         variant: "destructive",
       });
       return;
@@ -617,9 +616,6 @@ export default function RevenueClient({ user }: { user: User }) {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {revenue.ref_no || "-"}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {revenue.client_name || "-"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(revenue.rent_amount)}
@@ -768,16 +764,16 @@ export default function RevenueClient({ user }: { user: User }) {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 {form.id ? "Edit Deal" : "Add New Deal"}
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Deal Type Toggle */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2">Deal Type</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Deal Type</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -785,7 +781,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         form.deal_type === 'longlet'
                           ? 'bg-purple-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Longlet
@@ -796,7 +792,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         form.deal_type === 'shortlet'
                           ? 'bg-purple-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Shortlet
@@ -807,9 +803,10 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 1: Ref No, Client Name */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Ref No <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Ref No <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
+                      classNamePrefix="react-select"
                       placeholder="Select from listings or type manually..."
                       options={listings.map(listing => ({
                         label: listing.title,
@@ -838,9 +835,10 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Name</label>
                     <Select
                       isClearable
+                      classNamePrefix="react-select"
                       placeholder="Select from clients or type manually..."
                       options={clients.map(client => ({
                         label: client.name,
@@ -860,7 +858,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: form.client_name ? '#d1d5db' : '#ef4444',
+                          borderColor: '#d1d5db',
                         }),
                       }}
                     />
@@ -873,7 +871,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 2: Rent Amount, VAT Type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                       {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
                     </label>
                     <Input
@@ -886,8 +884,9 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">VAT Type</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">VAT Type</label>
                     <Select
+                      classNamePrefix="react-select"
                       options={vatOptions}
                       value={vatOptions.find(opt => opt.value === form.vat_type)}
                       onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'non-vatable' })}
@@ -906,7 +905,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       onChange={(e) => setForm({ ...form, landlord_discount: e.target.checked })}
                       className="h-4 w-4 mr-2"
                     />
-                    <label htmlFor="landlord_discount" className="text-sm font-medium">
+                    <label htmlFor="landlord_discount" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Landlord 15% Discount
                     </label>
                   </div>
@@ -918,7 +917,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       onChange={(e) => setForm({ ...form, client_discount: e.target.checked })}
                       className="h-4 w-4 mr-2"
                     />
-                    <label htmlFor="client_discount" className="text-sm font-medium">
+                    <label htmlFor="client_discount" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Client 15% Discount
                     </label>
                   </div>
@@ -934,7 +933,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label 
                       htmlFor="has_listing_fee" 
                       className={`text-sm font-medium ${
-                        form.deal_type === 'shortlet' ? 'text-gray-400' : ''
+                        form.deal_type === 'shortlet' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'
                       }`}
                     >
                       Listing Fee (5%)
@@ -952,7 +951,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label 
                       htmlFor="only_listing_fee" 
                       className={`text-sm font-medium ${
-                        !form.has_listing_fee ? 'text-gray-400' : 'text-orange-600'
+                        !form.has_listing_fee ? 'text-gray-400 dark:text-gray-500' : 'text-orange-600 dark:text-orange-400'
                       }`}
                     >
                       Only Listing Fee
@@ -961,7 +960,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 </div>
 
                 {/* Calculated Fees Display */}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">
                   <h3 className="font-semibold mb-2">Calculated Fees</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -982,7 +981,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 3: Date Rented, Date Signed, Date Move In */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Rented <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
                       onChange={(date) => setDateRented(date)}
@@ -992,7 +991,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Signed <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
                       onChange={(date) => setDateSigned(date)}
@@ -1002,7 +1001,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Date Move In <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
                       onChange={(date) => setDateMoveIn(date)}
@@ -1016,7 +1015,7 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 4: Payment Dates */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Landlord Paid Date</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Landlord Paid Date</label>
                     <DatePicker
                       selected={landlordPaidDate}
                       onChange={(date) => setLandlordPaidDate(date)}
@@ -1026,7 +1025,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Client Paid Date</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Paid Date</label>
                     <DatePicker
                       selected={clientPaidDate}
                       onChange={(date) => setClientPaidDate(date)}
@@ -1039,8 +1038,9 @@ export default function RevenueClient({ user }: { user: User }) {
 
                 {/* Row 5: Assign to Agent */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Assign to Agent</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Assign to Agent</label>
                   <Select
+                    classNamePrefix="react-select"
                     value={
                       selectedAgentId
                         ? {
@@ -1071,8 +1071,9 @@ export default function RevenueClient({ user }: { user: User }) {
 
                 {/* Row 6: Collaboration */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Collaboration With</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Collaboration With</label>
                   <Select
+                    classNamePrefix="react-select"
                     value={
                       form.collaboration_with
                         ? { label: form.collaboration_with, value: form.collaboration_with }
@@ -1121,7 +1122,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label 
                       htmlFor="inform_boss" 
                       className={`text-sm font-medium ${
-                        !isInformBossEnabled() ? 'text-gray-400' : 'text-gray-900'
+                        !isInformBossEnabled() ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'
                       }`}
                     >
                       Inform Boss after both sides paid
@@ -1252,7 +1253,6 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
     "Agent Name",
     "Date Rented",
     "Ref No",
-    "Client Name",
     "Rent Amount (€)",
     "Landlord Fee (€)",
     "Client Fee (€)",
@@ -1286,7 +1286,7 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
         // Fetch profile names for these users (silently handle errors)
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, role")
           .in("user_id", userIds);
         
         // Suppress profile fetch errors - we'll show "Unknown Agent" for missing profiles
@@ -1298,11 +1298,15 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
         const profileMap = new Map(
           profilesData?.map(p => [p.user_id, p.full_name]) || []
         );
+        const roleMap = new Map(
+          profilesData?.map(p => [p.user_id, p.role]) || []
+        );
         
         // Map revenues with agent names
         const mappedData = revenueData.map((revenue: any) => ({
           ...revenue,
-          agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+          agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent',
+          agent_role: roleMap.get(revenue.user_id) || 'agent',
         }));
         
         setAllRevenues(mappedData);
@@ -1503,15 +1507,15 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {revenue.agent_name}
+                    {(revenue as any).agent_role === 'intern' && (
+                      <span className="ml-1 text-xs text-orange-600 font-medium">(Intern)</span>
+                    )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatDate(revenue.date_rented)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {revenue.ref_no || "-"}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {revenue.client_name || "-"}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(revenue.rent_amount)}
@@ -1584,16 +1588,20 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                 const userIds = [...new Set(revenueData.map(r => r.user_id))];
                 const { data: profilesData } = await supabase
                   .from("profiles")
-                  .select("user_id, full_name")
+                  .select("user_id, full_name, role")
                   .in("user_id", userIds);
                 
                 const profileMap = new Map(
                   profilesData?.map(p => [p.user_id, p.full_name]) || []
                 );
+                const roleMap = new Map(
+                  profilesData?.map(p => [p.user_id, p.role]) || []
+                );
                 
                 const mappedData = revenueData.map((revenue: any) => ({
                   ...revenue,
-                  agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent'
+                  agent_name: profileMap.get(revenue.user_id) || 'Unknown Agent',
+                  agent_role: roleMap.get(revenue.user_id) || 'agent',
                 }));
                 
                 setAllRevenues(mappedData);

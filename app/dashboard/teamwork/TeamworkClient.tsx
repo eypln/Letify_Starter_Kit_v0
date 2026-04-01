@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, FileText, Filter } from 'lucide-react';
+import { Users, FileText, Filter, Calendar, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Popover,
@@ -25,6 +25,7 @@ import { useDashboardUrl } from '@/lib/hooks/useDashboardUrl';
 
 interface TeamworkListing {
   id: string;
+  user_id: string;
   city: string;
   price: number;
   bedroom: number;
@@ -33,11 +34,13 @@ interface TeamworkListing {
   description: string;
   available_date?: string;
   agent_name: string;
+  agent_role?: string;
   teamwork_date: string;
 }
 
 interface TeamworkClient {
   id: string;
+  user_id: string;
   people: string;
   bedroom: string;
   cities: string;
@@ -48,12 +51,14 @@ interface TeamworkClient {
   budget: string;
   move_in: string;
   agent_name: string;
+  agent_role?: string;
   teamwork_date: string;
 }
 
-export default function TeamworkClient() {
+export default function TeamworkClient({ userId, userRole }: { userId: string; userRole: string }) {
   const { toast } = useToast();
   const { dashboardUrl } = useDashboardUrl();
+  const isElevatedUser = ['teamleader', 'manager', 'boss', 'admin'].includes(userRole);
   
   const [teamworkListings, setTeamworkListings] = useState<TeamworkListing[]>([]);
   const [teamworkClients, setTeamworkClients] = useState<TeamworkClient[]>([]);
@@ -73,6 +78,9 @@ export default function TeamworkClient() {
   const [filterPriceMax, setFilterPriceMax] = useState('');
   const [filterAgent, setFilterAgent] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showUpcoming, setShowUpcoming] = useState(false);
+  const [sortField, setSortField] = useState<'teamwork_date' | 'available_date' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Filter states for Clients
   const [filterClientCity, setFilterClientCity] = useState('');
@@ -156,6 +164,16 @@ export default function TeamworkClient() {
     if (filterAgent && !listing.agent_name?.toLowerCase().includes(filterAgent.toLowerCase())) {
       return false;
     }
+
+    // Upcoming filter: show only listings with available_date >= today
+    if (showUpcoming) {
+      if (!listing.available_date) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const availDate = new Date(listing.available_date);
+      availDate.setHours(0, 0, 0, 0);
+      if (availDate < today) return false;
+    }
     
     return true;
   });
@@ -197,17 +215,25 @@ export default function TeamworkClient() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setListingsPage(1);
-  }, [filterCity, filterBedrooms, filterPriceMin, filterPriceMax, filterAgent]);
+  }, [filterCity, filterBedrooms, filterPriceMin, filterPriceMax, filterAgent, showUpcoming]);
 
   useEffect(() => {
     setClientsPage(1);
   }, [filterClientCity, filterClientBedroom, filterClientBudgetMin, filterClientBudgetMax, filterClientAgent]);
 
   // Calculate pagination
-  const listingsTotalPages = Math.ceil(filteredListings.length / itemsPerPage);
+  const sortedListings = [...filteredListings].sort((a, b) => {
+    if (!sortField) return 0;
+    const dateA = sortField === 'teamwork_date' ? a.teamwork_date : (a.available_date || '');
+    const dateB = sortField === 'teamwork_date' ? b.teamwork_date : (b.available_date || '');
+    const cmp = dateA.localeCompare(dateB);
+    return sortDirection === 'asc' ? cmp : -cmp;
+  });
+
+  const listingsTotalPages = Math.ceil(sortedListings.length / itemsPerPage);
   const clientsTotalPages = Math.ceil(filteredClients.length / itemsPerPage);
   
-  const paginatedListings = filteredListings.slice(
+  const paginatedListings = sortedListings.slice(
     (listingsPage - 1) * itemsPerPage,
     listingsPage * itemsPerPage
   );
@@ -226,12 +252,69 @@ export default function TeamworkClient() {
     setFilterAgent('');
   };
 
+  // Remove listing from teamwork
+  const handleRemoveListing = async (listingId: string) => {
+    try {
+      const response = await fetch('/api/teamwork/listings', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: listingId }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setTeamworkListings(prev => prev.filter(l => l.id !== listingId));
+        toast({ title: 'Listing removed from teamwork' });
+      } else {
+        toast({ title: 'Error', description: result.error || 'Failed to remove listing', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+    }
+  };
+
+  // Remove client from teamwork
+  const handleRemoveClient = async (clientId: string) => {
+    try {
+      const response = await fetch('/api/teamwork/clients', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: clientId }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setTeamworkClients(prev => prev.filter(c => c.id !== clientId));
+        toast({ title: 'Client removed from teamwork' });
+      } else {
+        toast({ title: 'Error', description: result.error || 'Failed to remove client', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+    }
+  };
+
   const clearClientFilters = () => {
     setFilterClientCity('');
     setFilterClientBedroom('');
     setFilterClientBudgetMin('');
     setFilterClientBudgetMax('');
     setFilterClientAgent('');
+  };
+
+  const handleSort = (field: 'teamwork_date' | 'available_date') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+    setListingsPage(1);
+  };
+
+  const SortIcon = ({ field }: { field: 'teamwork_date' | 'available_date' }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1 text-purple-600" />
+      : <ArrowDown className="h-3 w-3 ml-1 text-purple-600" />;
   };
 
   // Check if any filter is active
@@ -274,7 +357,17 @@ export default function TeamworkClient() {
                   </CardDescription>
                 </div>
                 
-                {/* Filter Button */}
+                {/* Upcoming & Filter Buttons */}
+                <div className="flex items-center gap-2">
+                <Button
+                  variant={showUpcoming ? "default" : "outline"}
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setShowUpcoming(!showUpcoming)}
+                >
+                  <Calendar className="h-4 w-4" />
+                  Upcoming
+                </Button>
                 <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                   <PopoverTrigger asChild>
                     <Button 
@@ -378,6 +471,7 @@ export default function TeamworkClient() {
                     </div>
                   </PopoverContent>
                 </Popover>
+                </div>
               </div>
             </CardHeader>
           <CardContent>
@@ -398,15 +492,26 @@ export default function TeamworkClient() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">#</TableHead>
-                      <TableHead>Teamwork Date</TableHead>
+                      <TableHead 
+                        className="cursor-pointer select-none hover:text-purple-600 transition-colors"
+                        onClick={() => handleSort('teamwork_date')}
+                      >
+                        <span className="flex items-center">Added Date<SortIcon field="teamwork_date" /></span>
+                      </TableHead>
                       <TableHead>City</TableHead>
                       <TableHead>Price</TableHead>
-                      <TableHead>Bedrooms</TableHead>
-                      <TableHead>Bathrooms</TableHead>
+                      <TableHead>Bedr</TableHead>
+                      <TableHead>Bath</TableHead>
                       <TableHead>Property Type</TableHead>
-                      <TableHead>Available Date</TableHead>
+                      <TableHead 
+                        className="cursor-pointer select-none hover:text-purple-600 transition-colors"
+                        onClick={() => handleSort('available_date')}
+                      >
+                        <span className="flex items-center">Available Date<SortIcon field="available_date" /></span>
+                      </TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Agent</TableHead>
+                      <TableHead className="w-16 text-center">Remove</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -430,7 +535,23 @@ export default function TeamworkClient() {
                         >
                           {listing.description}
                         </TableCell>
-                        <TableCell>{listing.agent_name || 'Unknown'}</TableCell>
+                        <TableCell>
+                          {listing.agent_name || 'Unknown'}
+                          {listing.agent_role === 'intern' && (
+                            <span className="ml-1 text-xs text-orange-600 font-medium">(Intern)</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {(isElevatedUser || listing.user_id === userId) && (
+                            <button
+                              onClick={() => handleRemoveListing(listing.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1 transition-colors"
+                              title="Remove from teamwork"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -630,7 +751,7 @@ export default function TeamworkClient() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">#</TableHead>
-                      <TableHead>Teamwork Date</TableHead>
+                      <TableHead>Added Date</TableHead>
                       <TableHead>Bedroom</TableHead>
                       <TableHead>Cities</TableHead>
                       <TableHead>Family/Sharing</TableHead>
@@ -641,6 +762,7 @@ export default function TeamworkClient() {
                       <TableHead>Budget</TableHead>
                       <TableHead>Move In</TableHead>
                       <TableHead>Agent</TableHead>
+                      <TableHead className="w-16 text-center">Remove</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -666,7 +788,23 @@ export default function TeamworkClient() {
                         <TableCell>
                           {client.move_in ? new Date(client.move_in).toLocaleDateString() : '-'}
                         </TableCell>
-                        <TableCell>{client.agent_name || 'Unknown'}</TableCell>
+                        <TableCell>
+                          {client.agent_name || 'Unknown'}
+                          {client.agent_role === 'intern' && (
+                            <span className="ml-1 text-xs text-orange-600 font-medium">(Intern)</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {(isElevatedUser || client.user_id === userId) && (
+                            <button
+                              onClick={() => handleRemoveClient(client.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1 transition-colors"
+                              title="Remove from teamwork"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

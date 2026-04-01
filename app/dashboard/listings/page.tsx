@@ -305,8 +305,8 @@ function ListingsContent() {
                 <th>Reference No</th>
                 <th>City</th>
                 <th>Price</th>
-                <th>Bedroom</th>
-                <th>Bathroom</th>
+                <th>Bedr</th>
+                <th>Bath</th>
                 <th>Property type</th>
                 <th>Availability</th>
                 <th>Available Date</th>
@@ -448,8 +448,8 @@ function ListingsContent() {
                   <th>Reference No</th>
                   <th>City</th>
                   <th>Price</th>
-                  <th>Bedroom</th>
-                  <th>Bathroom</th>
+                  <th>Bedr</th>
+                  <th>Bath</th>
                   <th>Property type</th>
                   <th>Availability</th>
                   <th>Available Date</th>

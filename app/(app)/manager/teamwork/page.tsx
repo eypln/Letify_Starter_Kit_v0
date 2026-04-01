@@ -18,5 +18,5 @@ export default async function ManagerTeamworkPage() {
 		redirect('/access-denied')
 	}
 
-	return <TeamworkClient />
+	return <TeamworkClient userId={user.id} userRole={profile.role || 'manager'} />
 }

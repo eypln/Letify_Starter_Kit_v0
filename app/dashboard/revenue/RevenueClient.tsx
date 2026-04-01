@@ -48,7 +48,6 @@ const columns = [
   "Actions",
   "Date Rented",
   "Ref No",
-  "Client Name",
   "Rent Amount (€)",
   "Landlord Fee (€)",
   "Client Fee (€)",
@@ -103,6 +102,7 @@ interface Revenue {
   inform_boss_after_both_sides_paid: boolean;
   created_at?: string;
   is_collab_partner?: boolean;
+  collab_owner_name?: string;
 }
 
 interface Listing {
@@ -135,6 +135,8 @@ export default function RevenueClient({ user }: { user: User }) {
   const [deleting, setDeleting] = useState(false);
   const supabase = createClient();
   const [userFullName, setUserFullName] = useState<string>('');
+  const [isEditingCollabDeal, setIsEditingCollabDeal] = useState(false);
+  const [originalCollaborationWith, setOriginalCollaborationWith] = useState<string>('');
 
   const [form, setForm] = useState<RevenueForm>({
     id: undefined,
@@ -325,6 +327,23 @@ export default function RevenueClient({ user }: { user: User }) {
       }
     }
 
+    // Resolve owner names for collab deals
+    if (collabData.length > 0) {
+      const ownerIds = [...new Set(collabData.map((d: any) => d.user_id))];
+      const { data: ownerProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ownerIds);
+
+      if (ownerProfiles) {
+        const ownerMap = new Map(ownerProfiles.map((p: any) => [p.user_id, p.full_name]));
+        collabData = collabData.map((d: any) => ({
+          ...d,
+          collab_owner_name: ownerMap.get(d.user_id) || "Unknown Agent",
+        }));
+      }
+    }
+
     // Combine own + collab deals and sort by created_at
     const allDeals = [
       ...(ownData || []).map((d: any) => ({ ...d, is_collab_partner: false })),
@@ -455,6 +474,8 @@ export default function RevenueClient({ user }: { user: User }) {
     setDateMoveIn(null);
     setLandlordPaidDate(null);
     setClientPaidDate(null);
+    setIsEditingCollabDeal(false);
+    setOriginalCollaborationWith('');
   };
 
   const handleAddNew = () => {
@@ -463,6 +484,11 @@ export default function RevenueClient({ user }: { user: User }) {
   };
 
   const handleEdit = (revenue: Revenue) => {
+    // Track if this is a collab partner deal
+    const isCollabDeal = !!revenue.is_collab_partner;
+    setIsEditingCollabDeal(isCollabDeal);
+    setOriginalCollaborationWith(revenue.collaboration_with || "");
+
     // Backward compatibility: convert old vatable boolean to new vat_type
     let vatType: VatType = 'vatable';
     if (revenue.vat_type) {
@@ -488,7 +514,9 @@ export default function RevenueClient({ user }: { user: User }) {
       date_move_in: revenue.date_move_in || "",
       landlord_paid_date: revenue.landlord_paid_date || "",
       client_paid_date: revenue.client_paid_date || "",
-      collaboration_with: revenue.collaboration_with || "",
+      collaboration_with: isCollabDeal
+        ? (revenue.collab_owner_name || revenue.collaboration_with || "")
+        : (revenue.collaboration_with || ""),
       inform_boss_after_both_sides_paid: revenue.inform_boss_after_both_sides_paid || false,
     });
     
@@ -505,10 +533,10 @@ export default function RevenueClient({ user }: { user: User }) {
     e.preventDefault();
     
     // Validate required fields
-    if (!form.ref_no || !form.client_name || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
+    if (!form.ref_no || !form.rent_amount || !dateRented || !dateSigned || !dateMoveIn) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields: Ref No, Client Name, Rent Amount, Date Rented, Date Signed, and Date Move In",
+        description: "Please fill in all required fields: Ref No, Rent Amount, Date Rented, Date Signed, and Date Move In",
         variant: "destructive",
       });
       return;
@@ -524,6 +552,10 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
       user_id: user?.id,
+      // For collab partner edits, preserve the original collaboration_with value
+      ...(isEditingCollabDeal && originalCollaborationWith
+        ? { collaboration_with: originalCollaborationWith }
+        : {}),
     };
 
     try {
@@ -651,9 +683,6 @@ export default function RevenueClient({ user }: { user: User }) {
                         {revenue.ref_no || "-"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {revenue.client_name || "-"}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatCurrency(revenue.rent_amount)}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
@@ -689,7 +718,9 @@ export default function RevenueClient({ user }: { user: User }) {
                         {formatDate(revenue.client_paid_date)}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {revenue.collaboration_with || "-"}
+                        {revenue.is_collab_partner
+                          ? revenue.collab_owner_name || "-"
+                          : revenue.collaboration_with || "-"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         <input
@@ -832,6 +863,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Ref No <span className="text-red-500">*</span></label>
                     <Select
                       isClearable
+                      classNamePrefix="react-select"
                       placeholder="Select from listings or type manually..."
                       options={listings.map(listing => ({
                         label: listing.title,
@@ -860,9 +892,10 @@ export default function RevenueClient({ user }: { user: User }) {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Name</label>
                     <Select
                       isClearable
+                      classNamePrefix="react-select"
                       placeholder="Select from clients or type manually..."
                       options={clients.map(client => ({
                         label: client.name,
@@ -882,7 +915,7 @@ export default function RevenueClient({ user }: { user: User }) {
                         control: (base, state) => ({
                           ...base,
                           minHeight: '40px',
-                          borderColor: form.client_name ? '#d1d5db' : '#ef4444',
+                          borderColor: '#d1d5db',
                         }),
                       }}
                     />
@@ -910,6 +943,7 @@ export default function RevenueClient({ user }: { user: User }) {
                   <div>
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">VAT Type</label>
                     <Select
+                      classNamePrefix="react-select"
                       options={vatOptions}
                       value={vatOptions.find(opt => opt.value === form.vat_type)}
                       onChange={(option) => setForm({ ...form, vat_type: option?.value ?? 'vatable' })}
@@ -1064,7 +1098,14 @@ export default function RevenueClient({ user }: { user: User }) {
                 {/* Row 5: Collaboration */}
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Collaboration With</label>
+                  {isEditingCollabDeal ? (
+                    <div className="w-full px-3 py-2 border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 rounded-md text-sm text-gray-700 dark:text-gray-300">
+                      {form.collaboration_with || "-"}
+                      <span className="text-xs text-gray-400 ml-2">(Deal owner)</span>
+                    </div>
+                  ) : (
                   <Select
+                    classNamePrefix="react-select"
                     value={
                       form.collaboration_with
                         ? { label: form.collaboration_with, value: form.collaboration_with }
@@ -1093,6 +1134,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       }),
                     }}
                   />
+                  )}
                 </div>
 
                 {/* Row 6: Inform Boss Checkbox */}

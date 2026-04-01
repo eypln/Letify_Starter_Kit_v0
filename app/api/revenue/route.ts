@@ -463,6 +463,11 @@ export async function PUT(req: NextRequest) {
     only_listing_fee: only_listing_fee ?? false,
   };
 
+  // Collab partners must not change the collaboration_with field (RLS depends on it)
+  if (isCollabPartner && !isOwner) {
+    updateData.collaboration_with = prevRecord.collaboration_with;
+  }
+
   // If elevated user wants to reassign the deal to another agent
   if (target_user_id && isElevatedUser) {
     updateData.user_id = target_user_id;

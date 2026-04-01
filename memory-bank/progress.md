@@ -3,6 +3,65 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.8.8 - Dark Mode, PWA Install, RLS & UX Fixes (02.04.2026) ✅
+**Yapılanlar:**
+
+#### Teamwork Delete RLS Fix ✅
+- **Problem**: Teamleader teamwork'ten agent sildiğinde silme kalıcı olmuyordu (sayfa yenilenince geri geliyordu)
+- **Root Cause**: RLS DELETE policy sadece `auth.uid() = user_id` kontrolü yapıyordu — teamleader başkasının kaydını silemiyordu
+- **Düzeltme**: DELETE policy'lere `OR is_elevated_user()` eklendi (teamwork_listings + teamwork_clients)
+- **Migration**: `supabase/migrations/20260401_fix_teamwork_delete_policies.sql`
+
+#### PWA Install Prompt Global Fix ✅
+- **Problem**: Edge/Opera'da PWA install popup gösterilmiyordu
+- **Root Cause**: `beforeinstallprompt` event component mount öncesi tetikleniyordu ve kaçırılıyordu
+- **Çözüm**: Global module seviyesinde event yakalama (`lib/pwa-install.ts`)
+- **useSyncExternalStore** pattern: subscribe/getSnapshot/getServerSnapshot
+- **PWAInstallButton**: Agent + Teamleader dashboard'larına download ikonu eklendi
+- **ClientProviders.tsx**: `import '@/lib/pwa-install'` ile erken yükleme
+
+#### Dark Mode — React-Select Dropdown Fix ✅
+- **Problem**: Dark mode'da dropdown metinleri görünmüyordu (beyaz bg üstünde beyaz metin)
+- **Root Cause**: `classNamePrefix="react-select"` prop'u eksikti — globals.css'deki `.dark .react-select__*` CSS kuralları eşleşmiyordu
+- **Düzeltme**: 16 Select bileşenine `classNamePrefix="react-select"` eklendi:
+  - RevenueClient.tsx (4), TeamRevenueClient.tsx (5), EditDealModal.tsx (5), ApplicationsClient.tsx (2)
+
+#### Dark Mode — Modal Labels & Containers Fix ✅
+- **Problem**: Teamleader Add Deal ve Edit Deal modallarında label'lar dark mode'da görünmüyordu
+- **Düzeltme (~15+ dark: class)**: Modal container `dark:bg-gray-900`, title `dark:text-gray-100`, tüm label'lar, button states `dark:bg-gray-700 dark:text-gray-300`, fees box `dark:bg-gray-800 dark:border-gray-700`, checkbox label'ları
+- Uygulanan dosyalar: TeamRevenueClient.tsx, EditDealModal.tsx
+
+#### Teamleader Dashboard UI ✅
+- ThemeToggle + PWAInstallButton eklendi
+- `bg-gray-50` sabit arka plan kaldırıldı (dark mode uyumluluğu)
+
+#### Client Name Zorunluluğu Kaldırıldı ✅
+- **Problem**: Add New Deal formunda Client Name zorunlu alan idi — kullanıcı isteğiyle opsiyonel yapıldı
+- **Düzeltme (2 dosya)**: Validasyondan `!form.client_name` çıkarıldı, toast mesajından "Client Name" çıkarıldı, label'dan `*` kaldırıldı, kırmızı border styling kaldırıldı
+- RevenueClient.tsx + TeamRevenueClient.tsx
+
+#### Build Fix — Boss/Manager Teamwork Props ✅
+- Build hatası: `<TeamworkClient />` bileşenine `userId` ve `userRole` props geçirilmemişti
+- boss/teamwork/page.tsx + manager/teamwork/page.tsx düzeltildi
+
+**Değiştirilen Dosyalar:**
+```
+supabase/migrations/20260401_fix_teamwork_delete_policies.sql (yeni)
+lib/pwa-install.ts (yeni)
+components/system/PWAInstallButton.tsx (yeni)
+components/system/PWAInstallPrompt.tsx (refactored)
+components/system/ClientProviders.tsx (pwa-install import)
+app/dashboard/DashboardClient.tsx (PWAInstallButton)
+app/(app)/teamleader/page.tsx (ThemeToggle + PWAInstallButton)
+app/(app)/boss/teamwork/page.tsx (props fix)
+app/(app)/manager/teamwork/page.tsx (props fix)
+app/dashboard/revenue/RevenueClient.tsx (classNamePrefix x4, client_name optional)
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (classNamePrefix x5, dark mode, client_name optional)
+app/(app)/teamleader/team-revenue/EditDealModal.tsx (classNamePrefix x5, dark mode)
+app/(app)/teamleader/applications/ApplicationsClient.tsx (classNamePrefix x2)
+package.json (v2.8.8)
+```
+
 ### v2.8.7 - Blocked User Auth Enforcement & Profile Status Fix (25.03.2026) ✅
 **Yapılanlar:**
 

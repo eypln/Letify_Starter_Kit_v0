@@ -6,6 +6,7 @@ import { useBillingController } from './subscription/useBillingController';
 import { useRouter } from 'next/navigation';
 import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { PWAInstallButton } from '@/components/system/PWAInstallButton';
 
 interface Activity {
   id: string;
@@ -154,6 +155,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
       <div className="pt-8 container mx-auto px-4 md:px-8 lg:px-16 pb-8">
         {/* Çıkış butonu ve theme toggle sağ üstte, container padding içinde */}
         <div className="flex justify-end items-center gap-2 mb-4">
+          <PWAInstallButton />
           <ThemeToggle />
           <button
             onClick={handleLogout}

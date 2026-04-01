@@ -1,6 +1,6 @@
 {
   "name": "letify-nextjs",
-  "version": "2.8.7",
+  "version": "2.8.8",
   "private": true,
   "sideEffects": [
     "*.css",

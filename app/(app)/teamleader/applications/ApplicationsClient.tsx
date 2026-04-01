@@ -1420,6 +1420,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                   <div>
                     <label className="block text-sm font-medium mb-1">1st Call Status</label>
                     <Select
+                      classNamePrefix="react-select"
                       options={FIRST_CALL_STATUS_OPTIONS}
                       value={
                         form.first_call_status
@@ -1475,6 +1476,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                   <div>
                     <label className="block text-sm font-medium mb-1">VAT Type</label>
                     <Select
+                      classNamePrefix="react-select"
                       options={VAT_TYPE_OPTIONS}
                       value={
                         form.vat_type

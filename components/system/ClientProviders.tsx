@@ -5,6 +5,9 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
+// Initialize global PWA install prompt capture as early as possible
+import '@/lib/pwa-install'
+
 // Lazy load non-critical components
 const WebVitals = dynamic(() => import('./WebVitals'), {
   ssr: false,
