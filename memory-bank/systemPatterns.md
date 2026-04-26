@@ -49,6 +49,31 @@ App (Next.js)
 
 ## Ana Teknik Kararlar
 
+### AI Second Brain — Content Engineering Pipeline (06.04.2026)
+
+**Mimari Pattern — 4 Katmanlı AI Pipeline:**
+```
+Layer 1: Triage (Sınıflandırma)
+  Notion (Todo) → Gemini → 9 Kategori Tag → Notion (Done)
+
+Layer 2: Specialist Brain (Derin Analiz)
+  Notion (Done + Tag) → Apify Scrape → Gemini 2.5 Pro → Notion (AI Brain Analysis)
+
+Layer 3: Knowledge Store (PLANNED)
+  Analiz → Gemini Embedding (768d) → Supabase + pgvector
+
+Layer 4: Brain Query (PLANNED)
+  Soru → Embedding → Cosine Search → Context → Gemini Sentez
+```
+
+**Teknik Kararlar:**
+- **Gemini 2.5 Pro**: Yapılandırılmış JSON çıktı (`responseMimeType: 'application/json'`) — type-safe analiz sonuçları
+- **Apify Multi-platform**: Platform URL pattern matching ile otomatik scraper seçimi
+- **content_knowledge kategorisi**: İçerik üreticisinin öğrettiği gerçek bilgiyi yapılandırılmış olarak çıkartma (diğer SM metriklerinden ayrı)
+- **Malta/Lettings Context**: Tüm AI prompt'larında küçük ada pazarı, lettings sektörü ve € bağlamı embed edilmiş
+- **n8n API Kısıtlaması**: API ile oluşturulan workflow'lar UI'da boş render — manual Ctrl+V paste zorunlu
+- **Notion Filter Workaround**: Filter conditions JSON paste'te çalışmaz — n8n UI'da manuel eklenir
+
 ### PWA Mobile Push Notification System Architecture (05.12.2025)
 
 **Problem Discovery → Root Cause → Solution Journey:**

@@ -18,6 +18,7 @@ import EditDealModal from "../../../(app)/teamleader/team-revenue/EditDealModal"
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
+type DealType = 'longlet' | 'shortlet';
 
 interface User {
   id: string;
@@ -30,6 +31,8 @@ interface Revenue {
   ref_no: string | null;
   client_name: string | null;
   rent_amount: number | null;
+  monthly_rent_amount: number | null;
+  deal_type?: DealType;
   landlord_fee: number | null;
   client_fee: number | null;
   listing_fee: number | null;
@@ -741,11 +744,11 @@ function MonthlyRevenueChart() {
           domain={[0, 15000]}
         />
         <Tooltip 
-          formatter={(value: any, name: string) => {
+          formatter={(value: any, name?: string | number) => {
             if (name === 'Achieved') return [`€${value.toFixed(2)}`, 'Achieved Amount'];
             if (name === 'Remaining to Goal') return [`€${value.toFixed(2)}`, 'Remaining to €15,000'];
             if (name === 'Agent Net Income') return [`€${value.toFixed(2)}`, 'Total Agent Net Income'];
-            return [`€${value.toFixed(2)}`, name];
+            return [`€${value.toFixed(2)}`, String(name ?? '')];
           }}
           contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
         />

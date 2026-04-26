@@ -58,19 +58,21 @@ export default function WebVitals() {
       INP: { good: 200, needsImprovement: 500 },
     }
 
-    // Warn if metrics exceed thresholds
-    const threshold = thresholds[metric.name as keyof typeof thresholds]
-    if (threshold) {
-      if (metric.value > threshold.needsImprovement) {
-        console.warn(
-          `⚠️ ${metric.name} needs improvement:`,
-          `${metric.value} (threshold: ${threshold.needsImprovement})`
-        )
-      } else if (metric.value > threshold.good) {
-        console.info(
-          `ℹ️ ${metric.name} could be better:`,
-          `${metric.value} (good: ${threshold.good})`
-        )
+    // Warn if metrics exceed thresholds (only in production — dev compile times skew all values)
+    if (process.env.NODE_ENV === 'production') {
+      const threshold = thresholds[metric.name as keyof typeof thresholds]
+      if (threshold) {
+        if (metric.value > threshold.needsImprovement) {
+          console.warn(
+            `⚠️ ${metric.name} needs improvement:`,
+            `${metric.value} (threshold: ${threshold.needsImprovement})`
+          )
+        } else if (metric.value > threshold.good) {
+          console.info(
+            `ℹ️ ${metric.name} could be better:`,
+            `${metric.value} (good: ${threshold.good})`
+          )
+        }
       }
     }
   })

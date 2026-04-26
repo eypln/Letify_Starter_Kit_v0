@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { autoTable } from "jspdf-autotable";
 import {
   BarChart,
   Bar,
@@ -33,6 +33,7 @@ interface Revenue {
   ref_no: string | null;
   client_name: string | null;
   rent_amount: number | null;
+  monthly_rent_amount?: number | null;
   landlord_fee: number | null;
   client_fee: number | null;
   listing_fee: number | null;
@@ -139,15 +140,37 @@ function getCompletionMonth(deal: Revenue): string {
   const landlordDate = deal.landlord_paid_date ? new Date(deal.landlord_paid_date) : null;
   const clientDate = deal.client_paid_date ? new Date(deal.client_paid_date) : null;
 
-  // If either date is missing → pending deal → use current month
-  if (!landlordDate || !clientDate) {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // Both payment dates exist → use the later one (deal fully completed)
+  if (landlordDate && clientDate) {
+    const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
+    return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, "0")}`;
   }
 
-  // Take the later of the two dates (use UTC to avoid timezone shift on DB dates)
-  const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-  return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  // Pending deal (one or both payment dates missing)
+  // If date_move_in or date_signed is in a future month → use the latest of those
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const futureCandidates: string[] = [];
+
+  if (deal.date_move_in) {
+    const d = new Date(deal.date_move_in);
+    const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (m > currentMonth) futureCandidates.push(m);
+  }
+
+  if (deal.date_signed) {
+    const d = new Date(deal.date_signed);
+    const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (m > currentMonth) futureCandidates.push(m);
+  }
+
+  if (futureCandidates.length > 0) {
+    // Use the latest future month among the candidates
+    return futureCandidates.sort().pop()!;
+  }
+
+  return currentMonth;
 }
 
 function formatMonthLabel(monthKey: string): string {
@@ -275,7 +298,9 @@ export default function BonusesClient({ user }: { user: User }) {
       const hasCollaboration = collabName !== "";
       const isCollabExternal = hasCollaboration && isExternalAgentName(collabName);
 
-      const rentAmount = deal.rent_amount || 0;
+      const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount != null)
+        ? deal.monthly_rent_amount
+        : (deal.rent_amount || 0);
       const isOnlyListingFee = deal.only_listing_fee || false;
 
       // Effective rent for bonus calculations
@@ -602,7 +627,7 @@ export default function BonusesClient({ user }: { user: User }) {
             d.ref_no || "-",
             d.agent_name,
             d.completion_date ? formatMonthLabel(d.completion_date) : "-",
-            fmtCur(d.rent_amount || 0),
+            fmtCur((d.deal_type === 'shortlet' && d.monthly_rent_amount != null) ? d.monthly_rent_amount : (d.rent_amount || 0)),
             fmtCur(d.deal_listing_fee),
           ]),
           theme: "striped",
@@ -680,7 +705,7 @@ export default function BonusesClient({ user }: { user: User }) {
             d.agent_name,
             d.client_name || "-",
             d.is_leader_deal ? "Leader" : "Team",
-            fmtCur(d.rent_amount || 0),
+            fmtCur((d.deal_type === 'shortlet' && d.monthly_rent_amount != null) ? d.monthly_rent_amount : (d.rent_amount || 0)),
             fmtCur(d.effective_rent),
             d.collaboration_with || "-",
             fmtCur(d.deal_listing_fee),
@@ -706,7 +731,7 @@ export default function BonusesClient({ user }: { user: User }) {
           },
           foot: [[
             "", "", "", "", "TOTAL",
-            fmtCur(monthDeals.reduce((s, d) => s + (d.rent_amount || 0), 0)),
+            fmtCur(monthDeals.reduce((s, d) => s + ((d.deal_type === 'shortlet' && d.monthly_rent_amount != null) ? d.monthly_rent_amount : (d.rent_amount || 0)), 0)),
             fmtCur(monthDeals.reduce((s, d) => s + d.effective_rent, 0)),
             "",
             fmtCur(monthDeals.reduce((s, d) => s + d.deal_listing_fee, 0)),
@@ -999,7 +1024,7 @@ export default function BonusesClient({ user }: { user: User }) {
                     style={{ fontSize: "13px", fontWeight: 500 }}
                   />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Revenue"]}
+                    formatter={(value: any) => [formatCurrency(Number(value)), "Revenue"]}
                     labelFormatter={(label) => `Agent: ${label}`}
                     contentStyle={{ backgroundColor: "rgba(255,255,255,0.97)", border: "1px solid #e2e8f0", borderRadius: "8px" }}
                   />
@@ -1095,7 +1120,7 @@ export default function BonusesClient({ user }: { user: User }) {
                   style={{ fontSize: "12px" }}
                 />
                 <Tooltip
-                  formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                  formatter={(value: any, name?: string | number) => [formatCurrency(Number(value)), String(name ?? '')]}
                   labelFormatter={(label) => `Month: ${label}`}
                   contentStyle={{ backgroundColor: "rgba(255,255,255,0.97)", border: "1px solid #e2e8f0", borderRadius: "8px" }}
                 />
@@ -1130,14 +1155,11 @@ export default function BonusesClient({ user }: { user: User }) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Month</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Total Revenue</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Tier</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">
-                    Personal Revenue
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">
-                    Personal Earnings
-                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Pers. Revenue</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Pers. Earnings</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Team Revenue</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Team Bonus</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-orange-600 uppercase whitespace-nowrap">Net T.Bonus</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Listing Fee</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-green-700 uppercase whitespace-nowrap">
                     Total Earnings
@@ -1171,6 +1193,9 @@ export default function BonusesClient({ user }: { user: User }) {
                     <td className="px-4 py-3 text-sm text-right font-semibold text-pink-600">
                       {formatCurrency(mb.teamBonus)}
                     </td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-orange-600">
+                      {formatCurrency(mb.teamBonus * 0.8)}
+                    </td>
                     <td className="px-4 py-3 text-sm text-right text-teal-600">
                       {formatCurrency(mb.listingFee)}
                     </td>
@@ -1199,6 +1224,9 @@ export default function BonusesClient({ user }: { user: User }) {
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-pink-600">
                       {formatCurrency(overallTotals.totalTeamBonus)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-orange-600">
+                      {formatCurrency(overallTotals.totalTeamBonus * 0.8)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-teal-600">
                       {formatCurrency(overallTotals.totalListingFee)}
@@ -1269,7 +1297,8 @@ export default function BonusesClient({ user }: { user: User }) {
                 The later payment date determines which month the deal falls into.
               </li>
               <li>
-                <strong>Pending Deals:</strong> Deals with missing payment dates are automatically included in the current month.
+                <strong>Pending Deals:</strong> Deals with missing payment dates are assigned to the current month by default.
+                However, if the <em>move-in</em> or <em>signed</em> date falls in a future month, the deal is placed in that future month instead (whichever is latest). This is why some pending deals appear in upcoming months.
               </li>
               <li>
                 <strong>External Collaboration:</strong> When a deal has collaboration with an external agent (&quot;Agent&quot;), 

@@ -2,7 +2,74 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (02.04.2026) ✅ COMPLETED - Dark Mode, PWA, RLS & UX Fixes v2.8.8
+### Ana Odak Alanları (26.04.2026) ✅ COMPLETED - UI & UX Fixes v2.9.0
+
+1. **Team Revenue Month Filter Düzeltmesi (v2.9.0)**:
+   - ✅ `TeamRevenueClient.tsx` — `monthOptions` sabit yıl döngüsü (2025-2026 tüm 24 ay) yerine `allRevenues`'dan dinamik olarak türetiliyor
+   - ✅ Sadece gerçek kaydı olan aylar listeleniyor; `date_rented` alanından `Set` ile unique aylar çıkarılıp `.sort().reverse()` ile en yeni önce sıralanıyor
+   - ✅ Boş aylar (ör. Ocak 2025, Şubat 2025) artık dropdown'da görünmüyor
+   - Etkilenen dosya: `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`
+
+2. **Collaboration With Dropdown Filtreleme (v2.9.0)**:
+   - ✅ `TeamRevenueClient.tsx` — Add/Edit Deal popup'ında Collaboration With dropdown'ı artık **sadece agent rolündeki kullanıcıları** getiriyor
+   - ✅ Daha önce: tüm profiller (intern, teamleader, boss, manager dahil) geliyordu
+   - ✅ Şimdi: `.eq("role", "agent")` filtresi eklendi — intern, teamleader, boss, manager hariç
+   - ✅ `RevenueClient.tsx` (agent sayfası) zaten `.eq("role", "agent")` kullanıyordu — değişiklik gerekmedi
+   - Etkilenen dosya: `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`
+
+3. **WebVitals Dev Uyarı Suppress (v2.9.0)**:
+   - ✅ `components/system/WebVitals.tsx` — Dev ortamında FCP/LCP/TTFB threshold uyarıları artık gösterilmiyor
+   - ✅ Root Cause: Next.js compile süresi (~150 sn) Web Vitals ölçümüne yansıyarak yanlış sarı uyarılar üretiyordu
+   - ✅ Threshold uyarıları `process.env.NODE_ENV === 'production'` koşuluna taşındı
+   - Etkilenen dosya: `components/system/WebVitals.tsx`
+
+4. **Bonus Breakdown — Net T.Bonus Kolonu (v2.9.0)**:
+   - ✅ `BonusesClient.tsx` — Detailed Bonus Breakdown tablosuna "Net T.Bonus" kolonu eklendi (teamBonus × 0.8, vergi sonrası net)
+   - ✅ Header, data satırı ve footer toplamı — turuncu renk (`text-orange-600`)
+   - ✅ Header kısaltmaları: "Personal Revenue" → "Pers. Revenue", "Personal Earnings" → "Pers. Earnings", "Net Team Bonus" → "Net T.Bonus"
+   - Etkilenen dosya: `app/(app)/teamleader/bonuses/BonusesClient.tsx`
+
+### Önceki Odak Alanları (06.04.2026) ✅ COMPLETED - AI Second Brain & Content Engineering Pipeline v2.8.9
+
+1. **AI Second Brain — 2 Katmanlı İçerik Analiz Pipeline'ı (v2.8.9)**:
+   - ✅ **Layer 1 — Triage Workflow**: ~200 içerik linkini 9 kategoriye otomatik sınıflandırma (n8n workflow ID: `66Zh8meAlhzQuRIC`)
+   - ✅ **Layer 2 — SM Brain Workflow**: Social Media kategorisindeki içerikleri Gemini 2.5 Pro ile derin analiz
+   - ✅ **9 Analiz Kategorisi**: engagement_metrics, content_strategy, visual_analysis, caption_copywriting, hashtag_strategy, posting_strategy, audience_growth, content_knowledge, overall_assessment
+   - ✅ **content_knowledge kategorisi**: İçerik üreticilerinin öğrettiği gerçek bilgiyi çıkartma (main_teaching, specific_tips, quotes_or_hooks, data_points, frameworks_or_formulas, industry_insight, knowledge_value_score, knowledge_category)
+   - ✅ **Malta & Lettings Bağlamı**: Tüm analizler Malta pazarı, lettings sektörü ve € para birimi bağlamında yapılıyor
+   - ✅ **Apify Entegrasyonu**: Instagram, Facebook, YouTube, TikTok scraper'ları ile çoklu platform desteği
+   - ✅ **Notion Entegrasyonu**: Analiz sonuçları Notion DB'ye "AI Brain Analysis" alanına yazılıyor
+
+2. **Supabase + pgvector RAG Mimarisi (Tasarım Tamamlandı — Implementasyon Bekliyor)**:
+   - 📐 **brain_analyses tablosu**: UUID PK, source_url, platform, category, full_analysis JSONB, content_summary, main_teaching, brain_tags TEXT[], embedding vector(768)
+   - 📐 **Gemini text-embedding-004**: 768 boyutlu embedding'ler
+   - 📐 **Layer 3 — Knowledge Store**: SM Brain çıktısını Supabase'e embed ederek kaydetme
+   - 📐 **Layer 4 — Brain Query**: RAG tabanlı semantik arama (soru → embed → cosine search → context → Gemini sentez)
+
+3. **tsconfig.json TypeScript Fix (v2.8.9)**:
+   - ✅ `"ignoreDeprecations": "6.0"` eklendi — TypeScript 7.0 `baseUrl` deprecation uyarısı susturuldu
+
+   **n8n Workflow Dosyaları & Yapılandırma:**
+   ```
+   n8n Workflows:
+   - Triage Workflow (ID: 66Zh8meAlhzQuRIC) — 11 node, 9 kategori sınıflandırma
+   - SM Brain Workflow — 9 node, derin SM analiz (Gemini 2.5 Pro)
+   
+   n8n Credentials & API Keys:
+   - n8n Host: https://n8n.letify.cloud
+   - Notion DB: a66165cd-5be6-43ac-a2dc-4b370e85de9c
+   - Notion Credential: e4tmmqbaPyONZSTY
+   - Gemini 2.5 Pro: generativelanguage.googleapis.com
+   - Apify: Instagram/Facebook/YouTube/TikTok scraper'ları
+   
+   Proje Dosyaları:
+   - sm-brain.json (orijinal workflow referansı)
+   - node6-paste.json (güncel super prompt — content_knowledge + Malta context)
+   - tsconfig.json (ignoreDeprecations eklendi)
+   - package.json (v2.8.9)
+   ```
+
+### Önceki Odak (02.04.2026) ✅ COMPLETED - Dark Mode, PWA, RLS & UX Fixes v2.8.8
 
 1. **Teamwork Delete RLS Fix (v2.8.8)**:
    - ✅ RLS DELETE policy güncellendi: `auth.uid() = user_id OR is_elevated_user()` — teamleader artık diğer agentların teamwork kayıtlarını silebilir

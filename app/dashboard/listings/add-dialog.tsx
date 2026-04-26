@@ -700,7 +700,7 @@ export default function AddDialog({ externalOpen, onOpenChange, onListingCreated
                 <label className="text-xs text-gray-600 dark:text-gray-400">Available Date</label>
                 <DatePicker
                   selected={availableDate}
-                  onChange={(date) => setAvailableDate(date)}
+                  onChange={(date: Date | null) => setAvailableDate(date)}
                   dateFormat="dd.MM.yyyy"
                   isClearable
                   placeholderText="Select available date"

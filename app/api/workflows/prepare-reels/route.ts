@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', patchedPayload.user.id)
+        .eq('user_id', patchedPayload.user.id)
         .maybeSingle();
       if (profile?.full_name) {
         patchedPayload.user.full_name = profile.full_name;
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       const { data: listingRow } = await supabase
         .from('listings')
         .select('id')
-        .eq('job_id', patchedPayload.job.id)
+        .eq('job_id' as any, patchedPayload.job.id)
         .maybeSingle();
       if (listingRow?.id) listingId = listingRow.id;
     }

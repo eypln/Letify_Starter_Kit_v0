@@ -1,0 +1,380 @@
+{
+  "name": "🏷️ Triage Agent - Video Kategorize",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "d85d974f-3a02-4a65-8730-2e57fd8b6435",
+      "name": "⏰ Her 3 Dakika",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "a66165cd-5be6-43ac-a2dc-4b370e85de9c",
+          "mode": "list",
+          "cachedResultName": "Links for AI Agent Brain",
+          "cachedResultUrl": "https://www.notion.so/a66165cd5be643aca2dc4b370e85de9c"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Todo"
+            }
+          ]
+        },
+        "options": {
+          "downloadFiles": false
+        }
+      },
+      "id": "5d84743a-5a22-4a17-8a59-789485743109",
+      "name": "📋 Notion - Bekleyen Al",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        80
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "e4tmmqbaPyONZSTY",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('📋 Notion - Bekleyen Al').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "In progress"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a5b93822-9ffe-4b93-9ab8-0530c51777dd",
+      "name": "📝 Status → Processing",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        80
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "e4tmmqbaPyONZSTY",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.apifyUrl }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "be228011-313a-49d6-8a1d-449a4e34c996",
+      "name": "🎬 Apify - Video Meta Al",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.videoUrl || $json.videoPlaybackUrl || $json.displayUrl || $json.video_url || $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "1246b141-c914-47f8-bec2-62892037ce2f",
+      "name": "⬇️ Video Binary İndir",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        944,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Video binary verisini base64'e çevir\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64Video = binaryData.toString('base64');\n\n// Notion'dan gelen bilgileri al\nconst notionItem = $('📋 Notion - Bekleyen Al').first().json;\nconst contentUrl = notionItem.property_url || 'URL yok';\nconst title = notionItem.property_title || notionItem.name || 'Başlık yok';\n\n// Kategorize prompt\nconst prompt = `Sen bir içerik sınıflandırma uzmanısın. Bu videoyu KARE KARE izle — ses, görüntü, ekrandaki yazılar, konuşan kişinin kim olduğu — her şeyi incele. Sonra içeriği SADECE aşağıdaki kategorilerden birine ata.\n\nVİDEOYU İZLERKEN ŞUNLARA DİKKAT ET:\n- Videoda kim var? Bir emlakçı mı, bir YouTuber mı, bir eğitimci mi, bir sporcu mu?\n- Ekranda ne gösteriliyor? Bir ev/mülk mü, bir yazılım arayüzü mü, spor hareketi mi, sosyal medya ekranları mı?\n- Kişi ne anlatıyor? Bir araç mı tanıtıyor, sosyal medya stratejisi mi öğretiyor, ev mi satıyor, ilham mı veriyor?\n- Videonun AMACI ne? Eğitim mi, satış mı, ilham mı, demo mu?\n\nKATEGORİLER VE KURALLARI:\n\n\"Lettings\" → Bir emlakçının mülk tanıttığı, ev turu yaptığı, emlak sektörüne özel içerik ürettiği videolar. Kişisel marka videoları, komisyon hikayeleri, müşteri ilişkileri, \"day in the life of a real estate agent\" tarzı videolar da dahil.\n\n\"Inspiration\" → Yaratıcı, ilham verici, viral potansiyelli, \"bunu uyarlayarak kendi içeriğimizi çekebiliriz\" dedirten videolar. AI ile üretilmiş sanat veya video örnekleri, dikkat çekici montaj teknikleri, emlakla alakası olmayan ama uyarlamaya değer.\n\n\"Social Media\" → Sosyal medya platformlarının algoritma güncellemelerini, SM yönetim stratejilerini, engagement taktiklerini, hashtag ve SEO bilgilerini ANLATAN/ÖĞRETEN videolar. hook stratejileri gösteren içerikler. İçerik \"nasıl daha çok kişiye ulaşırsın\" sorusunu cevaplıyorsa buraya.\n\n\"Learning\" → Yeni bir AI aracını, bir teknolojiyi veya bir yazılımı TANITIYORSA ve nasıl kullanılacağını ÖĞRETİYORSA buraya ata. Tool demo, tutorial, kurs videoları. Örneğin HeyGen, Runway, ElevenLabs demo videoları.\n\n\"Automation\" → n8n, Make.com, Zapier gibi otomasyon araçlarını, API entegrasyonlarını veya workflow kurulumlarını gösteren videolar.\n\n\"Sport\" → Spor hareketleri, fitness, antrenman, egzersiz gösteren, hareket formu anlatan videolar.\n\n\"Investment\" → Yatırım, finans, vergi avantajları, piyasa analizi, emlak yatırım getirisi anlatan videolar.\n\n\"App\" → Mobil uygulama veya masaüstü yazılım incelemeleri (AI/otomasyon değilse). Genel amaçlı uygulama tanıtımları, app stratejileri.\n\n\"Random\" → Yukarıdaki kategorilerin hiçbirine NET olarak uymuyorsa.\n\nÖNEMLI KURALLAR:\n- Bir emlakçı komik bir video çekmiş olabilir ama özünde emlak işi anlatıyorsa → \"Lettings\"\n- Bir video genel spesifik bir araç öğretiyorsa → \"Learning\"  \n- Emin olamıyorsan confidence değerini düşük tut (0.5 altı)\n\nİçerik Başlığı: ${title}\nİçerik Linki: ${contentUrl}\n\nSADECE şu JSON formatında cevap ver, BAŞKA HİÇBİR ŞEY YAZMA:\n{\"category\": \"KATEGORİ_ADI\", \"confidence\": 0.85, \"detected_elements\": \"Videoda tespit edilen unsurlar: kim var, ne gösteriliyor, ekrandaki yazılar...\", \"reason\": \"Neden bu kategoriye atıldığının kısa açıklaması\"}`;\n\n// Gemini API request body oluştur\nconst requestBody = {\n  contents: [\n    {\n      parts: [\n        {\n          inlineData: {\n            mimeType: \"video/mp4\",\n            data: base64Video\n          }\n        },\n        {\n          text: prompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.15,\n    maxOutputTokens: 1024,\n    responseMimeType: \"application/json\"\n  }\n};\n\nreturn [{ json: { requestBody } }];"
+      },
+      "id": "94823c6c-a1c6-432e-b81c-f529edbd6047",
+      "name": "🔄 Gemini İsteği Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyD2i7wRCjysN41ka-hD0VKrAcpaEaDeezU",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "e0d9f341-f561-4dee-8c9a-c36476ab4163",
+      "name": "🧠 Gemini Kategorize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1456,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const validCategories = [\n  'Lettings', 'Inspiration', 'Social Media', 'Learning',\n  'Automation', 'Sport', 'Investment', 'App', 'Random'\n];\n\ntry {\n  const responseText = $input.first().json.candidates[0].content.parts[0].text;\n  \n  // Markdown formatting temizle\n  const cleanText = responseText\n    .replace(/```json\\n?/g, '')\n    .replace(/```\\n?/g, '')\n    .trim();\n  \n  const parsed = JSON.parse(cleanText);\n  \n  // Geçerli kategori kontrolü\n  if (!validCategories.includes(parsed.category)) {\n    parsed.reason = 'Orijinal kategori (' + parsed.category + ') geçersiz, Random atandı';\n    parsed.category = 'Random';\n  }\n  \n  // Confidence sayıya çevir\n  parsed.confidence = Number(parsed.confidence) || 0;\n  \n  return [{ json: parsed }];\n\n} catch (e) {\n  // Hata durumunda güvenli fallback\n  return [{ json: {\n    category: 'Random',\n    confidence: 0,\n    detected_elements: 'HATA: Gemini yanıtı parse edilemedi',\n    reason: 'Parse hatası: ' + e.message + ' | Ham yanıt: ' + \n            String($input.first().json?.candidates?.[0]?.content?.parts?.[0]?.text || 'boş').substring(0, 300)\n  }}];\n}"
+      },
+      "id": "7962e73c-ca34-4772-ba29-da0d18262e70",
+      "name": "📊 Yanıtı Parse Et",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('📋 Notion - Bekleyen Al').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Tags|multi_select",
+              "multiSelectValue": "={{ $json.category }}"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "=Done"
+            },
+            {
+              "key": "AI Brain Analysis|rich_text",
+              "textContent": "={{ $json.detected_elements }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ffb9b961-dbf6-4e61-bb6b-d69bd7f6f582",
+      "name": "✅ Kategori Yaz",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        80
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "e4tmmqbaPyONZSTY",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Notion'dan gelen video linki\nconst url = $('📋 Notion - Bekleyen Al').first().json.property_url || '';\n\n// Platform tespiti ve uygun Apify Actor ID eşleştirmesi\n// ⚠️ Her actor ID'yi Apify Store'dan alıp buraya yapıştır\nconst platformMap = {\n  instagram: {\n    actorId: 'shu8hvrXbJbY3Eb9W',  // ⚠️ Apify Store'dan: \"Instagram Reel Scraper\"\n    bodyKey: 'directUrls',           // Actor'ün beklediği input key\n    platform: 'instagram'\n  },\n  facebook: {\n    actorId: 'PBJEdJdctLHQaqdfe',   // ⚠️ Apify Store'dan: \"Facebook Video Downloader\"\n    bodyKey: 'startUrls',\n    platform: 'facebook'\n  },\n  youtube: {\n    actorId: 'h7sDV53CddomktSi5', // ⚠️ Apify Store'dan\n    bodyKey: 'startUrls',\n    platform: 'youtube'\n  },\n  tiktok: {\n    actorId: '7200360993149553925', // ⚠️ Apify Store'dan\n    bodyKey: 'postURLs',\n    platform: 'tiktok'\n  }\n};\n\n// URL'den platform tespit et\nlet detected = 'unknown';\nif (url.includes('instagram.com')) {\n  detected = 'instagram';\n} else if (url.includes('facebook.com') || url.includes('fb.watch')) {\n  detected = 'facebook';\n} else if (url.includes('youtube.com') || url.includes('youtu.be')) {\n  detected = 'youtube';\n} else if (url.includes('tiktok.com') || url.includes('vm.tiktok.com')) {\n  detected = 'tiktok';\n}\n\nconst config = platformMap[detected];\n\nif (!config) {\n  // Bilinmeyen platform — hata fırlatma, loglayıp geç\n  return [{\n    json: {\n      error: true,\n      platform: 'unknown',\n      url: url,\n      message: 'Desteklenmeyen platform: ' + url\n    }\n  }];\n}\n\n// Apify API URL'si ve body'yi hazırla\nconst apifyToken = 'ENV_APIFY_TOKEN';\nconst apifyUrl = `https://api.apify.com/v2/acts/${config.actorId}/run-sync-get-dataset-items?token=${apifyToken}`;\n\n// Her actor farklı input formatı bekliyor\nlet requestBody = {};\n\nif (detected === 'instagram') {\n  requestBody = {\n    directUrls: [url],\n    resultsType: 'posts'\n  };\n} else if (detected === 'facebook') {\n  requestBody = {\n    startUrls: [{ url: url }]\n  };\n} else if (detected === 'youtube') {\n  requestBody = {\n    startUrls: [{ url: url }],\n    maxResults: 1\n  };\n} else if (detected === 'tiktok') {\n  requestBody = {\n    postURLs: [url]\n  };\n}\n\nreturn [{\n  json: {\n    error: false,\n    platform: detected,\n    url: url,\n    apifyUrl: apifyUrl,\n    requestBody: requestBody\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        80
+      ],
+      "id": "d4f329f9-e8bf-48a4-8c2d-f5a84b8d8e41",
+      "name": "🔀 Platform Tespit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "⏰ Her 3 Dakika": {
+      "main": [
+        [
+          {
+            "node": "📋 Notion - Bekleyen Al",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Notion - Bekleyen Al": {
+      "main": [
+        [
+          {
+            "node": "📝 Status → Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Status → Processing": {
+      "main": [
+        [
+          {
+            "node": "🔀 Platform Tespit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🎬 Apify - Video Meta Al": {
+      "main": [
+        [
+          {
+            "node": "⬇️ Video Binary İndir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⬇️ Video Binary İndir": {
+      "main": [
+        [
+          {
+            "node": "🔄 Gemini İsteği Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Gemini İsteği Hazırla": {
+      "main": [
+        [
+          {
+            "node": "🧠 Gemini Kategorize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Gemini Kategorize": {
+      "main": [
+        [
+          {
+            "node": "📊 Yanıtı Parse Et",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Yanıtı Parse Et": {
+      "main": [
+        [
+          {
+            "node": "✅ Kategori Yaz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Platform Tespit": {
+      "main": [
+        [
+          {
+            "node": "🎬 Apify - Video Meta Al",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d6051544-e8eb-40a7-98d8-c668b6c760d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9da600d4c7682bb86b25f8d19ac409a3b65404f37607926ac746effa68341b8f"
+  },
+  "id": "66Zh8meAlhzQuRIC",
+  "tags": []
+}

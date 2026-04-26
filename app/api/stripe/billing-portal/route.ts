@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: validation.error.errors },
+        { error: 'Invalid request data', details: validation.error.issues },
         { status: 400 }
       );
     }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('profiles')
       .select('email')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
     const customerId = await getOrCreateStripeCustomer(

@@ -28,6 +28,7 @@ interface RevenueForm {
   ref_no: string;
   client_name: string;
   rent_amount: string;
+  monthly_rent_amount: string;
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
@@ -81,6 +82,7 @@ interface Revenue {
   ref_no: string | null;
   client_name: string | null;
   rent_amount: number | null;
+  monthly_rent_amount: number | null;
   landlord_fee: number | null;
   client_fee: number | null;
   listing_fee: number | null;
@@ -145,6 +147,7 @@ export default function RevenueClient({ user }: { user: User }) {
     ref_no: "",
     client_name: "",
     rent_amount: "",
+    monthly_rent_amount: "",
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
@@ -330,10 +333,11 @@ export default function RevenueClient({ user }: { user: User }) {
       setClients(clientsData);
     }
 
-    // Fetch profiles for Collaboration With dropdown (exclude current user)
+    // Fetch profiles for Collaboration With dropdown (only agents, exclude current user)
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, full_name")
+      .eq("role", "agent")
       .neq("user_id", user.id)
       .order("full_name", { ascending: true });
 
@@ -398,6 +402,7 @@ export default function RevenueClient({ user }: { user: User }) {
       ref_no: "",
       client_name: "",
       rent_amount: "",
+      monthly_rent_amount: "",
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
@@ -440,6 +445,7 @@ export default function RevenueClient({ user }: { user: User }) {
       ref_no: revenue.ref_no || "",
       client_name: revenue.client_name || "",
       rent_amount: revenue.rent_amount?.toString() || "",
+      monthly_rent_amount: revenue.monthly_rent_amount?.toString() || "",
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
@@ -566,6 +572,9 @@ export default function RevenueClient({ user }: { user: User }) {
         </CardContent>
       </Card>
 
+      {/* Leadership Performance Table */}
+      <LeadershipPerformanceTable />
+
       {/* Revenue Table */}
       <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -618,7 +627,11 @@ export default function RevenueClient({ user }: { user: User }) {
                         {revenue.ref_no || "-"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(revenue.rent_amount)}
+                        {formatCurrency(
+                          revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount != null
+                            ? revenue.monthly_rent_amount
+                            : revenue.rent_amount
+                        )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(revenue.landlord_fee)}
@@ -872,14 +885,14 @@ export default function RevenueClient({ user }: { user: User }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Monthly Rent Amount (€)'} *
                     </label>
                     <Input
                       type="number"
                       step="0.01"
                       value={form.rent_amount}
                       onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
+                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter monthly rent amount'}
                       required
                     />
                   </div>
@@ -894,6 +907,24 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                 </div>
+
+                {/* Shortlet Monthly Rent Amount */}
+                {form.deal_type === 'shortlet' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                      Monthly Rent Amount (€) *
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.monthly_rent_amount}
+                      onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
+                      placeholder="Enter monthly rent amount (for revenue charts)"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+                  </div>
+                )}
 
                 {/* Discount Checkboxes */}
                 <div className="grid grid-cols-3 gap-4">
@@ -984,7 +1015,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
-                      onChange={(date) => setDateRented(date)}
+                      onChange={(date: Date | null) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -994,7 +1025,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
-                      onChange={(date) => setDateSigned(date)}
+                      onChange={(date: Date | null) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -1004,7 +1035,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
-                      onChange={(date) => setDateMoveIn(date)}
+                      onChange={(date: Date | null) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -1018,7 +1049,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Landlord Paid Date</label>
                     <DatePicker
                       selected={landlordPaidDate}
-                      onChange={(date) => setLandlordPaidDate(date)}
+                      onChange={(date: Date | null) => setLandlordPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
@@ -1028,7 +1059,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Paid Date</label>
                     <DatePicker
                       selected={clientPaidDate}
-                      onChange={(date) => setClientPaidDate(date)}
+                      onChange={(date: Date | null) => setClientPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
@@ -1200,9 +1231,7 @@ export default function RevenueClient({ user }: { user: User }) {
           <div className="flex items-center justify-between">
             <CardTitle>Team Revenue Records</CardTitle>
             <div className="text-right">
-              <span className="text-sm font-bold text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
-                Total Deals: <TeamTotalDealCount refreshKey={teamRefreshKey} />
-              </span>
+              <TeamTotalDealCount refreshKey={teamRefreshKey} />
               <div className="text-[10px] text-gray-400 mt-0.5 text-right">from September 2025</div>
             </div>
           </div>
@@ -1217,20 +1246,32 @@ export default function RevenueClient({ user }: { user: User }) {
 
 // Total Deal Count Component (counts unique DB records, not double-counting collab)
 function TeamTotalDealCount({ refreshKey = 0 }: { refreshKey?: number }) {
-  const [count, setCount] = useState<number>(0);
+  const [teamCount, setTeamCount] = useState<number>(0);
+  const [listingCount, setListingCount] = useState<number>(0);
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchCount() {
-      const { count: totalCount, error } = await supabase
-        .from("revenue")
-        .select("id", { count: "exact", head: true });
-      if (!error && totalCount !== null) setCount(totalCount);
+      const [teamRes, listingRes] = await Promise.all([
+        supabase.from("revenue").select("id", { count: "exact", head: true }).eq("only_listing_fee", false),
+        supabase.from("revenue").select("id", { count: "exact", head: true }).eq("only_listing_fee", true),
+      ]);
+      if (!teamRes.error && teamRes.count !== null) setTeamCount(teamRes.count);
+      if (!listingRes.error && listingRes.count !== null) setListingCount(listingRes.count);
     }
     fetchCount();
   }, [supabase, refreshKey]);
 
-  return <>{count}</>;
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className="text-sm font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/40 px-3 py-1 rounded-full">
+        Total Team Deals: {teamCount}
+      </span>
+      <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-0.5 rounded-full">
+        Listing Fee Deals: {listingCount}
+      </span>
+    </div>
+  );
 }
 
 // Team Revenue Table Component
@@ -1374,20 +1415,27 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
     return `€${amount.toFixed(2)}`;
   };
 
-  // Generate month options (2025-2026)
-  const monthOptions = [];
-  for (let year = 2025; year <= 2026; year++) {
-    for (let month = 1; month <= 12; month++) {
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      monthOptions.push({
-        value: `${year}-${String(month).padStart(2, '0')}`,
-        label: `${monthNames[month - 1]} ${year}`
-      });
-    }
-  }
+  // Generate month options — only months that have at least one revenue record
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const monthOptions = Array.from(
+    new Set(
+      allRevenues
+        .filter(r => r.date_rented)
+        .map(r => {
+          const d = new Date(r.date_rented!);
+          return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        })
+    )
+  )
+    .sort()
+    .reverse()
+    .map(value => {
+      const [year, month] = value.split('-');
+      return { value, label: `${monthNames[parseInt(month) - 1]} ${year}` };
+    });
 
   // Get unique agent names for dropdown (includes collaboration partners)
   const uniqueAgentNames = [...new Set([
@@ -1518,7 +1566,11 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                     {revenue.ref_no || "-"}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(revenue.rent_amount)}
+                    {formatCurrency(
+                      revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount != null
+                        ? revenue.monthly_rent_amount
+                        : revenue.rent_amount
+                    )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(revenue.landlord_fee)}
@@ -1683,6 +1735,285 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
 }
 
 // Monthly Revenue Chart Component
+// ─── Leadership Performance Table ──────────────────────────────────────────
+
+interface AgentStat {
+  user_id: string;
+  full_name: string;
+  dealCount: number;
+  completedCount: number;
+  pendingCount: number;
+  totalRent: number;
+  totalAgentIncome: number;
+  collabCount: number;
+}
+
+const AGENT_PALETTE = [
+  { bg: "bg-purple-500", light: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-700 dark:text-purple-300", bar: "#8b5cf6" },
+  { bg: "bg-pink-500",   light: "bg-pink-100 dark:bg-pink-900/40",   text: "text-pink-700 dark:text-pink-300",   bar: "#ec4899" },
+  { bg: "bg-cyan-500",   light: "bg-cyan-100 dark:bg-cyan-900/40",   text: "text-cyan-700 dark:text-cyan-300",   bar: "#06b6d4" },
+  { bg: "bg-emerald-500",light: "bg-emerald-100 dark:bg-emerald-900/40",text:"text-emerald-700 dark:text-emerald-300",bar:"#10b981"},
+  { bg: "bg-amber-500",  light: "bg-amber-100 dark:bg-amber-900/40",  text: "text-amber-700 dark:text-amber-300",  bar: "#f59e0b" },
+  { bg: "bg-indigo-500", light: "bg-indigo-100 dark:bg-indigo-900/40",text: "text-indigo-700 dark:text-indigo-300",bar: "#6366f1" },
+  { bg: "bg-rose-500",   light: "bg-rose-100 dark:bg-rose-900/40",   text: "text-rose-700 dark:text-rose-300",   bar: "#f43f5e" },
+  { bg: "bg-teal-500",   light: "bg-teal-100 dark:bg-teal-900/40",   text: "text-teal-700 dark:text-teal-300",   bar: "#14b8a6" },
+];
+
+function initials(name: string) {
+  return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
+function leaderboardMonthLabel(key: string) {
+  const [year, month] = key.split("-");
+  const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${names[parseInt(month) - 1]} ${year}`;
+}
+
+function LeadershipPerformanceTable() {
+  const supabase = createClient();
+  const [allData, setAllData] = useState<{ revenue: any[]; agents: Map<string, string>; nameToId: Map<string, string> }>({ revenue: [], agents: new Map(), nameToId: new Map() });
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const [{ data: revenueData }, { data: profilesData }] = await Promise.all([
+        supabase.from("revenue").select("user_id, rent_amount, monthly_rent_amount, deal_type, agent_income, landlord_paid_date, client_paid_date, date_rented, only_listing_fee, collaboration_with"),
+        supabase.from("profiles").select("user_id, full_name").in("role", ["agent", "teamleader"]),
+      ]);
+      if (!revenueData || !profilesData) { setLoading(false); return; }
+      const agentMap = new Map<string, string>();
+      profilesData.forEach((p: any) => agentMap.set(p.user_id, p.full_name));
+      setAllData({ revenue: revenueData, agents: agentMap, nameToId: new Map(profilesData.map((p: any) => [p.full_name.trim().toLowerCase(), p.user_id])) });
+      setLoading(false);
+    }
+    fetchData();
+  }, [supabase]);
+
+  // Derive available months from data
+  const availableMonths = (() => {
+    const seen = new Set<string>();
+    allData.revenue.forEach((r: any) => {
+      if (r.date_rented) {
+        const d = new Date(r.date_rented);
+        seen.add(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+      }
+    });
+    return Array.from(seen).sort().reverse();
+  })();
+
+  // Build stats filtered by month
+  const stats: AgentStat[] = (() => {
+    const map = new Map<string, AgentStat>();
+    allData.revenue.forEach((r: any) => {
+      const name = allData.agents.get(r.user_id);
+      if (!name) return;
+
+      if (selectedMonth !== "all" && r.date_rented) {
+        const d = new Date(r.date_rented);
+        const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+        if (m !== selectedMonth) return;
+      }
+
+      if (!map.has(r.user_id)) {
+        map.set(r.user_id, { user_id: r.user_id, full_name: name, dealCount: 0, completedCount: 0, pendingCount: 0, totalRent: 0, totalAgentIncome: 0, collabCount: 0 });
+      }
+      const stat = map.get(r.user_id)!;
+      const isOnlyListingFee = r.only_listing_fee || false;
+      const isCompleted = !!r.landlord_paid_date && !!r.client_paid_date;
+      if (!isOnlyListingFee) {
+        stat.dealCount += 1;
+        if (isCompleted) stat.completedCount += 1; else stat.pendingCount += 1;
+      }
+      const baseRent = (r.deal_type === "shortlet" && r.monthly_rent_amount != null)
+        ? parseFloat(r.monthly_rent_amount) : (r.rent_amount ? parseFloat(r.rent_amount) : 0);
+      const collabName = r.collaboration_with?.trim() || "";
+      const hasCollab = collabName !== "";
+      const isCollabExternal = hasCollab && (collabName.toLowerCase() === "agent" || collabName.toLowerCase() === "unknown agent" || collabName.toLowerCase().startsWith("agent ("));
+      const effectiveRent = isOnlyListingFee ? 0 : hasCollab ? baseRent / 2 : baseRent;
+      stat.totalRent += effectiveRent;
+      stat.totalAgentIncome += r.agent_income ? parseFloat(r.agent_income) : 0;
+
+      // If this deal has any collab (internal or external), owner's collabCount++
+      if (hasCollab && !isOnlyListingFee) {
+        stat.collabCount += 1;
+      }
+
+      // If internal collab partner: add a virtual entry for them
+      if (hasCollab && !isCollabExternal && !isOnlyListingFee) {
+        const collabUserId = allData.nameToId.get(collabName.toLowerCase());
+        if (collabUserId && allData.agents.has(collabUserId)) {
+          const collabFullName = allData.agents.get(collabUserId)!;
+          if (!map.has(collabUserId)) {
+            map.set(collabUserId, { user_id: collabUserId, full_name: collabFullName, dealCount: 0, completedCount: 0, pendingCount: 0, totalRent: 0, totalAgentIncome: 0, collabCount: 0 });
+          }
+          const collabStat = map.get(collabUserId)!;
+          collabStat.dealCount += 1;
+          if (isCompleted) collabStat.completedCount += 1; else collabStat.pendingCount += 1;
+          collabStat.totalRent += baseRent / 2;
+          // Partner was added as collab — their collabCount++ too
+          collabStat.collabCount += 1;
+        }
+      }
+    });
+    const isExternalAgentName = (name: string) =>
+      name.toLowerCase() === "agent" || name.toLowerCase() === "unknown agent" || name.toLowerCase().startsWith("agent (");
+    return Array.from(map.values())
+      .filter((s) => !isExternalAgentName(s.full_name))
+      .sort((a, b) => b.totalRent - a.totalRent);
+  })();
+
+  const maxRent = stats[0]?.totalRent || 1;
+  const totalRentAll = stats.reduce((s, a) => s + a.totalRent, 0);
+
+  // Footer totals: count unique revenue records (no double-counting for collab)
+  const footerTotals = (() => {
+    let deals = 0, completed = 0, pending = 0, collab = 0;
+    allData.revenue.forEach((r: any) => {
+      const name = allData.agents.get(r.user_id);
+      if (!name) return;
+      // Use local time to match what Team Revenue Records table shows
+      if (selectedMonth !== "all" && r.date_rented) {
+        const d = new Date(r.date_rented);
+        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (m !== selectedMonth) return;
+      }
+      if (r.only_listing_fee) return;
+      deals += 1;
+      if (!!r.landlord_paid_date && !!r.client_paid_date) completed += 1; else pending += 1;
+      if (r.collaboration_with?.trim()) collab += 1;
+    });
+    return { deals, completed, pending, collab };
+  })();
+
+  const rankBadge = (rank: number) => {
+    if (rank === 1) return <span className="text-2xl leading-none">🥇</span>;
+    if (rank === 2) return <span className="text-2xl leading-none">🥈</span>;
+    if (rank === 3) return <span className="text-2xl leading-none">🥉</span>;
+    return <span className="text-sm font-bold text-gray-400">#{rank}</span>;
+  };
+
+  return (
+    <Card className="mt-6 overflow-hidden border-0 shadow-lg">
+      {/* Gradient header bar */}
+      <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400" />
+      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
+        <CardTitle className="text-lg font-bold tracking-tight flex items-center gap-2">
+          🏅 Agent Leadership
+        </CardTitle>
+        {/* Month selector */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Filter by month</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+          >
+            <option value="all">All Time</option>
+            {availableMonths.map((m) => (
+              <option key={m} value={m}>{leaderboardMonthLabel(m)}</option>
+            ))}
+          </select>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-2">
+        {loading ? (
+          <div className="py-12 text-center text-gray-400">Loading…</div>
+        ) : stats.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">No agent data for this period.</div>
+        ) : (
+          <div className="space-y-3">
+            {stats.map((agent, idx) => {
+              const palette = AGENT_PALETTE[idx % AGENT_PALETTE.length];
+              const barPct = Math.round((agent.totalRent / maxRent) * 100);
+              const sharePct = totalRentAll > 0 ? Math.round((agent.totalRent / totalRentAll) * 100) : 0;
+              return (
+                <div
+                  key={agent.user_id}
+                  className="relative flex items-center gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {/* Rank */}
+                  <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                    {rankBadge(idx + 1)}
+                  </div>
+
+                  {/* Avatar */}
+                  <div className={`w-9 h-9 rounded-full ${palette.bg} flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                    {initials(agent.full_name)}
+                  </div>
+
+                  {/* Agent name + bar */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{agent.full_name}</span>
+                      <span className={`text-sm font-bold ${palette.text} ml-2 whitespace-nowrap`}>
+                        €{agent.totalRent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${barPct}%`, backgroundColor: palette.bar }}
+                      />
+                    </div>
+                    {/* Sub stats */}
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <span className="text-xs text-gray-400">{agent.dealCount} deals</span>
+                      {agent.collabCount > 0 && (
+                        <span className="text-xs text-gray-400">{agent.collabCount} collab</span>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                        {agent.completedCount} completed
+                      </span>
+                      {agent.pendingCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                          {agent.pendingCount} pending
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400">{sharePct}% of total</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Summary footer */}
+            <div className="mt-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-100 dark:border-purple-900/40 px-5 py-3 flex flex-wrap gap-6">
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Total Deals</div>
+                <div className="text-lg font-bold text-gray-800 dark:text-gray-100">{footerTotals.deals}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Collab</div>
+                <div className="text-lg font-bold text-blue-500 dark:text-blue-400">{footerTotals.collab}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Completed</div>
+                <div className="text-lg font-bold text-green-600 dark:text-green-400">{footerTotals.completed}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Pending</div>
+                <div className="text-lg font-bold text-amber-500">{footerTotals.pending}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Total Rent</div>
+                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                  €{totalRentAll.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function MonthlyRevenueChart() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1692,45 +2023,48 @@ function MonthlyRevenueChart() {
     async function fetchMonthlyData() {
       setLoading(true);
 
-      // Fetch all revenue records
       const { data: revenueData, error } = await supabase
         .from("revenue")
-        .select("date_rented, rent_amount, agent_income")
+        .select("date_rented, rent_amount, monthly_rent_amount, deal_type, only_listing_fee, collaboration_with, user_id")
         .order("date_rented", { ascending: true });
 
+      const EXTERNAL_AGENT_UUID = "62ab03a6-3c64-491d-bfa4-313c7ba57988";
+
+      const isExternalCollabName = (name: string) =>
+        name.toLowerCase() === "agent" ||
+        name.toLowerCase() === "unknown agent" ||
+        name.toLowerCase().startsWith("agent (");
+
       if (!error && revenueData) {
-        // Group by month and calculate total rent amount and agent income
         const monthlyRentMap = new Map<string, number>();
-        const monthlyIncomeMap = new Map<string, number>();
+        const monthlyDealMap = new Map<string, number>();
 
         revenueData.forEach((revenue: any) => {
-          if (revenue.date_rented) {
-            const date = new Date(revenue.date_rented);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
-            // Accumulate rent amount
-            if (revenue.rent_amount) {
-              const currentRent = monthlyRentMap.get(monthKey) || 0;
-              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount));
-            }
-            
-            // Accumulate agent income
-            if (revenue.agent_income) {
-              const currentIncome = monthlyIncomeMap.get(monthKey) || 0;
-              monthlyIncomeMap.set(monthKey, currentIncome + parseFloat(revenue.agent_income));
-            }
+          if (!revenue.date_rented) return;
+          if (revenue.user_id === EXTERNAL_AGENT_UUID) return;
+
+          const isOnlyListingFee = revenue.only_listing_fee || false;
+          const date = new Date(revenue.date_rented);
+          // Rent: UTC bucketing (matches Leadership table)
+          const monthKeyUTC = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+          // Deal count: local time bucketing (matches Records table)
+          const monthKeyLocal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+          if (!isOnlyListingFee) {
+            const baseRent = (revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount)
+              ? parseFloat(revenue.monthly_rent_amount)
+              : (revenue.rent_amount ? parseFloat(revenue.rent_amount) : 0);
+            const collabName = revenue.collaboration_with?.trim() || "";
+            const hasExternalCollab = collabName !== "" && isExternalCollabName(collabName);
+            const effectiveRent = hasExternalCollab ? baseRent / 2 : baseRent;
+            monthlyRentMap.set(monthKeyUTC, (monthlyRentMap.get(monthKeyUTC) || 0) + effectiveRent);
+            monthlyDealMap.set(monthKeyLocal, (monthlyDealMap.get(monthKeyLocal) || 0) + 1);
           }
         });
 
-        // Convert to array and format for chart
-        const monthNames = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-
-        // Get all unique months from both maps
-        const allMonths = new Set([...monthlyRentMap.keys(), ...monthlyIncomeMap.keys()]);
-
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        // Merge all months from both maps
+        const allMonths = new Set([...monthlyRentMap.keys(), ...monthlyDealMap.keys()]);
         const TARGET_GOAL = 15000;
 
         const formattedData = Array.from(allMonths)
@@ -1739,17 +2073,16 @@ function MonthlyRevenueChart() {
             const monthIndex = parseInt(month) - 1;
             const rentAmount = Math.round((monthlyRentMap.get(monthKey) || 0) * 100) / 100;
             const remaining = Math.max(0, TARGET_GOAL - rentAmount);
-            
             return {
               month: `${monthNames[monthIndex]} ${year}`,
-              rentAmount: rentAmount,
-              remaining: remaining,
-              agentIncome: Math.round((monthlyIncomeMap.get(monthKey) || 0) * 100) / 100,
-              sortKey: monthKey
+              rentAmount,
+              remaining,
+              dealCount: monthlyDealMap.get(monthKey) || 0,
+              sortKey: monthKey,
             };
           })
           .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-          .map(({ month, rentAmount, remaining, agentIncome }) => ({ month, rentAmount, remaining, agentIncome }));
+          .map(({ month, rentAmount, remaining, dealCount }) => ({ month, rentAmount, remaining, dealCount }));
 
         setChartData(formattedData);
       }
@@ -1760,73 +2093,137 @@ function MonthlyRevenueChart() {
     fetchMonthlyData();
   }, [supabase]);
 
+  const ChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const achieved = payload.find((p: any) => p.dataKey === "rentAmount");
+    const remaining = payload.find((p: any) => p.dataKey === "remaining");
+    const dealCount = payload[0]?.payload?.dealCount;
+    return (
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl p-4 text-sm min-w-[180px]">
+        <div className="font-bold text-gray-800 dark:text-gray-100 mb-3 text-base">{label}</div>
+        {achieved && (
+          <div className="flex items-center justify-between gap-4 mb-1.5">
+            <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block" />
+              Achieved
+            </span>
+            <span className="font-bold text-violet-600 dark:text-violet-400">€{achieved.value.toLocaleString("en", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+        {remaining && remaining.value > 0 && (
+          <div className="flex items-center justify-between gap-4 mb-1.5">
+            <span className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+              <span className="w-2.5 h-2.5 rounded-full bg-violet-200 inline-block" />
+              To €15k
+            </span>
+            <span className="font-semibold text-gray-400 dark:text-gray-500">€{remaining.value.toLocaleString("en", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+        {dealCount != null && (
+          <div className="flex items-center justify-between gap-4 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              Deals
+            </span>
+            <span className="font-bold text-amber-500">{dealCount}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
-        Loading chart data...
+      <div className="h-[420px] flex items-center justify-center text-gray-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
+          <span className="text-sm">Loading chart data...</span>
+        </div>
       </div>
     );
   }
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
+      <div className="h-[420px] flex items-center justify-center text-gray-400 text-sm">
         No revenue data available for chart.
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <ComposedChart
-        data={chartData}
-        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis 
-          dataKey="month" 
-          angle={-45}
+    <ResponsiveContainer width="100%" height={420}>
+      <ComposedChart data={chartData} margin={{ top: 24, right: 48, left: 8, bottom: 64 }}>
+        <defs>
+          <linearGradient id="achievedGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+          <linearGradient id="remainingGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ede9fe" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#ddd6fe" stopOpacity={0.7} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f5" vertical={false} />
+        <XAxis
+          dataKey="month"
+          angle={-35}
           textAnchor="end"
-          height={80}
-          style={{ fontSize: '12px' }}
+          height={72}
+          tick={{ fontSize: 12, fill: '#9ca3af' }}
+          axisLine={{ stroke: '#e5e7eb' }}
+          tickLine={false}
         />
-        <YAxis 
-          label={{ value: 'Rent Amount (€)', angle: -90, position: 'insideLeft' }}
-          style={{ fontSize: '12px' }}
-          domain={[0, 15000]}
+        <YAxis
+          yAxisId="rent"
+          tick={{ fontSize: 11, fill: '#9ca3af' }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
+          width={52}
         />
-        <Tooltip 
-          formatter={(value: any, name: string) => {
-            if (name === 'Achieved') return [`€${value.toFixed(2)}`, 'Achieved Amount'];
-            if (name === 'Remaining to Goal') return [`€${value.toFixed(2)}`, 'Remaining to €15,000'];
-            if (name === 'Agent Net Income') return [`€${value.toFixed(2)}`, 'Total Agent Net Income'];
-            return [`€${value.toFixed(2)}`, name];
-          }}
-          contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
+        <YAxis
+          yAxisId="deals"
+          orientation="right"
+          allowDecimals={false}
+          tick={{ fontSize: 11, fill: '#f59e0b' }}
+          axisLine={false}
+          tickLine={false}
+          width={32}
+          domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.4)]}
         />
-        <Legend 
-          wrapperStyle={{ paddingTop: '20px' }}
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.04)' }} />
+        <Legend
+          wrapperStyle={{ paddingTop: '16px', fontSize: '13px', color: '#6b7280' }}
+          iconType="circle"
+          iconSize={10}
         />
-        <Bar 
-          dataKey="rentAmount" 
-          stackId="stack" 
-          fill="#8b5cf6" 
+        <Bar
+          yAxisId="rent"
+          dataKey="rentAmount"
+          stackId="stack"
+          fill="url(#achievedGradient)"
           name="Achieved"
+          maxBarSize={52}
         />
-        <Bar 
-          dataKey="remaining" 
-          stackId="stack" 
-          fill="#e9d5ff" 
+        <Bar
+          yAxisId="rent"
+          dataKey="remaining"
+          stackId="stack"
+          fill="url(#remainingGradient)"
           name="Remaining to Goal"
-          radius={[8, 8, 0, 0]}
+          radius={[6, 6, 0, 0]}
+          maxBarSize={52}
         />
-        <Line 
-          type="monotone" 
-          dataKey="agentIncome" 
-          stroke="#ec4899" 
-          strokeWidth={2}
-          name="Agent Net Income"
-          dot={{ fill: '#ec4899', r: 4 }}
+        <Line
+          yAxisId="deals"
+          type="monotone"
+          dataKey="dealCount"
+          stroke="#f59e0b"
+          strokeWidth={2.5}
+          name="Deals"
+          dot={{ fill: '#f59e0b', r: 5, strokeWidth: 2, stroke: '#ffffff' }}
+          activeDot={{ r: 7, strokeWidth: 2, stroke: '#ffffff', fill: '#f59e0b' }}
         />
       </ComposedChart>
     </ResponsiveContainer>

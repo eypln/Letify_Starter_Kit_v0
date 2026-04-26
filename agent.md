@@ -150,7 +150,18 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 - **Monitoring**: Vercel Analytics + Web Vitals
 - **Email System**: 3-stage notification system (Admin approval, Email verified, Account approved) ✅
 - **Build Status**: ✅ Production build successful (128 pages, 0 TypeScript errors)
-- **Version**: v2.8.8
+- **Version**: v2.8.9
+
+### Son Eklenen Özellikler (06.04.2026)
+1. **AI Second Brain & Content Engineering Pipeline (v2.8.9)**:
+   - 2 katmanlı AI içerik analiz pipeline'ı (n8n + Notion + Gemini 2.5 Pro + Apify)
+   - Layer 1 — Triage: ~200 içerik linkini 9 kategoriye otomatik sınıflandırma (Notion'dan çek → Gemini ile kategorize → Notion'a yaz)
+   - Layer 2 — SM Brain: Social Media içerikleri için 9 kategoride derin analiz (engagement, strategy, visual, copy, hashtag, posting, growth, content_knowledge, overall)
+   - content_knowledge kategorisi: İçerik üreticisinin öğrettiği gerçek bilgiyi yapılandırılmış çıkartma (main_teaching, specific_tips, quotes_or_hooks, data_points, frameworks/formulas, industry_insight, knowledge_value_score)
+   - Malta & Lettings bağlamı: Tüm AI analizleri küçük ada pazarı, kiralama sektörü ve € referanslarıyla yapılıyor
+   - Apify multi-platform scraping: Instagram, Facebook, YouTube, TikTok
+   - Supabase + pgvector RAG mimarisi tasarlandı (Layer 3 Knowledge Store + Layer 4 Brain Query — implementasyon bekliyor)
+   - tsconfig.json: `"ignoreDeprecations": "6.0"` eklendi (TypeScript 7.0 baseUrl uyarısı fix)
 
 ### Son Eklenen Özellikler (02.04.2026)
 1. **Dark Mode, PWA Install, RLS & UX Fixes (v2.8.8)**:

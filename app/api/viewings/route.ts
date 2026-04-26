@@ -348,7 +348,7 @@ export async function PUT(req: NextRequest) {
         const { data: userProfile } = await supabase
           .from('profiles')
           .select('full_name, email')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .single();
 
         // Get team leader(s) email

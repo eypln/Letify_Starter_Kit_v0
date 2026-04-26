@@ -11,8 +11,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2, Trash2, X, Download, ChevronDown } from "lucide-react";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import { createClient } from "@/lib/supabase/client";
 import HiredDocumentUpload from "./HiredDocumentUpload";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -809,9 +809,9 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, name: string) => [
-                      `${value} (${((value / pieTotal) * 100).toFixed(1)}%)`,
-                      name,
+                    formatter={(value: any, name?: string | number) => [
+                      `${value} (${((Number(value) / pieTotal) * 100).toFixed(1)}%)`,
+                      String(name ?? ''),
                     ]}
                   />
                 </PieChart>
@@ -1355,7 +1355,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     </label>
                     <DatePicker
                       selected={applicationDate}
-                      onChange={(date) => setApplicationDate(date)}
+                      onChange={(date: Date | null) => setApplicationDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 ${
                         applicationDate ? "border-gray-300" : "border-red-500"
@@ -1456,7 +1456,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     <label className="block text-sm font-medium mb-1">Appointment Date</label>
                     <DatePicker
                       selected={appointmentDate}
-                      onChange={(date) => setAppointmentDate(date)}
+                      onChange={(date: Date | null) => setAppointmentDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"
                       placeholderText="Select date"
@@ -1499,7 +1499,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                     <label className="block text-sm font-medium mb-1">Start Date</label>
                     <DatePicker
                       selected={startDate}
-                      onChange={(date) => setStartDate(date)}
+                      onChange={(date: Date | null) => setStartDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"
                       placeholderText="Select date"

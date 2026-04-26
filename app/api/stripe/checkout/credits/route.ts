@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
     console.log("Request body:", body, "validation:", validation);
 
     if (!validation.success) {
-      console.error("Invalid request data:", validation.error.errors);
+      console.error("Invalid request data:", validation.error.issues);
       return NextResponse.json({
         error: 'Invalid request data',
-        details: validation.error.errors
+        details: validation.error.issues
       }, { status: 400 });
     }
 

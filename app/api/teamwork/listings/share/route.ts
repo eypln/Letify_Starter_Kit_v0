@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         property_type: listing.property_type,
         description: listing.description,
         available_date: (listing as { available_date?: string }).available_date || null,
-      })
+      } as any)
       .select()
       .single();
 

@@ -752,7 +752,7 @@ export default function EditDialog({ listing, onUpdate }: EditDialogProps) {
                     <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Available Date</label>
                     <DatePicker
                       selected={availableDate}
-                      onChange={(date) => setAvailableDate(date)}
+                      onChange={(date: Date | null) => setAvailableDate(date)}
                       dateFormat="dd.MM.yyyy"
                       isClearable
                       placeholderText="Select available date"

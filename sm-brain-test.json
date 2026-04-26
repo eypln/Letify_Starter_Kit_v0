@@ -1,0 +1,171 @@
+{
+  "name": "SM Brain - Test Empty Code",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "d85d974f-0001-4a65-8730-2e57fd8b6001",
+      "name": "Her 5 Dakika",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "a66165cd-5be6-43ac-a2dc-4b370e85de9c",
+          "mode": "list",
+          "cachedResultName": "Links for AI Agent Brain",
+          "cachedResultUrl": "https://www.notion.so/a66165cd5be643aca2dc4b370e85de9c"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            { "key": "Status|status", "condition": "equals", "statusValue": "Done" },
+            { "key": "Tags|multi_select", "condition": "contains", "multiSelectValue": "Social Media" }
+          ],
+          "combinator": "and"
+        },
+        "options": { "downloadFiles": false }
+      },
+      "id": "d85d974f-0002-4a65-8730-2e57fd8b6002",
+      "name": "Notion SM Icerik Al",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [260, 300],
+      "credentials": {
+        "notionApi": { "id": "e4tmmqbaPyONZSTY", "name": "Notion account" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": { "__rl": true, "value": "={{ $('Notion SM Icerik Al').item.json.id }}", "mode": "id" },
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Status|status", "statusValue": "In progress" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d85d974f-0003-4a65-8730-2e57fd8b6003",
+      "name": "Status Deep Analysis",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [520, 300],
+      "credentials": {
+        "notionApi": { "id": "e4tmmqbaPyONZSTY", "name": "Notion account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { test: true } }];"
+      },
+      "id": "d85d974f-0004-4a65-8730-2e57fd8b6004",
+      "name": "Platform Tespit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "options": {}
+      },
+      "id": "d85d974f-0005-4a65-8730-2e57fd8b6005",
+      "name": "Apify Meta Al",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { test: true } }];"
+      },
+      "id": "d85d974f-0006-4a65-8730-2e57fd8b6006",
+      "name": "SM Analiz Istegi Hazirla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "options": {}
+      },
+      "id": "d85d974f-0007-4a65-8730-2e57fd8b6007",
+      "name": "Gemini SM Analiz",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { test: true } }];"
+      },
+      "id": "d85d974f-0008-4a65-8730-2e57fd8b6008",
+      "name": "Analiz Parse Et",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1820, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": { "__rl": true, "value": "={{ $('Notion SM Icerik Al').item.json.id }}", "mode": "id" },
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Status|status", "statusValue": "Done" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d85d974f-0009-4a65-8730-2e57fd8b6009",
+      "name": "Notion Analiz Yaz",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2080, 300],
+      "credentials": {
+        "notionApi": { "id": "e4tmmqbaPyONZSTY", "name": "Notion account" }
+      }
+    }
+  ],
+  "connections": {
+    "Her 5 Dakika": {
+      "main": [[{ "node": "Notion SM Icerik Al", "type": "main", "index": 0 }]]
+    },
+    "Notion SM Icerik Al": {
+      "main": [[{ "node": "Status Deep Analysis", "type": "main", "index": 0 }]]
+    },
+    "Status Deep Analysis": {
+      "main": [[{ "node": "Platform Tespit", "type": "main", "index": 0 }]]
+    },
+    "Platform Tespit": {
+      "main": [[{ "node": "Apify Meta Al", "type": "main", "index": 0 }]]
+    },
+    "Apify Meta Al": {
+      "main": [[{ "node": "SM Analiz Istegi Hazirla", "type": "main", "index": 0 }]]
+    },
+    "SM Analiz Istegi Hazirla": {
+      "main": [[{ "node": "Gemini SM Analiz", "type": "main", "index": 0 }]]
+    },
+    "Gemini SM Analiz": {
+      "main": [[{ "node": "Analiz Parse Et", "type": "main", "index": 0 }]]
+    },
+    "Analiz Parse Et": {
+      "main": [[{ "node": "Notion Analiz Yaz", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

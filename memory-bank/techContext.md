@@ -120,6 +120,22 @@ pnpm dev
 - RLS: intern=kendi verileri, teamleader+=tüm veriler
 - TypeScript tipleri: `types/supabase.ts`'ye eklendi
 
+### AI Second Brain Pipeline (v2.8.9 — 06.04.2026)
+- **n8n**: Self-hosted at `https://n8n.letify.cloud` — Workflow automation engine
+- **Notion API**: Internal Integration — İçerik yönetim veritabanı
+  - DB ID: `a66165cd-5be6-43ac-a2dc-4b370e85de9c`
+  - Properties: property_url, Status (Todo/In progress/Done), Tags (multi_select), property_title, AI Brain Analysis (rich_text)
+- **Gemini 2.5 Pro**: `generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent`
+  - Yapılandırılmış JSON çıktı (responseMimeType: 'application/json')
+  - maxOutputTokens: 8192
+- **Apify**: Çoklu platform scraper'ları
+  - Instagram: Actor `shu8hvrXbJbY3Eb9W`
+  - Facebook: Actor `PBJEdJdctLHQaqdfe`
+  - YouTube: Actor `h7sDV53CddomktSi5`
+  - TikTok: Actor `7200360993149553925`
+- **Supabase + pgvector** (PLANNED): Knowledge Store — brain_analyses tablosu, Gemini text-embedding-004 (768 dim)
+- **KRITIK n8n ÖĞRENME**: API ile oluşturulan workflow'lar UI'da boş render olabilir. Manuel Ctrl+V paste güvenilir yöntem. Notion node filter conditions JSON paste'te hata verir — n8n UI'da manuel eklenmeli.
+
 ## Teknik Kısıtlamalar
 
 ### Performance

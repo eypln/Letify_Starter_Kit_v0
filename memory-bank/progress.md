@@ -3,6 +3,123 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.9.0 - UI & UX Fixes (26.04.2026) ✅
+**Yapılanlar:**
+
+#### Team Revenue Month Filter Düzeltmesi ✅
+- **Problem**: Team Revenue Records tablosundaki "Filter by Month" dropdown'ı Ocak 2025'ten Temmuz 2026'ya kadar boş aylar dahil tüm ayları gösteriyordu
+- **Root Cause**: `monthOptions` sabit bir `for` döngüsüyle 2025-2026 arası 24 ay üretiyordu
+- **Düzeltme**: `allRevenues` dizisinden `date_rented` alanı kullanılarak `Set` ile unique aylar çıkarılıyor, `.sort().reverse()` ile en yeni önce sıralanıyor
+- Dosya: `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`
+
+#### Collaboration With Dropdown Filtreleme ✅
+- **Problem**: Add/Edit Deal popup'ında Collaboration With dropdown'ı intern, teamleader, boss, manager gibi ilgisiz rolleri de listeliyordu
+- **Root Cause**: Profiles sorgusu `role` filtresi olmadan tüm kullanıcıları çekiyordu
+- **Düzeltme**: `.eq("role", "agent")` filtresi eklendi — sadece agent rolündeki kullanıcılar görünür
+- **Not**: `RevenueClient.tsx` (agent sayfası) zaten filtreliydi, değişiklik gerekmedi
+- Dosya: `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`
+
+#### WebVitals Dev Uyarı Suppress ✅
+- **Problem**: Dev konsolunda sarı FCP/LCP/TTFB "needs improvement" uyarıları çıkıyordu (~151.000ms değerleriyle)
+- **Root Cause**: Next.js dev modunda compile süresi (~150 sn) Web Vitals ölçümüne yansıyordu — anlamlı değil
+- **Düzeltme**: Threshold uyarı bloğu `process.env.NODE_ENV === 'production'` koşuluna taşındı
+- Dosya: `components/system/WebVitals.tsx`
+
+#### Bonus Breakdown — Net T.Bonus Kolonu ✅
+- **Problem**: Teamleader bonuses sayfasında vergi sonrası net team bonus hesabı yoktu
+- **Düzeltme**: "Net T.Bonus" kolonu eklendi (teamBonus × 0.8), turuncu (`text-orange-600`) renk, header + data satırı + footer
+- **Header kısaltmaları**: "Personal Revenue" → "Pers. Revenue", "Personal Earnings" → "Pers. Earnings", "Net Team Bonus" → "Net T.Bonus"
+- Dosya: `app/(app)/teamleader/bonuses/BonusesClient.tsx`
+
+**Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (month filter + collab dropdown)
+components/system/WebVitals.tsx (dev uyarı suppress)
+app/(app)/teamleader/bonuses/BonusesClient.tsx (Net T.Bonus kolonu + header kısaltmaları)
+package.json (v2.9.0)
+```
+
+### v2.8.9 - AI Second Brain & Content Engineering Pipeline (06.04.2026) ✅
+**Yapılanlar:**
+
+#### AI Second Brain — 2 Katmanlı İçerik Analiz Pipeline'ı ✅
+- **Amaç**: Letify'ın sosyal medya, öğrenme ve uygulama süreçleri için yapay zeka destekli "Second Brain" sistemi kuruldu
+- **Layer 1 — Triage Workflow** (n8n ID: `66Zh8meAlhzQuRIC`): 11 node, ~200 içerik linkini 9 kategoriye otomatik sınıflandırma (Social Media, Lettings, Automation, Sport, Inspiration, Marketing, Tech, Business, Other)
+- **Layer 2 — SM Brain Workflow**: 9 node, Social Media kategorisindeki içerikleri Gemini 2.5 Pro ile derin analiz
+  - Notion'dan "Done" + "Social Media" tagged içerikleri çekme
+  - Apify ile çoklu platform scraping (Instagram, Facebook, YouTube, TikTok)
+  - Gemini 2.5 Pro ile yapılandırılmış JSON analiz (maxOutputTokens: 8192)
+  - Analiz sonuçlarını Notion DB'ye yazma ("AI Brain Analysis" alanı)
+
+#### Content Engineering — 9 Analiz Kategorisi ✅
+- **engagement_metrics**: Beğeni, yorum, paylaşım oranları + engagement rate hesaplama
+- **content_strategy**: İçerik türü, format analizi, posting frequency
+- **visual_analysis**: Görsel kalite, kompozisyon, marka uyumu
+- **caption_copywriting**: Hook, CTA, ton analizi, karakter sayısı
+- **hashtag_strategy**: Hashtag mix analizi, reach potansiyeli
+- **posting_strategy**: Zamanlama, frekans, platform-specific öneriler
+- **audience_growth**: Takipçi büyüme trendi, hedef kitle analizi
+- **content_knowledge** (YENİ): İçerik üreticisinin öğrettiği gerçek bilgiyi çıkartma
+  - main_teaching, specific_tips, quotes_or_hooks, data_points
+  - frameworks_or_formulas, industry_insight, knowledge_value_score (1-10)
+  - knowledge_category (marketing, sales, branding, growth, content_creation, analytics, vb.)
+- **overall_assessment**: Genel skor (1-10), güçlü/zayıf yönler, aksiyon önerileri
+
+#### Malta & Lettings Context Entegrasyonu ✅
+- Tüm analizler Malta pazarı bağlamında değerlendiriliyor
+- Lettings (kiralama) sektörüne özel öneriler
+- € (Euro) para birimi referansları
+- Küçük ada pazarı dinamikleri (word-of-mouth, community-based marketing)
+
+#### Supabase + pgvector RAG Mimarisi (Tasarım) 📐
+- **brain_analyses tablosu**: UUID PK, source_url, platform, category, full_analysis JSONB, content_summary, main_teaching, brain_tags TEXT[], embedding vector(768)
+- **Embedding**: Gemini text-embedding-004 (768 boyut)
+- **Layer 3 — Knowledge Store**: Analiz sonuçlarını Supabase'e embed ederek kaydetme (implementasyon bekliyor)
+- **Layer 4 — Brain Query**: RAG tabanlı semantik arama workflow'u (implementasyon bekliyor)
+
+#### tsconfig.json TypeScript Fix ✅
+- `"ignoreDeprecations": "6.0"` eklendi — TypeScript 7.0 `baseUrl` deprecation uyarısı susturuldu
+
+#### n8n Deployment Öğrenmeleri ✅
+- **KRITIK ÖĞRENME**: n8n API ile oluşturulan workflow'lar UI'da boş render edilebilir — manual Ctrl+V paste yöntemi güvenilir çalışıyor
+- **Notion Node Filtre Uyumsuzluğu**: Notion node filter conditions (`equals`, `contains`) JSON paste'te "Could not find property option" hatası verir — filtreler n8n UI'da manuel eklenmeli
+
+**n8n Workflow Mimarisi:**
+```
+Layer 1: Triage (ID: 66Zh8meAlhzQuRIC)
+├── Notion'dan tüm "Todo" içerikleri çek
+├── Gemini ile 9 kategoriye sınıflandır
+└── Notion'a kategori tag'i yaz + "Done" yap
+
+Layer 2: SM Brain
+├── Notion'dan "Done" + "Social Media" içerikleri çek
+├── URL'den platform tespit et (Instagram/Facebook/YouTube/TikTok)
+├── Apify ile içerik scrape et
+├── Gemini 2.5 Pro ile 9 kategoride derin analiz
+└── Notion'a yapılandırılmış analiz yaz
+
+Layer 3: Knowledge Store (PLANNED)
+├── SM Brain çıktısını al
+├── Gemini text-embedding-004 ile embed üret
+└── Supabase brain_analyses tablosuna kaydet
+
+Layer 4: Brain Query (PLANNED)
+├── Kullanıcı sorusu → Gemini embedding
+├── pgvector cosine similarity arama
+├── İlgili analizleri context olarak topla
+└── Gemini ile sentezlenmiş cevap üret
+```
+
+**API Keys & Credentials:**
+```
+n8n: https://n8n.letify.cloud
+Notion DB: a66165cd-5be6-43ac-a2dc-4b370e85de9c
+Notion Credential: [env'de saklı]
+Gemini API: [env'de saklı]
+Apify Token: [env'de saklı — Apify Console > Integrations]
+Apify Actors: Instagram (shu8hvrXbJbY3Eb9W), Facebook (PBJEdJdctLHQaqdfe), YouTube (h7sDV53CddomktSi5), TikTok (7200360993149553925)
+```
+
 ### v2.8.8 - Dark Mode, PWA Install, RLS & UX Fixes (02.04.2026) ✅
 **Yapılanlar:**
 

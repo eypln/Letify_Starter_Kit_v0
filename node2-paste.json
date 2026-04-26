@@ -1,0 +1,33 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "a66165cd-5be6-43ac-a2dc-4b370e85de9c",
+          "mode": "list",
+          "cachedResultName": "Links for AI Agent Brain",
+          "cachedResultUrl": "https://www.notion.so/a66165cd5be643aca2dc4b370e85de9c"
+        },
+        "limit": 1,
+        "options": {
+          "downloadFiles": false
+        }
+      },
+      "id": "sm-0002",
+      "name": "📋 Notion - SM İçerik Al",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [-64, 80],
+      "credentials": {
+        "notionApi": {
+          "id": "e4tmmqbaPyONZSTY",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {}
+}

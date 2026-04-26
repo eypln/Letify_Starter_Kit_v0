@@ -24,6 +24,7 @@ interface RevenueForm {
   ref_no: string;
   client_name: string;
   rent_amount: string;
+  monthly_rent_amount: string;
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
@@ -45,6 +46,7 @@ interface Revenue {
   ref_no: string | null;
   client_name: string | null;
   rent_amount: number | null;
+  monthly_rent_amount: number | null;
   landlord_fee: number | null;
   client_fee: number | null;
   listing_fee: number | null;
@@ -125,6 +127,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       ref_no: revenue.ref_no || "",
       client_name: revenue.client_name || "",
       rent_amount: revenue.rent_amount?.toString() || "",
+      monthly_rent_amount: revenue.monthly_rent_amount?.toString() || "",
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
@@ -451,14 +454,14 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                  {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                  {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Monthly Rent Amount (€)'} *
                 </label>
                 <Input
                   type="number"
                   step="0.01"
                   value={form.rent_amount}
                   onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                  placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
+                  placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter monthly rent amount'}
                   required
                 />
               </div>
@@ -473,6 +476,24 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 />
               </div>
             </div>
+
+            {/* Shortlet Monthly Rent Amount */}
+            {form.deal_type === 'shortlet' && (
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                  Monthly Rent Amount (€) *
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={form.monthly_rent_amount}
+                  onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
+                  placeholder="Enter monthly rent amount (for revenue charts)"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+              </div>
+            )}
 
             {/* Discount Checkboxes */}
             <div className="grid grid-cols-3 gap-4">
@@ -557,7 +578,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Rented</label>
                 <DatePicker
                   selected={dateRented}
-                  onChange={(date) => setDateRented(date)}
+                  onChange={(date: Date | null) => setDateRented(date)}
                   dateFormat="dd/MM/yyyy"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
@@ -567,7 +588,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Signed</label>
                 <DatePicker
                   selected={dateSigned}
-                  onChange={(date) => setDateSigned(date)}
+                  onChange={(date: Date | null) => setDateSigned(date)}
                   dateFormat="dd/MM/yyyy"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
@@ -577,7 +598,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Move In</label>
                 <DatePicker
                   selected={dateMoveIn}
-                  onChange={(date) => setDateMoveIn(date)}
+                  onChange={(date: Date | null) => setDateMoveIn(date)}
                   dateFormat="dd/MM/yyyy"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
@@ -591,7 +612,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Landlord Paid Date</label>
                 <DatePicker
                   selected={landlordPaidDate}
-                  onChange={(date) => setLandlordPaidDate(date)}
+                  onChange={(date: Date | null) => setLandlordPaidDate(date)}
                   dateFormat="dd/MM/yyyy"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
@@ -601,7 +622,7 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                 <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Paid Date</label>
                 <DatePicker
                   selected={clientPaidDate}
-                  onChange={(date) => setClientPaidDate(date)}
+                  onChange={(date: Date | null) => setClientPaidDate(date)}
                   dateFormat="dd/MM/yyyy"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"

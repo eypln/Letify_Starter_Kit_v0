@@ -8,7 +8,7 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true, // Re-enable auto registration
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development' ? false : false, // Always enabled
+  disable: process.env.NODE_ENV === 'development', // Disabled in dev for faster compilation
   // Use custom service worker with push notification support
   swSrc: 'public/service-worker.js',
   buildExcludes: [

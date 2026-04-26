@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "activeInstanceId": "instance-9ca4ba2c",
+  "instances": [
+    {
+      "id": "instance-9ca4ba2c",
+      "name": "n8n.letify.cloud · Erhan Yurdakul",
+      "host": "https://n8n.letify.cloud",
+      "syncFolder": "workflows",
+      "projectId": "personal",
+      "projectName": "Personal",
+      "instanceIdentifier": "n8n_letify_cloud_erhan_y",
+      "verification": {
+        "status": "verified",
+        "normalizedHost": "https://n8n.letify.cloud",
+        "userId": "abd9403b-67f4-44a6-ae25-94b7dc0658de",
+        "userName": "Erhan Yurdakul",
+        "userEmail": "sailtothrive@gmail.com",
+        "lastCheckedAt": "2026-04-04T23:31:32.585Z"
+      }
+    }
+  ],
+  "host": "https://n8n.letify.cloud",
+  "syncFolder": "workflows",
+  "projectId": "personal",
+  "projectName": "Personal",
+  "instanceIdentifier": "n8n_letify_cloud_erhan_y"
+}

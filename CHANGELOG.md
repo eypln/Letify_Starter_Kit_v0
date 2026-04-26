@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.9] - 2026-04-06
+
+### Added
+- **AI Second Brain — Content Engineering Pipeline**: 2 katmanlı AI içerik analiz sistemi
+  - Layer 1 — Triage Workflow (n8n): ~200 içerik linkini 9 kategoriye otomatik sınıflandırma
+  - Layer 2 — SM Brain Workflow (n8n): Social Media içerikleri için Gemini 2.5 Pro ile 9 kategoride derin analiz
+  - 9 analiz kategorisi: engagement_metrics, content_strategy, visual_analysis, caption_copywriting, hashtag_strategy, posting_strategy, audience_growth, content_knowledge, overall_assessment
+  - content_knowledge: İçerik üreticisinin öğrettiği gerçek bilgiyi yapılandırılmış çıkartma (main_teaching, specific_tips, quotes_or_hooks, data_points, frameworks_or_formulas, industry_insight, knowledge_value_score)
+  - Malta & Lettings bağlamı: Tüm AI analizleri küçük ada pazarı, kiralama sektörü ve € para birimi referanslarıyla
+  - Apify multi-platform scraping: Instagram, Facebook, YouTube, TikTok
+  - Notion entegrasyonu: Analiz sonuçları "AI Brain Analysis" alanına yazılıyor
+- **Supabase + pgvector RAG Mimarisi (Tasarım)**: brain_analyses tablosu, Gemini text-embedding-004, Layer 3 Knowledge Store + Layer 4 Brain Query planlandı
+
+### Fixed
+- **tsconfig.json**: `"ignoreDeprecations": "6.0"` eklendi — TypeScript 7.0 baseUrl deprecation uyarısı giderildi
+
 ## [2.5.0] - 2025-01-08
 
 ### Added

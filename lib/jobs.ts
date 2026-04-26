@@ -29,7 +29,7 @@ export async function createJob(args: CreateJobArgs): Promise<{ id: string }> {
       listing_id: args.listingId,
       kind: args.kind,
       payload: args.payload,
-    })
+    } as any)
     .select('id')
     .single()
 
@@ -65,7 +65,7 @@ export async function updateJobStatus(args: UpdateJobStatusArgs): Promise<void> 
 
   const { error } = await supabase
     .from('jobs')
-    .update(updateData)
+    .update(updateData as any)
     .eq('id', args.jobId)
 
   if (error) {

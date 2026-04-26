@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Facebook, Info } from 'lucide-react'
+import { Loader2, Share2, Info } from 'lucide-react'
 import { upsertIntegration } from './actions'
 
 type UserIntegrations = Database['public']['Tables']['users_integrations']['Row']
@@ -75,7 +75,7 @@ export default function FacebookIntegrationForm({ integrations }: FacebookIntegr
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Facebook className="h-5 w-5 text-purple-600" />
+          <Share2 className="h-5 w-5 text-purple-600" />
           <span>Facebook Integration</span>
         </CardTitle>
         <CardDescription>

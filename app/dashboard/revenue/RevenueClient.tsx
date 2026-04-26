@@ -28,6 +28,7 @@ interface RevenueForm {
   ref_no: string;
   client_name: string;
   rent_amount: string;
+  monthly_rent_amount: string;
   landlord_discount: boolean;
   client_discount: boolean;
   has_listing_fee: boolean;
@@ -81,6 +82,7 @@ interface Revenue {
   ref_no: string | null;
   client_name: string | null;
   rent_amount: number | null;
+  monthly_rent_amount: number | null;
   landlord_fee: number | null;
   client_fee: number | null;
   listing_fee: number | null;
@@ -144,6 +146,7 @@ export default function RevenueClient({ user }: { user: User }) {
     ref_no: "",
     client_name: "",
     rent_amount: "",
+    monthly_rent_amount: "",
     landlord_discount: false,
     client_discount: false,
     has_listing_fee: false,
@@ -455,6 +458,7 @@ export default function RevenueClient({ user }: { user: User }) {
       ref_no: "",
       client_name: "",
       rent_amount: "",
+      monthly_rent_amount: "",
       landlord_discount: false,
       client_discount: false,
       has_listing_fee: false,
@@ -503,6 +507,7 @@ export default function RevenueClient({ user }: { user: User }) {
       ref_no: revenue.ref_no || "",
       client_name: revenue.client_name || "",
       rent_amount: revenue.rent_amount?.toString() || "",
+      monthly_rent_amount: revenue.monthly_rent_amount?.toString() || "",
       landlord_discount: revenue.landlord_discount || false,
       client_discount: revenue.client_discount || false,
       has_listing_fee: revenue.has_listing_fee || false,
@@ -655,14 +660,22 @@ export default function RevenueClient({ user }: { user: User }) {
                     </td>
                   </tr>
                 ) : (
-                  revenues.map((revenue: Revenue, idx: number) => (
-                    <tr key={revenue.id} className={`table-row-hover ${revenue.is_collab_partner ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                  revenues.map((revenue: Revenue, idx: number) => {
+                    const isCollab = revenue.is_collab_partner || !!(revenue.collaboration_with?.trim());
+                    const isListingFee = !!revenue.only_listing_fee;
+                    return (
+                    <tr key={revenue.id} className={`table-row-hover ${revenue.is_collab_partner ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''} ${isListingFee ? 'bg-teal-50/40 dark:bg-teal-900/10' : ''}`}>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           {(page - 1) * pageSize + idx + 1}
-                          {revenue.is_collab_partner && (
+                          {isCollab && (
                             <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full">
                               Collab
+                            </span>
+                          )}
+                          {isListingFee && (
+                            <span className="inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300 rounded-full">
+                              Listing Fee
                             </span>
                           )}
                         </div>
@@ -731,7 +744,8 @@ export default function RevenueClient({ user }: { user: User }) {
                         />
                       </td>
                     </tr>
-                  ))
+                  );
+                  })
                 )}
               </tbody>
             </table>
@@ -929,14 +943,14 @@ export default function RevenueClient({ user }: { user: User }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
-                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Rent Amount (€)'} *
+                      {form.deal_type === 'shortlet' ? 'Total Owner Rent Income (€)' : 'Monthly Rent Amount (€)'} *
                     </label>
                     <Input
                       type="number"
                       step="0.01"
                       value={form.rent_amount}
                       onChange={(e) => setForm({ ...form, rent_amount: e.target.value })}
-                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter rent amount'}
+                      placeholder={form.deal_type === 'shortlet' ? 'Enter total owner rent income' : 'Enter monthly rent amount'}
                       required
                     />
                   </div>
@@ -956,6 +970,24 @@ export default function RevenueClient({ user }: { user: User }) {
                     />
                   </div>
                 </div>
+
+                {/* Shortlet Monthly Rent Amount */}
+                {form.deal_type === 'shortlet' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
+                      Monthly Rent Amount (€) *
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.monthly_rent_amount}
+                      onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
+                      placeholder="Enter monthly rent amount (for revenue charts)"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+                  </div>
+                )}
 
                 {/* Discount Checkboxes */}
                 <div className="grid grid-cols-3 gap-4">
@@ -1040,7 +1072,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Rented <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateRented}
-                      onChange={(date) => setDateRented(date)}
+                      onChange={(date: Date | null) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -1051,7 +1083,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Signed <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateSigned}
-                      onChange={(date) => setDateSigned(date)}
+                      onChange={(date: Date | null) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -1062,7 +1094,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Date Move In <span className="text-red-500">*</span></label>
                     <DatePicker
                       selected={dateMoveIn}
-                      onChange={(date) => setDateMoveIn(date)}
+                      onChange={(date: Date | null) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
                       className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
@@ -1077,7 +1109,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Landlord Paid Date</label>
                     <DatePicker
                       selected={landlordPaidDate}
-                      onChange={(date) => setLandlordPaidDate(date)}
+                      onChange={(date: Date | null) => setLandlordPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
@@ -1087,7 +1119,7 @@ export default function RevenueClient({ user }: { user: User }) {
                     <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Client Paid Date</label>
                     <DatePicker
                       selected={clientPaidDate}
-                      onChange={(date) => setClientPaidDate(date)}
+                      onChange={(date: Date | null) => setClientPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
@@ -1258,7 +1290,7 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
       // Fetch this agent's own revenue records
       const { data: ownData, error } = await supabase
         .from("revenue")
-        .select("date_rented, rent_amount, agent_income, collaboration_with, only_listing_fee")
+        .select("date_rented, rent_amount, monthly_rent_amount, deal_type, agent_income, collaboration_with, only_listing_fee")
         .eq("user_id", userId)
         .order("date_rented", { ascending: true });
 
@@ -1273,7 +1305,7 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
       if (profileData?.full_name) {
         const { data: partnerDeals } = await supabase
           .from("revenue")
-          .select("date_rented, rent_amount, agent_income, collaboration_with, only_listing_fee")
+          .select("date_rented, rent_amount, monthly_rent_amount, deal_type, agent_income, collaboration_with, only_listing_fee")
           .neq("user_id", userId)
           .eq("collaboration_with", profileData.full_name)
           .order("date_rented", { ascending: true });
@@ -1302,10 +1334,13 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
             // For any collab deal (internal or outside), use half rent/income
             const rentMultiplier = hasCollab ? 0.5 : 1;
 
-            // Accumulate rent amount
-            if (revenue.rent_amount) {
+            // Accumulate rent amount — for shortlet use monthly_rent_amount if available
+            const effectiveRent = (revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount)
+              ? parseFloat(revenue.monthly_rent_amount)
+              : (revenue.rent_amount ? parseFloat(revenue.rent_amount) : null);
+            if (effectiveRent !== null) {
               const currentRent = monthlyRentMap.get(monthKey) || 0;
-              monthlyRentMap.set(monthKey, currentRent + parseFloat(revenue.rent_amount) * rentMultiplier);
+              monthlyRentMap.set(monthKey, currentRent + effectiveRent * rentMultiplier);
             }
             
             // Accumulate agent income
@@ -1390,11 +1425,11 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
           domain={[0, 8500]}
         />
         <Tooltip 
-          formatter={(value: any, name: string) => {
+          formatter={(value: any, name?: string | number) => {
             if (name === 'Achieved') return [`€${value.toFixed(2)}`, 'Achieved Amount'];
             if (name === 'Remaining to Goal') return [`€${value.toFixed(2)}`, 'Remaining to €8,500'];
             if (name === 'Agent Net Income') return [`€${value.toFixed(2)}`, 'My Net Income'];
-            return [`€${value.toFixed(2)}`, name];
+            return [`€${value.toFixed(2)}`, String(name ?? '')];
           }}
           contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc' }}
         />
@@ -1438,6 +1473,7 @@ interface AgentMonthlyBonus {
   bonusScheme: 'contract' | 'agency_fee' | 'none';
   contractRate: number;
   bonusAmount: number;
+  listingFeeIncome: number;
 }
 
 // ─── Agent Bonus Calculation ─────────────────────────────────────────────────
@@ -1587,19 +1623,27 @@ function AgentBonusSection({ userId }: { userId: string }) {
         const completionMonth = getAgentBonusCompletionMonth(deal);
         if (!completionMonth) return null;
 
-        const rentAmount = deal.rent_amount || 0;
-        const hasCollaboration = (deal.collaboration_with?.trim() || '') !== '';
+        const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount)
+          ? deal.monthly_rent_amount
+          : (deal.rent_amount || 0);
+        // is_collab_partner = true: this agent was added as collab partner by another owner
+        // hasCollaboration: this agent added a deal with a collab partner (collaboration_with filled)
+        const isCollabPartner = !!deal.is_collab_partner;
+        const hasCollaboration = isCollabPartner || (deal.collaboration_with?.trim() || '') !== '';
         const isOnlyListingFee = deal.only_listing_fee || false;
-        // Check if collaboration partner is an external agent
+        // Check if collaboration partner is an external agent (only applies to owner-side deals)
         const collabName = deal.collaboration_with?.trim().toLowerCase() || '';
-        const isCollabExternal = hasCollaboration && (collabName === 'agent' || collabName === 'unknown agent');
+        const isCollabExternal = !isCollabPartner && hasCollaboration &&
+          (collabName === 'agent' || collabName === 'unknown agent' || collabName.startsWith('agent ('));
 
-        // Effective rent: 0 for only_listing_fee, half for any collab
+        // Effective rent:
+        // - 0 for only_listing_fee
+        // - rentAmount/2 if agent is collab partner OR owner with a collab partner
+        // - rentAmount for regular (non-collab) deals
         let effectiveRent = rentAmount;
         if (isOnlyListingFee) {
           effectiveRent = 0;
         } else if (hasCollaboration) {
-          // Both internal and outside collab: half rent
           effectiveRent = rentAmount / 2;
         }
 
@@ -1630,8 +1674,26 @@ function AgentBonusSection({ userId }: { userId: string }) {
       monthGroups.get(month)!.push(deal);
     });
 
+    // Listing fee income per month: group only_listing_fee deals by date_rented month
+    const listingFeeByMonth = new Map<string, number>();
+    allRevenues.forEach((deal) => {
+      if (!deal.only_listing_fee) return;
+      if (!deal.date_rented) return;
+      const d = new Date(deal.date_rented);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount)
+        ? deal.monthly_rent_amount
+        : (deal.rent_amount || 0);
+      const fee = Math.round(rentAmount * 0.05 * 100) / 100;
+      listingFeeByMonth.set(month, (listingFeeByMonth.get(month) || 0) + fee);
+    });
+
+    // Collect all months from both sources
+    const allMonths = new Set([...monthGroups.keys(), ...listingFeeByMonth.keys()]);
+
     const results: AgentMonthlyBonus[] = [];
-    monthGroups.forEach((deals, month) => {
+    allMonths.forEach((month) => {
+      const deals = monthGroups.get(month) || [];
       const totalRent = deals.reduce((sum, d) => sum + d.effective_rent, 0);
       // Exclude only_listing_fee deals from deal count
       const countableDeals = deals.filter(d => !d.is_only_listing_fee);
@@ -1639,6 +1701,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
       const averageRent = dealCount > 0 ? totalRent / dealCount : 0;
 
       const bonusCalc = calculateAgentBonus(dealCount, totalRent);
+      const listingFeeIncome = listingFeeByMonth.get(month) || 0;
 
       results.push({
         month,
@@ -1649,11 +1712,12 @@ function AgentBonusSection({ userId }: { userId: string }) {
         bonusScheme: bonusCalc.scheme,
         contractRate: bonusCalc.rate,
         bonusAmount: Math.round(bonusCalc.bonus * 100) / 100,
+        listingFeeIncome,
       });
     });
 
     return results.sort((a, b) => a.month.localeCompare(b.month));
-  }, [completedDeals]);
+  }, [completedDeals, allRevenues]);
 
   // Current month summary
   const currentMonth = useMemo(() => {
@@ -1837,7 +1901,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
             {/* Deal count donut */}
             <div className="flex items-center gap-6 mb-6">
               <div className="w-[130px] h-[130px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width={130} height={130}>
                   <PieChart>
                     <Pie
                       data={dealProgressData}
@@ -2027,10 +2091,10 @@ function AgentBonusSection({ userId }: { userId: string }) {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name?: string | number) => {
                     if (name === 'Bonus') return [`€${Number(value).toFixed(2)}`, 'Bonus Amount'];
                     if (name === 'Deals') return [value, 'Completed Deals'];
-                    return [value, name];
+                    return [value, String(name ?? '')];
                   }}
                   labelFormatter={(label) => label}
                   contentStyle={{
@@ -2084,7 +2148,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
-                  {['Month', 'Deals', 'Total Rent', 'Avg Rent / Deal', 'Scheme', 'Rate', 'Bonus'].map((col) => (
+                  {['Month', 'Deals', 'Total Rent', 'Avg Rent / Deal', 'Scheme', 'Rate', 'Listing Fee', 'Bonus'].map((col) => (
                     <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       {col}
                     </th>
@@ -2094,7 +2158,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {monthlyBonuses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       No completed deals yet.
                     </td>
                   </tr>
@@ -2132,6 +2196,11 @@ function AgentBonusSection({ userId }: { userId: string }) {
                         {mb.bonusScheme === 'contract' ? `${Math.round(mb.contractRate * 100)}%` : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
+                        {mb.listingFeeIncome > 0
+                          ? <span className="text-orange-500 dark:text-orange-400 font-semibold">{formatBonusCurrency(mb.listingFeeIncome)}</span>
+                          : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
                         <span className={mb.bonusAmount > 0 ? 'text-green-600' : 'text-gray-400'}>
                           {formatBonusCurrency(mb.bonusAmount)}
                         </span>
@@ -2153,6 +2222,9 @@ function AgentBonusSection({ userId }: { userId: string }) {
                     <td className="px-4 py-3 text-sm text-gray-500">-</td>
                     <td className="px-4 py-3 text-sm text-gray-500">-</td>
                     <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                    <td className="px-4 py-3 text-sm font-bold text-orange-500">
+                      {formatBonusCurrency(monthlyBonuses.reduce((s, m) => s + m.listingFeeIncome, 0))}
+                    </td>
                     <td className="px-4 py-3 text-sm font-bold text-green-600">
                       {formatBonusCurrency(monthlyBonuses.reduce((s, m) => s + m.bonusAmount, 0))}
                     </td>

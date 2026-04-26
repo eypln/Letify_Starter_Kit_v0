@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     ref_no,
     client_name,
     rent_amount,
+    monthly_rent_amount,
     landlord_discount,
     client_discount,
     has_listing_fee,
@@ -233,6 +234,7 @@ export async function POST(req: NextRequest) {
     vat_type: finalVatType,
     vatable: vatable ?? true, // Keep for backward compatibility
     deal_type: deal_type ?? 'longlet',
+    monthly_rent_amount: monthly_rent_amount ? parseFloat(monthly_rent_amount) : null,
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,
     date_move_in: date_move_in ?? null,
@@ -246,7 +248,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('revenue')
-    .insert([insertData])
+    .insert([insertData] as any)
     .select()
     .single();
 
@@ -292,6 +294,7 @@ export async function PUT(req: NextRequest) {
     ref_no,
     client_name,
     rent_amount,
+    monthly_rent_amount,
     landlord_discount,
     client_discount,
     has_listing_fee,
@@ -453,6 +456,7 @@ export async function PUT(req: NextRequest) {
     vat_type: finalVatType,
     vatable: vatable ?? true, // Keep for backward compatibility
     deal_type: deal_type ?? 'longlet',
+    monthly_rent_amount: monthly_rent_amount ? parseFloat(monthly_rent_amount) : null,
     date_rented: date_rented ?? null,
     date_signed: date_signed ?? null,
     date_move_in: date_move_in ?? null,
@@ -476,7 +480,7 @@ export async function PUT(req: NextRequest) {
   // Update query - permissions already verified above
   const { data, error } = await supabase
     .from('revenue')
-    .update(updateData)
+    .update(updateData as any)
     .eq('id', id)
     .select()
     .single();
@@ -831,7 +835,7 @@ async function checkAndNotifyAgentBonus(
     // and the LATER of the two falls within the completion month
     const { data: allDeals } = await supabase
       .from('revenue')
-      .select('rent_amount, landlord_paid_date, client_paid_date, collaboration_with')
+      .select('rent_amount, monthly_rent_amount, deal_type, landlord_paid_date, client_paid_date, collaboration_with')
       .eq('user_id', agentUserId)
       .not('landlord_paid_date', 'is', null)
       .not('client_paid_date', 'is', null);
@@ -849,7 +853,9 @@ async function checkAndNotifyAgentBonus(
 
     const dealCount = monthDeals.length;
     const totalRent = monthDeals.reduce((sum, d) => {
-      const rent = d.rent_amount || 0;
+      const rent = (d.deal_type === 'shortlet' && d.monthly_rent_amount)
+        ? d.monthly_rent_amount
+        : (d.rent_amount || 0);
       const hasCollab = (d.collaboration_with?.trim() || '') !== '';
       return sum + (hasCollab ? rent / 2 : rent);
     }, 0);
@@ -863,7 +869,9 @@ async function checkAndNotifyAgentBonus(
     const prevTotalRent = totalRent - (() => {
       // Find the "latest" deal to subtract (approximate - just use current deal's contribution)
       const lastDeal = monthDeals[monthDeals.length - 1];
-      const rent = lastDeal?.rent_amount || 0;
+      const rent = (lastDeal?.deal_type === 'shortlet' && lastDeal?.monthly_rent_amount)
+        ? lastDeal.monthly_rent_amount
+        : (lastDeal?.rent_amount || 0);
       const hasCollab = (lastDeal?.collaboration_with?.trim() || '') !== '';
       return hasCollab ? rent / 2 : rent;
     })();
