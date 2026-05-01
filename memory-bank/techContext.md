@@ -6,7 +6,7 @@
 - **Framework**: Next.js 15.5.4 (App Router)
 - **Language**: TypeScript 5.x
 - **UI Library**: React 19.1.1
-- **Styling**: Tailwind CSS 3.x + PostCSS
+- **Styling**: Tailwind CSS 4.2.4 + @tailwindcss/postcss 4.2.4 (v4 — autoprefixer kaldırıldı, built-in)
 - **Component Library**: Radix UI primitives (being migrated to native HTML for performance)
 - **Icons**: Lucide React
 - **Forms**: React Hook Form + Zod validation

@@ -3,6 +3,35 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.9.2 - Tailwind CSS v4 Migration (02.05.2026) ✅
+**Yapılanlar:**
+
+#### Tailwind CSS v3 → v4 Tam Migrasyon ✅
+- **Paket değişiklikleri**: `tailwindcss@4.2.4`, `@tailwindcss/postcss@4.2.4` yüklendi; `autoprefixer` kaldırıldı
+- **postcss.config.js**: Yeni `@tailwindcss/postcss` plugin yapısına geçildi
+- **globals.css**: `@import "tailwindcss"`, `@config`, `@plugin "tailwindcss-animate"` direktifleri ile v4 sözdizimi
+- **tailwind.config.js**: `plugins: []` — animasyon plugin CSS'e taşındı
+- **cursor-pointer fix**: v4 preflight'ta kaldırıldı → `@layer base` ile interactive element'lere yeniden eklendi
+- **bg-opacity-* → slash sözdizimi**: 12 lokasyon, 8 dosyada güncellendi (ör. `bg-black/50`)
+- **ApplicationsClient.tsx modal onarımı**: Otomatik replace sırasında silinen inner div wrapper + h3 geri eklendi
+- **Build**: ✅ Compiled successfully 24.5s, 128 sayfa
+
+**Değiştirilen Dosyalar:**
+```
+postcss.config.js (yeni v4 plugin)
+app/globals.css (@import tailwindcss, @config, @plugin, cursor-pointer base rule)
+tailwind.config.js (plugins temizlendi)
+package.json (tailwindcss@4.2.4, @tailwindcss/postcss^4.2.4, autoprefixer kaldırıldı, v2.9.2)
+app/(app)/teamleader/applications/ApplicationsClient.tsx (bg-opacity→slash + modal onarımı)
+app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx (bg-opacity→slash)
+app/(app)/teamleader/team-revenue/EditDealModal.tsx (bg-opacity→slash)
+app/dashboard/revenue/RevenueClient.tsx (bg-opacity→slash)
+app/(app)/boss/reports/ReportsClient.tsx (bg-opacity→slash)
+app/(app)/boss/applications/ApplicationsClient.tsx (bg-opacity→slash)
+app/(app)/boss/bonuses/BonusesClient.tsx (bg-opacity→slash)
+app/(app)/manager/reports/ReportsClient.tsx (bg-opacity→slash)
+```
+
 ### v2.9.1 - Bonus Calculation Fix (01.05.2026) ✅
 **Yapılanlar:**
 
