@@ -1523,16 +1523,35 @@ function calculateAgentBonus(
   return { scheme: 'none', rate: 0, bonus: 0 };
 }
 
-function getAgentBonusCompletionMonth(deal: Revenue): string | null {
-  const landlordDate = deal.landlord_paid_date ? new Date(deal.landlord_paid_date) : null;
-  const clientDate = deal.client_paid_date ? new Date(deal.client_paid_date) : null;
+function getAgentBonusCompletionMonth(deal: Revenue): string {
+  const now = new Date();
+  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
-  // Both dates must be present for a deal to be considered "completed"
-  if (!landlordDate || !clientDate) return null;
+  // Base month = date_rented (Slack posting date — patron's rule)
+  if (!deal.date_rented) return currentMonth;
 
-  // Completion month = the later of the two dates (use UTC to avoid timezone shift on DB dates)
-  const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-  return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  const rentedDate = new Date(deal.date_rented);
+  const baseMonth = `${rentedDate.getUTCFullYear()}-${String(rentedDate.getUTCMonth() + 1).padStart(2, '0')}`;
+
+  const landlordPaid = !!deal.landlord_paid_date;
+  const clientPaid = !!deal.client_paid_date;
+
+  // Both paid → deal completed, stays in its base month
+  if (landlordPaid && clientPaid) return baseMonth;
+
+  // Pending: apply 2-month rule
+  // If 2+ months have elapsed from date_rented and still unpaid → move to next month
+  const twoMonthsAfter = new Date(rentedDate);
+  twoMonthsAfter.setUTCMonth(twoMonthsAfter.getUTCMonth() + 2);
+
+  if (now >= twoMonthsAfter) {
+    const nextDate = new Date(rentedDate);
+    nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+    return `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // < 2 months elapsed → keep in base month
+  return baseMonth;
 }
 
 function formatBonusMonthLabel(monthKey: string): string {
@@ -1616,12 +1635,11 @@ function AgentBonusSection({ userId }: { userId: string }) {
     loadBonusData();
   }, [supabase, userId]);
 
-  // Process deals: only completed deals (both paid dates present)
+  // Process deals: grouped by date_rented month (patron's rule: Slack posting date = deal's month)
   const completedDeals = useMemo(() => {
     return allRevenues
       .map((deal) => {
         const completionMonth = getAgentBonusCompletionMonth(deal);
-        if (!completionMonth) return null;
 
         const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount)
           ? deal.monthly_rent_amount
@@ -1655,8 +1673,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
           is_only_listing_fee: isOnlyListingFee,
           is_collab_external: isCollabExternal,
         };
-      })
-      .filter(Boolean) as (Revenue & {
+      }) as (Revenue & {
         completion_month: string;
         effective_rent: number;
         is_collaboration: boolean;

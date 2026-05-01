@@ -137,20 +137,36 @@ function isExternalAgentName(name: string): boolean {
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
 function getCompletionMonth(deal: Revenue): string {
-  const landlordDate = deal.landlord_paid_date ? new Date(deal.landlord_paid_date) : null;
-  const clientDate = deal.client_paid_date ? new Date(deal.client_paid_date) : null;
+  const now = new Date();
+  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
-  // Both payment dates exist → use the later one (deal fully completed)
-  if (landlordDate && clientDate) {
-    const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-    return `${completionDate.getUTCFullYear()}-${String(completionDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  // Base month = date_rented (Slack posting date — patron's rule)
+  if (deal.date_rented) {
+    const rentedDate = new Date(deal.date_rented);
+    const baseMonth = `${rentedDate.getUTCFullYear()}-${String(rentedDate.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    const landlordPaid = !!deal.landlord_paid_date;
+    const clientPaid = !!deal.client_paid_date;
+
+    // Both paid → deal completed, stays in its base month
+    if (landlordPaid && clientPaid) return baseMonth;
+
+    // Pending: apply 2-month rule
+    // If 2+ months have elapsed from date_rented and still unpaid → move to next month
+    const twoMonthsAfter = new Date(rentedDate);
+    twoMonthsAfter.setUTCMonth(twoMonthsAfter.getUTCMonth() + 2);
+
+    if (now >= twoMonthsAfter) {
+      const nextDate = new Date(rentedDate);
+      nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+      return `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, "0")}`;
+    }
+
+    // < 2 months elapsed → keep in base month
+    return baseMonth;
   }
 
-  // Pending deal (one or both payment dates missing)
-  // If date_move_in or date_signed is in a future month → use the latest of those
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
+  // No date_rented → fallback: use future date_move_in / date_signed if available
   const futureCandidates: string[] = [];
 
   if (deal.date_move_in) {
@@ -166,7 +182,6 @@ function getCompletionMonth(deal: Revenue): string {
   }
 
   if (futureCandidates.length > 0) {
-    // Use the latest future month among the candidates
     return futureCandidates.sort().pop()!;
   }
 

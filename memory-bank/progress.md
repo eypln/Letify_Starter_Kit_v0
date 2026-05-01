@@ -3,6 +3,29 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.9.1 - Bonus Calculation Fix (01.05.2026) ✅
+**Yapılanlar:**
+
+#### Bonus Ay Hesaplama Mantığı — date_rented + 2-Ay Kuralı ✅
+- **Problem**: Bonus hesabı `landlord_paid_date` / `client_paid_date` ödeme tarihlerini baz alıyordu → patron kuralıyla çelişiyordu
+- **Patron Kuralı**: `date_rented` (Slack'e kaydedildiği tarih) = deal'in ait olduğu ay. Ödeme tarihi değil, kayıt tarihi belirleyici.
+- **2-Ay Kuralı**:
+  - Her iki ödeme yapılmış → `date_rented` ayı
+  - Ödeme(ler) eksik + `date_rented`'den 2+ ay geçmiş → `date_rented + 1 ay`
+  - Ödeme(ler) eksik + 2 ay geçmemiş → `date_rented` ayı
+- **Etkilenen fonksiyonlar**:
+  - `BonusesClient.tsx` — `getCompletionMonth(deal: Revenue): string`
+  - `RevenueClient.tsx` — `getAgentBonusCompletionMonth(deal: Revenue): string` (artık `string | null` değil)
+- **Tip değişikliği**: `getAgentBonusCompletionMonth` artık asla `null` dönmüyor → `completedDeals` useMemo'dan null check + `.filter(Boolean)` kaldırıldı, tip cast güncellendi
+- **Build**: TypeScript hatasız, 128 sayfa ✅
+
+**Değiştirilen Dosyalar:**
+```
+app/(app)/teamleader/bonuses/BonusesClient.tsx (getCompletionMonth yeniden yazıldı)
+app/dashboard/revenue/RevenueClient.tsx (getAgentBonusCompletionMonth yeniden yazıldı + completedDeals useMemo güncellendi)
+package.json (v2.9.1)
+```
+
 ### v2.9.0 - UI & UX Fixes (26.04.2026) ✅
 **Yapılanlar:**
 

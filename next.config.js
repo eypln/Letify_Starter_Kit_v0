@@ -58,11 +58,14 @@ const nextConfig = {
   poweredByHeader: false,
   
   // Next.js 16 Turbopack configuration
-  turbopack: {},
+  turbopack: {
+    root: __dirname,
+  },
   
   experimental: {
     serverActions: {
       allowedOrigins: ["localhost:3000"],
+      bodySizeLimit: '2mb',
     },
     optimizeCss: true,
     optimizePackageImports: [
@@ -197,13 +200,6 @@ const nextConfig = {
     }
 
     return config;
-  },
-  
-  // Experimental features for MessagePort fix
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
   },
   
   // Headers for service worker

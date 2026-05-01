@@ -2,7 +2,27 @@
 
 ## Mevcut Çalışma Odağı
 
-### Ana Odak Alanları (26.04.2026) ✅ COMPLETED - UI & UX Fixes v2.9.0
+### Ana Odak Alanları (01.05.2026) ✅ COMPLETED - Bonus Calculation Fix v2.9.1
+
+1. **Bonus Ay Hesaplama Mantığı Düzeltmesi (v2.9.1)**:
+   - **Patron Kuralı**: `date_rented` = Slack'e kaydedildiği tarih = deal'in ait olduğu ay
+   - **Eski Mantık (YANLIŞ)**: `landlord_paid_date` / `client_paid_date`'in ilerisi baz alınıyordu (ödeme tarihi = hesap tarihi)
+   - **Yeni Mantık (DOĞRU)**: `date_rented` bazlı, 2-ay kuralı ile:
+     - Her iki ödeme de yapılmış → `date_rented` ayında kalır
+     - Bir veya her iki ödeme eksik + `date_rented`'den 2 ay geçmiş → `date_rented + 1 ay`'a taşır
+     - Bir veya her iki ödeme eksik + 2 ay geçmemiş → `date_rented` ayında kalır
+   - ✅ `BonusesClient.tsx` — `getCompletionMonth()` fonksiyonu yeniden yazıldı
+   - ✅ `RevenueClient.tsx` — `getAgentBonusCompletionMonth()` fonksiyonu yeniden yazıldı (artık `string | null` değil, her zaman `string` döner)
+   - ✅ `RevenueClient.tsx` — `completedDeals` useMemo'dan null check ve `.filter(Boolean)` kaldırıldı
+   - ✅ Build geçti: TypeScript hatasız, 128 sayfa
+   - Etkilenen dosyalar: `app/(app)/teamleader/bonuses/BonusesClient.tsx`, `app/dashboard/revenue/RevenueClient.tsx`
+
+2. **GitHub Push Protection Düzeltmesi (v2.9.0 → bu session)**:
+   - Apify API token (`apify_api_OyQ8...`) commit geçmişinde 6 dosyada tespit edildi
+   - Soft reset ile 4 commit geri alındı, token `ENV_APIFY_TOKEN` placeholder ile değiştirildi
+   - `git push --force origin nextjs-update` ile temiz push yapıldı
+
+### Önceki Odak Alanları (26.04.2026) ✅ COMPLETED - UI & UX Fixes v2.9.0
 
 1. **Team Revenue Month Filter Düzeltmesi (v2.9.0)**:
    - ✅ `TeamRevenueClient.tsx` — `monthOptions` sabit yıl döngüsü (2025-2026 tüm 24 ay) yerine `allRevenues`'dan dinamik olarak türetiliyor
