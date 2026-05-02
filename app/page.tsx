@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { seoPages, generateOGMetadata } from '@/lib/seo'
 import packageJson from '@/package.json'
 
@@ -25,7 +26,12 @@ export default function HomePage() {
       <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Welcome to Letify</h1>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-center max-w-md">
         <span className="text-sm sm:text-base text-muted-foreground">Your Letting Assistant with Powerful Tools And</span>
-        <span className="text-sm sm:text-base text-purple-600 font-medium">More...</span>
+        <Link
+          href="https://letify.cloud"
+          className="text-sm sm:text-base text-purple-600 font-medium hover:text-purple-700 underline-offset-4 hover:underline"
+        >
+          More...
+        </Link>
       </div>
       <a 
         href="/sign-in" 
