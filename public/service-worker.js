@@ -114,4 +114,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Fetch event handler - required for PWA installability (beforeinstallprompt)
+self.addEventListener('fetch', function(event) {
+  event.respondWith(fetch(event.request));
+});
+
 console.log('[Service Worker] ✅ Letify SW initialized - Push Notifications ready');
