@@ -653,7 +653,7 @@ export default function TeamViewingsPage() {
           <CardContent>
             {/* Modal for Add/Edit Viewing */}
             {showModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center overflow-y-auto">
+              <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center overflow-y-auto">
                 <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg my-8">
                   <h3 className="text-xl font-bold mb-4">{form.id ? "Edit Viewing" : "Add New Viewing"}</h3>
                   <form onSubmit={handleAddViewing} className="space-y-4">

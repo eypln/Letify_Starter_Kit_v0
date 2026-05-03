@@ -2,6 +2,29 @@
 
 ## Mevcut Çalışma Odağı
 
+### Ana Odak Alanları (02.05.2026) ✅ COMPLETED - Tailwind CSS v4 Migration v2.9.2
+
+1. **Tailwind CSS v3 → v4 Migrasyonu (v2.9.2)**:
+   - **Branch**: `tailwind-v4-migration` (nextjs-update'den türetildi)
+   - **Yüklenen paketler**: `tailwindcss@4.2.4`, `@tailwindcss/postcss@4.2.4`; `autoprefixer` kaldırıldı (v4 built-in autoprefixing içeriyor)
+   - **postcss.config.js**: `@tailwindcss/postcss` plugin'e geçildi (eski `tailwindcss` PostCSS plugin kaldırıldı)
+   - **globals.css**: `@tailwind base/components/utilities` → `@import "tailwindcss"`, `@config "../tailwind.config.js"`, `@plugin "tailwindcss-animate"` eklendi
+   - **tailwind.config.js**: `plugins: [require('tailwindcss-animate')]` → `[]` (plugin CSS'e taşındı)
+   - **cursor-pointer sorunu**: v4 preflight'ta `cursor: pointer` kaldırıldı → `globals.css` `@layer base` kuralına `button:not([disabled])`, `[role="button"]:not([disabled])`, `a[href]`, `label[for]`, `select`, `summary` için eklendi
+   - **bg-opacity-* sorunu**: v4'te deprecated → 12 kullanımın tamamı slash sözdizimi ile değiştirildi (ör. `bg-black/50`, `bg-black/40`)
+   - **Etkilenen dosyalar** (bg-opacity düzeltmesi):
+     - `app/(app)/teamleader/applications/ApplicationsClient.tsx` (2 modal + 1 overlay)
+     - `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`
+     - `app/(app)/teamleader/team-revenue/EditDealModal.tsx`
+     - `app/dashboard/revenue/RevenueClient.tsx`
+     - `app/(app)/boss/reports/ReportsClient.tsx`
+     - `app/(app)/boss/applications/ApplicationsClient.tsx`
+     - `app/(app)/boss/bonuses/BonusesClient.tsx`
+     - `app/(app)/manager/reports/ReportsClient.tsx`
+   - **dialog.tsx overlay**: `bg-background/80 backdrop-blur-sm` — v4'te `color-mix` ile çalışıyor, değişiklik gerekmedi
+   - **ApplicationsClient.tsx onarımı**: multi_replace sırasında iki modal'ın inner div içeriği silindi → `bg-white dark:bg-gray-800 rounded-lg` wrapper div + h3 başlıkları geri eklendi
+   - **Build sonucu**: ✅ `Compiled successfully in 24.5s`, 128 sayfa, TypeScript hatasız
+
 ### Ana Odak Alanları (01.05.2026) ✅ COMPLETED - Bonus Calculation Fix v2.9.1
 
 1. **Bonus Ay Hesaplama Mantığı Düzeltmesi (v2.9.1)**:
