@@ -15,9 +15,18 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null
 const listeners = new Set<() => void>()
 
 if (typeof window !== 'undefined') {
+  // Pick up event captured by the early inline head script (fires before React bundles load)
+  const earlyPrompt = (window as unknown as Record<string, unknown>).__pwaInstallPrompt
+  if (earlyPrompt) {
+    deferredPrompt = earlyPrompt as BeforeInstallPromptEvent
+    ;(window as unknown as Record<string, unknown>).__pwaInstallPrompt = null
+    console.log('🎉 PWA Global: beforeinstallprompt recovered from early capture')
+  }
+
   window.addEventListener('beforeinstallprompt', (e: Event) => {
     e.preventDefault()
     deferredPrompt = e as BeforeInstallPromptEvent
+    ;(window as unknown as Record<string, unknown>).__pwaInstallPrompt = null
     console.log('🎉 PWA Global: beforeinstallprompt captured')
     listeners.forEach(fn => fn())
   })
