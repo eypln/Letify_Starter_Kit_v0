@@ -6,9 +6,9 @@ process.env.BROWSERSLIST_IGNORE_OLD_DATA = 'true'
 // PWA configuration
 const withPWA = require('next-pwa')({
   dest: 'public',
-  register: true, // Re-enable auto registration
+  register: false, // Manual registration via RegisterSW.tsx to avoid double-registration
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development', // Disabled in dev for faster compilation
+  disable: true, // next-pwa disabled: push notifications + fetch handler handled in service-worker.js directly
   // Use custom service worker with push notification support
   swSrc: 'public/service-worker.js',
   buildExcludes: [

@@ -5,9 +5,11 @@ import { useEffect } from 'react'
 export default function RegisterSW() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      // Register service worker - use /service-worker.js (custom)
+      // Always use the hand-crafted service-worker.js which includes push + fetch handler.
+      // next-pwa is disabled (Workbox injectManifest drops our custom fetch listener).
+      const swPath = '/service-worker.js';
       navigator.serviceWorker
-        .register('/service-worker.js', { scope: '/' })
+        .register(swPath, { scope: '/' })
         .then((registration) => {
           console.log('✅ Service Worker registered:', registration.scope)
           
