@@ -3,29 +3,6 @@ process.env.BROWSERSLIST_IGNORE_OLD_DATA = 'true'
 
 /** @type {import('next').NextConfig} */
 
-// PWA configuration
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: false, // Manual registration via RegisterSW.tsx to avoid double-registration
-  skipWaiting: true,
-  disable: true, // next-pwa disabled: push notifications + fetch handler handled in service-worker.js directly
-  // Use custom service worker with push notification support
-  swSrc: 'public/service-worker.js',
-  buildExcludes: [
-    /middleware-manifest\.json$/,
-    /build-manifest\.json$/,
-    /react-loadable-manifest\.json$/,
-    /_buildManifest\.js$/,
-    /_ssgManifest\.js$/,
-  ],
-  publicExcludes: [
-    '!icons/README.md',
-    '!*.map',
-  ],
-  // Note: runtimeCaching is handled in service-worker.js with Workbox directly
-  // Remove from here to avoid conflicts with custom swSrc
-})
-
 // Bundle analyzer configuration
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -235,4 +212,4 @@ const nextConfig = {
   },
 }
 
-module.exports = withPWA(withBundleAnalyzer(nextConfig))
+module.exports = withBundleAnalyzer(nextConfig)

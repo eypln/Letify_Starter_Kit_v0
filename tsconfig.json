@@ -40,6 +40,9 @@
   "exclude": [
     "node_modules",
     "supabase/**",
-    "workflows/**"
+    "workflows/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

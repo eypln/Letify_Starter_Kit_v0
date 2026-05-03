@@ -176,13 +176,13 @@ function SubscriptionContent({
         </div>
 
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-linear-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
             Subscription & Billing
           </h1>
           <p className="text-gray-600">Manage your subscription and billing details</p>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-6">
+        <div className="bg-linear-to-r from-purple-50 to-purple-100 rounded-lg p-6">
           <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6">
             {/* Plan Type */}
             <div className="space-y-1">
