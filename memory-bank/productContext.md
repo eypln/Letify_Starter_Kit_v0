@@ -1,7 +1,7 @@
 # Product Context: Letify
 
 ## Var Olma Nedeni
-Letify, Malta merkezli bir emlakçı (lettings) platformudur. Ajanların property listing yönetimi, müşteri takibi, gelir yönetimi ve ekip işbirliği süreçlerini tek çatı altında toplar. Ayrıca yapay zeka destekli "Second Brain" sistemi ile sosyal medya içerik stratejisi, öğrenme ve uygulama süreçlerini otomatikleştirir.
+Letify, Malta merkezli bir emlakçı (lettings) ekibinin **iç kullanım aracıdır**. Son birkaç aydaki gelişmelerle bir "letting assistant" olarak evrildi. `app.letify.cloud` adresi üzerinden yalnızca ekip içi erişime açıktır — dışa açık pazarlama veya genel kullanıcı kaydı hedeflenmemektedir. Ajanların property listing yönetimi, müşteri takibi, gelir yönetimi ve ekip işbirliği süreçlerini tek çatı altında toplar. Ayrıca yapay zeka destekli "Second Brain" sistemi ile sosyal medya içerik stratejisi, öğrenme ve uygulama süreçlerini otomatikleştirir.
 
 ## Çözülen Problemler
 - **Listing Yönetimi**: Emlak ilanlarının merkezi yönetimi ve takibi

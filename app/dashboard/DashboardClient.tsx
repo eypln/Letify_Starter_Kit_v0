@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useBillingController } from './subscription/useBillingController';
 import { useRouter } from 'next/navigation';
-import { LogOut, Plus, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
+import { LogOut, BarChart3, FileText, Users, Settings, Users2, Calendar, Euro } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { PWAInstallButton } from '@/components/system/PWAInstallButton';
 
@@ -193,22 +193,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
               </div>
             </div>
           </Link>
-          <Link href="/dashboard/new-post" className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <Plus className="h-6 w-6 text-purple-600" />
-                  <span>Create New Post</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Generate content automatically from a listing link and share on Facebook
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-md transition-colors">Start</button>
-              </div>
-            </div>
-          </Link>
+
           <Link href="/dashboard/listings" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">
@@ -257,22 +242,7 @@ export default function DashboardClient({ user, profile, stats }: { user: User; 
               </div>
             </div>
           </Link>
-          <div className="block">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm opacity-50 cursor-not-allowed h-full">
-              <div className="p-6 pb-4">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-                  <BarChart3 className="h-6 w-6 text-purple-400" />
-                  <span>Subscription</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Manage your plan and billing information
-                </p>
-              </div>
-              <div className="p-6 pt-0">
-                <button disabled className="w-full bg-gray-200 text-gray-500 px-4 py-2 rounded-md cursor-not-allowed">Manage</button>
-              </div>
-            </div>
-          </div>
+
           <Link href="/dashboard/teamwork" className="block">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer opacity-75 h-full">
               <div className="p-6 pb-4">

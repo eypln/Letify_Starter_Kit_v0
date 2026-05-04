@@ -2,6 +2,30 @@
 
 ## Mevcut Çalışma Odağı
 
+### Ana Odak Alanları (04.05.2026) ✅ COMPLETED - UI Erişim Kısıtlamaları & Letify Konumlandırması v2.9.3
+
+1. **Ana Sayfa letify.cloud Bağlantısı Kaldırıldı**:
+   - `app/page.tsx`: `https://letify.cloud` adresine yönlendiren "More..." `<Link>` bileşeni kaldırıldı
+   - Kullanılmayan `Link` import'u temizlendi
+   - Alt metin "Your Letting Assistant with Powerful Tools And" → "Your Letting Assistant with Powerful Tools" olarak düzeltildi
+   - **Neden**: Letify artık ekip içi kullanım aracı olarak konumlandırıldı (`app.letify.cloud`), dışa açık pazarlama sitesi yönlendirmesi istenmedi
+
+2. **Agent Dashboard — Create New Post Kartı Kaldırıldı**:
+   - `app/dashboard/DashboardClient.tsx`: Create New Post kartı (hem disabled overlay hem tamamen) UI'dan kaldırıldı
+   - İlk adımda `<Link href="/dashboard/new-post">` → disabled kart yapıldı (opacity-50, cursor-not-allowed)
+   - İkinci adımda kart tamamen silindi
+   - `Plus` icon import'u temizlendi (artık kullanılmıyor)
+
+3. **Agent Dashboard — Subscription Kartı Kaldırıldı**:
+   - `app/dashboard/DashboardClient.tsx`: Subscription kartı UI'dan tamamen kaldırıldı
+   - **Not**: Bu iki kart (Create New Post + Subscription) ileride tanımlanacak yeni bir rol için ayrı bir dashboard'a taşınacak
+
+**Değiştirilen Dosyalar:**
+```
+app/page.tsx (letify.cloud bağlantısı kaldırıldı, Link import temizlendi)
+app/dashboard/DashboardClient.tsx (Create New Post + Subscription kartları kaldırıldı, Plus import temizlendi)
+```
+
 ### Ana Odak Alanları (02.05.2026) ✅ COMPLETED - Tailwind CSS v4 Migration v2.9.2
 
 1. **Tailwind CSS v3 → v4 Migrasyonu (v2.9.2)**:

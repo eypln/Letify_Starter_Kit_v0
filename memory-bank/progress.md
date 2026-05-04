@@ -3,6 +3,29 @@
 
 ## Ne Çalışıyor ✅
 
+### v2.9.3 - UI Erişim Kısıtlamaları & İç Araç Konumlandırması (04.05.2026) ✅
+**Yapılanlar:**
+- **app/page.tsx**: Ana sayfadan `https://letify.cloud` "More..." bağlantısı kaldırıldı. Letify ekip içi araç olarak kalacak, dışa açık tanıtım yok.
+- **DashboardClient.tsx**: Agent dashboard'undan `Create New Post` ve `Subscription` kartları tamamen kaldırıldı. Bu kartlar ileride yeni bir rol (örn. `content` veya `billing`) tanımlanıp o role verilecek.
+- `Plus` icon import'u temizlendi.
+
+**Değiştirilen Dosyalar:**
+```
+app/page.tsx
+app/dashboard/DashboardClient.tsx
+```
+
+**Agent Dashboard Mevcut Kartlar (04.05.2026 itibarıyla):**
+- Profile ✅
+- Listings ✅
+- Analytics ✅
+- Clients ✅
+- Teamwork ✅
+- Viewings ✅
+- Revenue ✅
+- ~~Create New Post~~ ❌ (kaldırıldı)
+- ~~Subscription~~ ❌ (kaldırıldı)
+
 ### v2.9.2 - Tailwind CSS v4 Migration (02.05.2026) ✅
 **Yapılanlar:**
 
