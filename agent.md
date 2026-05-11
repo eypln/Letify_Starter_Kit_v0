@@ -265,7 +265,7 @@ Bu agent.md dosyasında cevaplanması gereken sorular:
 
 4. **Google Maps Integration Fix ✅**
    - Error handling: API key validation, setup instructions UI
-   - API key configured: AIzaSyAVNlJEUO_DbW_Z94GB2Ote4Ynm6uAdc_s
+   - API key configured: [GOOGLE_MAPS_API_KEY — use environment variable]
    - Error UI: Collapsible details, user-friendly messages
    - Script loading: onError handler, graceful fallback
 

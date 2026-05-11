@@ -2188,7 +2188,7 @@ Production build ready for deployment
   - Script loading error tracking: onError handler
 
 **2. API Key Configuration**
-- User provided: `AIzaSyAVNlJEUO_DbW_Z94GB2Ote4Ynm6uAdc_s`
+- User provided: `[NEXT_PUBLIC_GOOGLE_MAPS_API_KEY — stored in .env.local]`
 - Already existed in `.env.local`: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 - Maps JavaScript API: Confirmed active in Google Cloud Console
 - Solution: Development server restart (env variables reload)

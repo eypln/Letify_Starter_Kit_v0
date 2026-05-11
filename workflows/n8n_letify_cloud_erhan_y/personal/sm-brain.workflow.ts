@@ -373,7 +373,7 @@ return [{ json: { requestBody } }];`,
     })
     GeminiSmAnaliz = {
         method: 'POST',
-        url: '=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyD2i7wRCjysN41ka-hD0VKrAcpaEaDeezU',
+        url: '=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={{$env.GEMINI_API_KEY}}',
         sendHeaders: true,
         headerParameters: {
             parameters: [
