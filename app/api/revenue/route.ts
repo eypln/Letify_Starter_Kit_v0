@@ -4,6 +4,49 @@ import { logActivity } from '@/lib/activity';
 import { sendEmail } from '@/lib/email';
 import webpush from 'web-push';
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
+import { isValidRevenueDate } from '@/lib/revenue-date-validation';
+import { getRevenueRentBasis } from '@/lib/revenue-calculations';
+
+function validateRevenueDates(dates: Record<string, string | null | undefined>): string | null {
+  for (const [field, value] of Object.entries(dates)) {
+    if (value && !isValidRevenueDate(value)) {
+      return `${field} must contain a valid date between 2025 and 2050`;
+    }
+  }
+  return null;
+}
+
+async function resolveCollaborationUserId(
+  supabase: SupabaseClient,
+  collaborationWith?: string | null
+): Promise<string | null> {
+  const name = collaborationWith?.trim();
+  if (!name) return null;
+
+  const normalized = name.toLowerCase();
+  // External placeholders should never map to an internal user id.
+  if (
+    normalized === 'agent' ||
+    normalized === 'unknown agent' ||
+    normalized.startsWith('agent (') ||
+    normalized.includes('outside')
+  ) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('user_id')
+    .eq('full_name', name)
+    .eq('role', 'agent')
+    .limit(2);
+
+  if (!data || data.length !== 1) {
+    return null;
+  }
+
+  return data[0].user_id;
+}
 
 // Configure VAPID keys
 if (
@@ -45,29 +88,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 
-  // Get user's full_name to find collaboration partner deals
+  // Get user's full_name to find legacy collaboration partner deals
   const { data: userProfile } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('user_id', user.id)
     .single();
 
-  let collabDeals: any[] = [];
+  const revenueQuery: any = supabase.from('revenue');
+  const { data: idBasedPartnerDeals } = await revenueQuery
+    .select('*')
+    .neq('user_id', user.id)
+    .eq('collaboration_with_user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  let legacyPartnerDeals: any[] = [];
   if (userProfile?.full_name) {
-    const { data: partnerDeals } = await supabase
+    const { data } = await supabase
       .from('revenue')
       .select('*')
       .neq('user_id', user.id)
+      .is('collaboration_with_user_id', null)
       .eq('collaboration_with', userProfile.full_name)
       .order('created_at', { ascending: false });
 
-    if (partnerDeals) {
-      collabDeals = partnerDeals.map(deal => ({
-        ...deal,
-        is_collab_partner: true,
-      }));
-    }
+    legacyPartnerDeals = data || [];
   }
+
+  const collabDealMap = new Map<number, any>();
+  [...(idBasedPartnerDeals || []), ...legacyPartnerDeals].forEach((deal: any) => {
+    collabDealMap.set(deal.id, {
+      ...deal,
+      is_collab_partner: true,
+    });
+  });
+
+  const collabDeals = Array.from(collabDealMap.values());
 
   // Mark own deals explicitly
   const ownData = (ownDeals || []).map(deal => ({
@@ -104,9 +160,19 @@ export async function POST(req: NextRequest) {
     client_paid_date,
     collaboration_with,
     inform_boss_after_both_sides_paid,
+    inform_admin_for_invoice,
+    invoice_owner_name,
+    invoice_owner_id,
+    invoice_client_name,
+    invoice_client_id,
     only_listing_fee,
     target_user_id
   } = body;
+
+  const dateError = validateRevenueDates({ date_rented, date_signed, date_move_in, landlord_paid_date, client_paid_date });
+  if (dateError) {
+    return NextResponse.json({ success: false, error: dateError }, { status: 400 });
+  }
 
   // Authenticated user id
   const {
@@ -218,6 +284,11 @@ export async function POST(req: NextRequest) {
     agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
   }
 
+  const collaborationWithUserId = await resolveCollaborationUserId(
+    supabase,
+    collaboration_with
+  );
+
   const insertData = {
     user_id,
     ref_no: ref_no ?? null,
@@ -241,7 +312,14 @@ export async function POST(req: NextRequest) {
     landlord_paid_date: landlord_paid_date ?? null,
     client_paid_date: client_paid_date ?? null,
     collaboration_with: collaboration_with ?? null,
+    collaboration_with_user_id: collaborationWithUserId,
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
+    inform_admin_for_invoice: inform_admin_for_invoice ?? false,
+    invoice_owner_name: invoice_owner_name ?? null,
+    invoice_owner_id: invoice_owner_id ?? null,
+    invoice_client_name: invoice_client_name ?? null,
+    invoice_client_id: invoice_client_id ?? null,
+    admin_invoice_notified: false,
     only_listing_fee: only_listing_fee ?? false,
     boss_notified: false,
   };
@@ -266,6 +344,10 @@ export async function POST(req: NextRequest) {
     // Send email and push notification to boss if deal is finalized
     if (isDealFinalized) {
       await sendBossNotification(supabase, user_id, data);
+    }
+
+    if (inform_admin_for_invoice) {
+      await sendAdminInvoiceNotification(supabase, user_id, data);
     }
 
     // Check if agent just qualified for a bonus (both dates paid = completed deal)
@@ -308,9 +390,19 @@ export async function PUT(req: NextRequest) {
     client_paid_date,
     collaboration_with,
     inform_boss_after_both_sides_paid,
+    inform_admin_for_invoice,
+    invoice_owner_name,
+    invoice_owner_id,
+    invoice_client_name,
+    invoice_client_id,
     only_listing_fee,
     target_user_id
   } = body;
+
+  const dateError = validateRevenueDates({ date_rented, date_signed, date_move_in, landlord_paid_date, client_paid_date });
+  if (dateError) {
+    return NextResponse.json({ success: false, error: dateError }, { status: 400 });
+  }
 
   const {
     data: { user },
@@ -404,6 +496,11 @@ export async function PUT(req: NextRequest) {
     agent_income = agent_income_gross - agent_tax; // Net = 32% of total revenue
   }
 
+  const collaborationWithUserId = await resolveCollaborationUserId(
+    supabase,
+    collaboration_with
+  );
+
   // Get user role and full_name to check permissions
   const { data: userProfile } = await supabase
     .from('profiles')
@@ -429,10 +526,16 @@ export async function PUT(req: NextRequest) {
   }
 
   // Permission check: owner, elevated user, or collaboration partner
+  const previousRecord: any = prevRecord;
   const isOwner = prevRecord.user_id === user_id;
-  const isCollabPartner = !!(userProfile?.full_name && 
-    prevRecord.collaboration_with === userProfile.full_name &&
-    prevRecord.user_id !== user_id);
+  const isCollabPartner =
+    (previousRecord['collaboration_with_user_id'] === user_id && prevRecord.user_id !== user_id) ||
+    !!(
+      !previousRecord['collaboration_with_user_id'] &&
+      userProfile?.full_name &&
+      prevRecord.collaboration_with === userProfile.full_name &&
+      prevRecord.user_id !== user_id
+    );
 
   if (!isOwner && !isElevatedUser && !isCollabPartner) {
     return NextResponse.json({ 
@@ -463,13 +566,20 @@ export async function PUT(req: NextRequest) {
     landlord_paid_date: landlord_paid_date ?? null,
     client_paid_date: client_paid_date ?? null,
     collaboration_with: collaboration_with ?? null,
+    collaboration_with_user_id: collaborationWithUserId,
     inform_boss_after_both_sides_paid: inform_boss_after_both_sides_paid ?? false,
+    inform_admin_for_invoice: inform_admin_for_invoice ?? false,
+    invoice_owner_name: invoice_owner_name ?? null,
+    invoice_owner_id: invoice_owner_id ?? null,
+    invoice_client_name: invoice_client_name ?? null,
+    invoice_client_id: invoice_client_id ?? null,
     only_listing_fee: only_listing_fee ?? false,
   };
 
-  // Collab partners must not change the collaboration_with field (RLS depends on it)
+  // Collab partners must not change collaboration linkage fields.
   if (isCollabPartner && !isOwner) {
     updateData.collaboration_with = prevRecord.collaboration_with;
+    updateData.collaboration_with_user_id = previousRecord['collaboration_with_user_id'];
   }
 
   // If elevated user wants to reassign the deal to another agent
@@ -499,6 +609,10 @@ export async function PUT(req: NextRequest) {
 
     if (shouldNotify) {
       await sendBossNotification(supabase, user_id, data);
+    }
+
+    if (inform_admin_for_invoice && !previousRecord['admin_invoice_notified']) {
+      await sendAdminInvoiceNotification(supabase, user_id, data);
     }
 
     // Check if agent just qualified for a bonus (both dates paid = completed deal)
@@ -559,10 +673,16 @@ export async function DELETE(req: NextRequest) {
   }
 
   // Permission check: owner, elevated user, or collaboration partner
+  const revenueRecord: any = record;
   const isOwner = record.user_id === user.id;
-  const isCollabPartner = !!(userProfile?.full_name &&
-    record.collaboration_with === userProfile.full_name &&
-    record.user_id !== user.id);
+  const isCollabPartner =
+    (revenueRecord['collaboration_with_user_id'] === user.id && record.user_id !== user.id) ||
+    !!(
+      !revenueRecord['collaboration_with_user_id'] &&
+      userProfile?.full_name &&
+      record.collaboration_with === userProfile.full_name &&
+      record.user_id !== user.id
+    );
 
   if (!isOwner && !isElevatedUser && !isCollabPartner) {
     return NextResponse.json({
@@ -612,6 +732,25 @@ interface NotificationPayload {
   data?: Record<string, unknown>;
 }
 
+const MALTA_TIMEZONE = 'Europe/Malta';
+
+function getMaltaMonthKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MALTA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+
+  if (!year || !month) {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  return `${year}-${month}`;
+}
+
 // Helper function to send boss notification
 async function sendBossNotification(supabase: SupabaseClient, user_id: string, revenueData: RevenueData) {
   try {
@@ -619,7 +758,7 @@ async function sendBossNotification(supabase: SupabaseClient, user_id: string, r
     const { data: userProfile } = await supabase
       .from('profiles')
       .select('full_name, email')
-      .eq('id', user_id)
+      .eq('user_id', user_id)
       .single();
 
     // Get boss users
@@ -700,6 +839,59 @@ async function sendBossNotification(supabase: SupabaseClient, user_id: string, r
   } catch (emailError) {
     console.error('Error sending boss notification:', emailError);
   }
+}
+
+async function sendAdminInvoiceNotification(
+  supabase: SupabaseClient,
+  userId: string,
+  revenueData: RevenueData & Record<string, any>
+) {
+  try {
+    const [{ data: agentProfile }, { data: admins }] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('user_id', userId).single(),
+      supabase.from('profiles').select('email, full_name, user_id').eq('role', 'admin'),
+    ]);
+
+    const agentName = agentProfile?.full_name || 'Agent';
+    for (const admin of admins || []) {
+      if (admin.email) {
+        await sendEmail({
+          to: admin.email,
+          subject: `Invoice information submitted: ${revenueData.ref_no || 'Deal'}`,
+          html: generateInvoiceNotificationEmail({ adminName: admin.full_name || 'Admin', agentName, revenueData }),
+        });
+      }
+
+      if (admin.user_id) {
+        await sendBossNotificationPush(admin.user_id, {
+          title: 'Invoice information submitted',
+          body: `${agentName} submitted invoice details for ${revenueData.ref_no || 'a deal'}.`,
+          icon: '/icons/Logo/192.png',
+          badge: '/icons/Logo/96.png',
+          tag: `invoice-${revenueData.id}`,
+          data: { type: 'invoice_information_submitted', ref_no: revenueData.ref_no, revenue_id: revenueData.id, url: '/admin' },
+        });
+      }
+    }
+
+    await supabase.from('revenue').update({ admin_invoice_notified: true }).eq('id', revenueData.id);
+  } catch (error) {
+    console.error('Error sending admin invoice notification:', error);
+  }
+}
+
+function generateInvoiceNotificationEmail(data: { adminName: string; agentName: string; revenueData: Record<string, any> }) {
+  const r = data.revenueData;
+  return `
+    <p>Dear ${data.adminName},</p>
+    <p>${data.agentName} submitted invoice information for deal <strong>${r.ref_no || '-'}</strong>.</p>
+    <ul>
+      <li>Owner/Company: ${r.invoice_owner_name || '-'}</li>
+      <li>Owner ID/VAT: ${r.invoice_owner_id || '-'}</li>
+      <li>Client/Company: ${r.invoice_client_name || '-'}</li>
+      <li>Client ID/VAT: ${r.invoice_client_id || '-'}</li>
+    </ul>
+  `;
 }
 
 // Generate email HTML for revenue notification
@@ -823,12 +1015,8 @@ async function checkAndNotifyAgentBonus(
     const landlordDate = new Date(landlordPaidDate);
     const clientDate = new Date(clientPaidDate);
     const completionDate = landlordDate > clientDate ? landlordDate : clientDate;
-    const completionMonth = `${completionDate.getFullYear()}-${String(completionDate.getMonth() + 1).padStart(2, '0')}`;
-    const monthStart = `${completionMonth}-01`;
+    const completionMonth = getMaltaMonthKey(completionDate);
     const [yearStr, monthStr] = completionMonth.split('-');
-    const nextMonth = parseInt(monthStr) === 12
-      ? `${parseInt(yearStr) + 1}-01-01`
-      : `${yearStr}-${String(parseInt(monthStr) + 1).padStart(2, '0')}-01`;
 
     // Get all completed deals for this agent in the completion month
     // A completed deal = both landlord_paid_date AND client_paid_date exist,
@@ -847,15 +1035,13 @@ async function checkAndNotifyAgentBonus(
       const ld = new Date(d.landlord_paid_date!);
       const cd = new Date(d.client_paid_date!);
       const later = ld > cd ? ld : cd;
-      const dm = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}`;
+      const dm = getMaltaMonthKey(later);
       return dm === completionMonth;
     });
 
     const dealCount = monthDeals.length;
     const totalRent = monthDeals.reduce((sum, d) => {
-      const rent = (d.deal_type === 'shortlet' && d.monthly_rent_amount)
-        ? d.monthly_rent_amount
-        : (d.rent_amount || 0);
+      const rent = getRevenueRentBasis(d.deal_type, d.rent_amount, d.monthly_rent_amount);
       const hasCollab = (d.collaboration_with?.trim() || '') !== '';
       return sum + (hasCollab ? rent / 2 : rent);
     }, 0);
@@ -869,9 +1055,7 @@ async function checkAndNotifyAgentBonus(
     const prevTotalRent = totalRent - (() => {
       // Find the "latest" deal to subtract (approximate - just use current deal's contribution)
       const lastDeal = monthDeals[monthDeals.length - 1];
-      const rent = (lastDeal?.deal_type === 'shortlet' && lastDeal?.monthly_rent_amount)
-        ? lastDeal.monthly_rent_amount
-        : (lastDeal?.rent_amount || 0);
+      const rent = getRevenueRentBasis(lastDeal?.deal_type, lastDeal?.rent_amount, lastDeal?.monthly_rent_amount);
       const hasCollab = (lastDeal?.collaboration_with?.trim() || '') !== '';
       return hasCollab ? rent / 2 : rent;
     })();

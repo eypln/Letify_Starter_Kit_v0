@@ -14,6 +14,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useDashboardUrl } from "@/lib/hooks/useDashboardUrl";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
+import { isValidRevenueDate, parseRevenueDate, REVENUE_DATE_MAX, REVENUE_DATE_MIN } from "@/lib/revenue-date-validation";
+import { getRevenueRentBasis } from "@/lib/revenue-calculations";
+import InvoiceInfoModal from "@/components/revenue/InvoiceInfoModal";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -42,6 +45,11 @@ interface RevenueForm {
   client_paid_date: string;
   collaboration_with: string;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice: boolean;
+  invoice_owner_name: string;
+  invoice_owner_id: string;
+  invoice_client_name: string;
+  invoice_client_id: string;
 }
 
 const columns = [
@@ -102,6 +110,11 @@ interface Revenue {
   client_paid_date: string | null;
   collaboration_with: string | null;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice?: boolean;
+  invoice_owner_name?: string | null;
+  invoice_owner_id?: string | null;
+  invoice_client_name?: string | null;
+  invoice_client_id?: string | null;
   created_at?: string;
   is_collab_partner?: boolean;
   collab_owner_name?: string;
@@ -122,6 +135,18 @@ interface Profile {
   full_name: string;
 }
 
+interface RevenueOverviewStats {
+  deals: number;
+  collabs: number;
+  completed: number;
+  pending: number;
+  listingFeeRecords: number;
+  listingFeeTotal: number;
+  totalRevenue: number;
+}
+
+type RevenueOverviewFilter = 'all' | 'deals' | 'collab' | 'completed' | 'pending' | 'listing-fees';
+
 export default function RevenueClient({ user }: { user: User }) {
   const { toast } = useToast();
   const { dashboardUrl } = useDashboardUrl();
@@ -129,6 +154,16 @@ export default function RevenueClient({ user }: { user: User }) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [overviewStats, setOverviewStats] = useState<RevenueOverviewStats>({
+    deals: 0,
+    collabs: 0,
+    completed: 0,
+    pending: 0,
+    listingFeeRecords: 0,
+    listingFeeTotal: 0,
+    totalRevenue: 0,
+  });
+  const [overviewFilter, setOverviewFilter] = useState<RevenueOverviewFilter>('deals');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
@@ -139,6 +174,8 @@ export default function RevenueClient({ user }: { user: User }) {
   const [userFullName, setUserFullName] = useState<string>('');
   const [isEditingCollabDeal, setIsEditingCollabDeal] = useState(false);
   const [originalCollaborationWith, setOriginalCollaborationWith] = useState<string>('');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceInfo, setInvoiceInfo] = useState({ ownerName: '', ownerId: '', clientName: '', clientId: '' });
 
   const [form, setForm] = useState<RevenueForm>({
     id: undefined,
@@ -160,6 +197,8 @@ export default function RevenueClient({ user }: { user: User }) {
     client_paid_date: "",
     collaboration_with: "",
     inform_boss_after_both_sides_paid: false,
+    inform_admin_for_invoice: false,
+    invoice_owner_name: '', invoice_owner_id: '', invoice_client_name: '', invoice_client_id: '',
   });
 
   // Date state
@@ -353,13 +392,81 @@ export default function RevenueClient({ user }: { user: User }) {
       ...collabData,
     ].sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
 
-    // Client-side pagination
+    const stats = allDeals.reduce<RevenueOverviewStats>((summary, deal: any) => {
+      const isListingOnly = !!deal.only_listing_fee;
+      const isCollab = !!deal.collaboration_with?.trim();
+      const isCompleted = !!deal.landlord_paid_date && !!deal.client_paid_date;
+      const rentAmount = getRevenueRentBasis(deal.deal_type, deal.rent_amount, deal.monthly_rent_amount);
+      const effectiveRent = isListingOnly ? 0 : isCollab ? rentAmount / 2 : rentAmount;
+
+      if (isListingOnly) {
+        // Listing-only records are income records, not rental deals.
+        if (!deal.is_collab_partner) {
+          summary.listingFeeRecords += 1;
+          summary.listingFeeTotal += Number(deal.listing_fee || 0);
+        }
+        return summary;
+      }
+
+      summary.deals += 1;
+      if (isCollab) summary.collabs += 1;
+      if (isCompleted) summary.completed += 1;
+      else summary.pending += 1;
+      summary.totalRevenue += effectiveRent;
+
+      // A listing fee attached to a normal deal belongs to its owner.
+      if (!deal.is_collab_partner && Number(deal.listing_fee || 0) > 0) {
+        summary.listingFeeRecords += 1;
+        summary.listingFeeTotal += Number(deal.listing_fee);
+      }
+
+      return summary;
+    }, {
+      deals: 0,
+      collabs: 0,
+      completed: 0,
+      pending: 0,
+      listingFeeRecords: 0,
+      listingFeeTotal: 0,
+      totalRevenue: 0,
+    });
+
+    setOverviewStats({
+      ...stats,
+      listingFeeTotal: Math.round(stats.listingFeeTotal * 100) / 100,
+      totalRevenue: Math.round(stats.totalRevenue * 100) / 100,
+    });
+
+    const filteredDeals = allDeals.filter((deal: any) => {
+      const isListingOnly = !!deal.only_listing_fee;
+      const hasListingFee = Number(deal.listing_fee || 0) > 0;
+      const isCollab = !!deal.collaboration_with?.trim();
+      const isCompleted = !!deal.landlord_paid_date && !!deal.client_paid_date;
+
+      switch (overviewFilter) {
+        case 'deals':
+          return !isListingOnly;
+        case 'collab':
+          return !isListingOnly && isCollab;
+        case 'completed':
+          return !isListingOnly && isCompleted;
+        case 'pending':
+          return !isListingOnly && !isCompleted;
+        case 'listing-fees':
+          return hasListingFee;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+
+    // Client-side pagination after filtering
     const start = (currentPage - 1) * pageSize;
-    const pageData = allDeals.slice(start, start + pageSize);
+    const pageData = filteredDeals.slice(start, start + pageSize);
 
     if (!error) {
       setRevenues(pageData);
-      setPageCount(Math.ceil(allDeals.length / pageSize));
+      setPageCount(Math.max(1, Math.ceil(filteredDeals.length / pageSize)));
     }
 
     // Fetch listings for Ref No dropdown
@@ -401,7 +508,7 @@ export default function RevenueClient({ user }: { user: User }) {
   useEffect(() => {
     getUserAndRevenues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, overviewFilter]);
 
   // Realtime subscription for revenue changes (sync with teamleader edits)
   useEffect(() => {
@@ -472,6 +579,8 @@ export default function RevenueClient({ user }: { user: User }) {
       client_paid_date: "",
       collaboration_with: "",
       inform_boss_after_both_sides_paid: false,
+      inform_admin_for_invoice: false,
+      invoice_owner_name: '', invoice_owner_id: '', invoice_client_name: '', invoice_client_id: '',
     });
     setDateRented(null);
     setDateSigned(null);
@@ -523,13 +632,19 @@ export default function RevenueClient({ user }: { user: User }) {
         ? (revenue.collab_owner_name || revenue.collaboration_with || "")
         : (revenue.collaboration_with || ""),
       inform_boss_after_both_sides_paid: revenue.inform_boss_after_both_sides_paid || false,
+      inform_admin_for_invoice: revenue.inform_admin_for_invoice || false,
+      invoice_owner_name: revenue.invoice_owner_name || '',
+      invoice_owner_id: revenue.invoice_owner_id || '',
+      invoice_client_name: revenue.invoice_client_name || '',
+      invoice_client_id: revenue.invoice_client_id || '',
     });
     
-    setDateRented(revenue.date_rented ? new Date(revenue.date_rented) : null);
-    setDateSigned(revenue.date_signed ? new Date(revenue.date_signed) : null);
-    setDateMoveIn(revenue.date_move_in ? new Date(revenue.date_move_in) : null);
-    setLandlordPaidDate(revenue.landlord_paid_date ? new Date(revenue.landlord_paid_date) : null);
-    setClientPaidDate(revenue.client_paid_date ? new Date(revenue.client_paid_date) : null);
+    setDateRented(parseRevenueDate(revenue.date_rented));
+    setDateSigned(parseRevenueDate(revenue.date_signed));
+    setDateMoveIn(parseRevenueDate(revenue.date_move_in));
+    setLandlordPaidDate(parseRevenueDate(revenue.landlord_paid_date));
+    setClientPaidDate(parseRevenueDate(revenue.client_paid_date));
+    setInvoiceInfo({ ownerName: revenue.invoice_owner_name || '', ownerId: revenue.invoice_owner_id || '', clientName: revenue.invoice_client_name || '', clientId: revenue.invoice_client_id || '' });
     
     setShowModal(true);
   };
@@ -547,6 +662,12 @@ export default function RevenueClient({ user }: { user: User }) {
       return;
     }
 
+    const selectedDates = [dateRented, dateSigned, dateMoveIn, landlordPaidDate, clientPaidDate];
+    if (selectedDates.some((date) => date && !isValidRevenueDate(date.toISOString()))) {
+      toast({ title: "Validation Error", description: "All dates must be between 2025 and 2050.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -557,6 +678,11 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
       user_id: user?.id,
+      inform_admin_for_invoice: form.inform_admin_for_invoice,
+      invoice_owner_name: form.invoice_owner_name,
+      invoice_owner_id: form.invoice_owner_id,
+      invoice_client_name: form.invoice_client_name,
+      invoice_client_id: form.invoice_client_id,
       // For collab partner edits, preserve the original collaboration_with value
       ...(isEditingCollabDeal && originalCollaborationWith
         ? { collaboration_with: originalCollaborationWith }
@@ -609,6 +735,16 @@ export default function RevenueClient({ user }: { user: User }) {
     return `€${amount.toFixed(2)}`;
   };
 
+  const selectOverviewFilter = (filter: RevenueOverviewFilter) => {
+    setOverviewFilter(filter);
+    setPage(1);
+  };
+
+  const overviewFilterClass = (filter: RevenueOverviewFilter, colorClass: string) =>
+    `cursor-pointer rounded px-1.5 py-0.5 transition-colors hover:bg-white/80 dark:hover:bg-gray-800/80 ${
+      overviewFilter === filter ? 'bg-white font-bold shadow-sm dark:bg-gray-800' : ''
+    } ${colorClass}`;
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
       <div className="relative mt-8">
@@ -622,8 +758,19 @@ export default function RevenueClient({ user }: { user: User }) {
       
       {/* Revenue Table */}
       <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Revenue Overview</CardTitle>
+          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+              <CardTitle>Revenue Overview</CardTitle>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium">
+                <button type="button" onClick={() => selectOverviewFilter('deals')} className={overviewFilterClass('deals', 'text-gray-800 dark:text-gray-100')}>{overviewStats.deals} deals</button>
+                <button type="button" onClick={() => selectOverviewFilter('collab')} className={overviewFilterClass('collab', 'text-blue-600 dark:text-blue-400')}>{overviewStats.collabs} collab</button>
+                <button type="button" onClick={() => selectOverviewFilter('completed')} className={overviewFilterClass('completed', 'text-green-600 dark:text-green-400')}>{overviewStats.completed} completed</button>
+                <button type="button" onClick={() => selectOverviewFilter('pending')} className={overviewFilterClass('pending', 'text-amber-600 dark:text-amber-400')}>{overviewStats.pending} pending</button>
+                <button type="button" onClick={() => selectOverviewFilter('listing-fees')} className={overviewFilterClass('listing-fees', 'text-orange-600 dark:text-orange-400')}>{overviewStats.listingFeeRecords} listing fees</button>
+                <span className="font-semibold text-purple-700 dark:text-purple-300">Revenue: {formatCurrency(overviewStats.totalRevenue)}</span>
+                <span className="font-semibold text-teal-700 dark:text-teal-300">Listing fees: {formatCurrency(overviewStats.listingFeeTotal)}</span>
+              </div>
+            </div>
             <Button 
               className="bg-purple-500 hover:bg-purple-600 text-white font-semibold flex items-center gap-2"
               onClick={handleAddNew}
@@ -798,7 +945,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       variant={page === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setPage(pageNum)}
-                      className={`px-3 py-1 min-w-[40px] ${
+                      className={`px-3 py-1 min-w-10 ${
                         page === pageNum 
                           ? 'bg-purple-500 hover:bg-purple-600 text-white' 
                           : ''
@@ -835,8 +982,14 @@ export default function RevenueClient({ user }: { user: User }) {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 {form.id ? "Edit Deal" : "Add New Deal"}
@@ -982,10 +1135,10 @@ export default function RevenueClient({ user }: { user: User }) {
                       step="0.01"
                       value={form.monthly_rent_amount}
                       onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
-                      placeholder="Enter monthly rent amount (for revenue charts)"
+                      placeholder="Enter monthly rent amount"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+                    <p className="text-xs text-gray-500 mt-1">Stored for reference only</p>
                   </div>
                 )}
 
@@ -1074,6 +1227,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateRented}
                       onChange={(date: Date | null) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                       required
@@ -1085,6 +1240,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateSigned}
                       onChange={(date: Date | null) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                       required
@@ -1096,6 +1253,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateMoveIn}
                       onChange={(date: Date | null) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                       required
@@ -1111,6 +1270,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={landlordPaidDate}
                       onChange={(date: Date | null) => setLandlordPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
                     />
@@ -1121,6 +1282,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={clientPaidDate}
                       onChange={(date: Date | null) => setClientPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
                     />
@@ -1203,6 +1366,12 @@ export default function RevenueClient({ user }: { user: User }) {
                 </div>
 
                 {/* Row 7: Deal Documents Upload */}
+                <div className="flex items-center">
+                  <input type="checkbox" id="inform_admin_invoice" checked={form.inform_admin_for_invoice} onChange={(event) => {
+                    if (form.ref_no && dateRented && dateSigned && dateMoveIn) setShowInvoiceModal(event.target.checked);
+                  }} disabled={!form.ref_no || !dateRented || !dateSigned || !dateMoveIn} className="mr-2 h-4 w-4 disabled:opacity-50" />
+                  <label htmlFor="inform_admin_invoice" className="text-sm font-medium text-gray-900 dark:text-gray-100">Inform Admin for Invoice</label>
+                </div>
                 <DealDocumentUpload refNo={form.ref_no} />
 
                 {/* Form Buttons */}
@@ -1259,6 +1428,21 @@ export default function RevenueClient({ user }: { user: User }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showInvoiceModal && (
+        <InvoiceInfoModal
+          value={invoiceInfo}
+          onChange={(value) => {
+            setInvoiceInfo(value);
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: value.ownerName, invoice_owner_id: value.ownerId, invoice_client_name: value.clientName, invoice_client_id: value.clientId });
+          }}
+          onSend={() => {
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: invoiceInfo.ownerName, invoice_owner_id: invoiceInfo.ownerId, invoice_client_name: invoiceInfo.clientName, invoice_client_id: invoiceInfo.clientId });
+            setShowInvoiceModal(false);
+          }}
+          onClose={() => setShowInvoiceModal(false)}
+        />
       )}
 
       {/* Monthly Agent Revenue Chart */}
@@ -1335,9 +1519,11 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
             const rentMultiplier = hasCollab ? 0.5 : 1;
 
             // Accumulate rent amount — for shortlet use monthly_rent_amount if available
-            const effectiveRent = (revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount)
-              ? parseFloat(revenue.monthly_rent_amount)
-              : (revenue.rent_amount ? parseFloat(revenue.rent_amount) : null);
+            const effectiveRent = getRevenueRentBasis(
+              revenue.deal_type,
+              revenue.rent_amount ? parseFloat(revenue.rent_amount) : 0,
+              revenue.monthly_rent_amount ? parseFloat(revenue.monthly_rent_amount) : null
+            );
             if (effectiveRent !== null) {
               const currentRent = monthlyRentMap.get(monthKey) || 0;
               monthlyRentMap.set(monthKey, currentRent + effectiveRent * rentMultiplier);
@@ -1391,7 +1577,7 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
 
   if (loading) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
+      <div className="h-100 flex items-center justify-center text-gray-500">
         Loading chart data...
       </div>
     );
@@ -1399,7 +1585,7 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
+      <div className="h-100 flex items-center justify-center text-gray-500">
         No revenue data available for chart.
       </div>
     );
@@ -1467,6 +1653,7 @@ function MonthlyAgentRevenueChart({ userId }: { userId: string }) {
 interface AgentMonthlyBonus {
   month: string;
   monthLabel: string;
+  dealRefs: string[];
   completedDeals: number;
   totalRent: number;
   averageRent: number;
@@ -1524,34 +1711,16 @@ function calculateAgentBonus(
 }
 
 function getAgentBonusCompletionMonth(deal: Revenue): string {
-  const now = new Date();
-  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-
-  // Base month = date_rented (Slack posting date — patron's rule)
-  if (!deal.date_rented) return currentMonth;
-
-  const rentedDate = new Date(deal.date_rented);
-  const baseMonth = `${rentedDate.getUTCFullYear()}-${String(rentedDate.getUTCMonth() + 1).padStart(2, '0')}`;
-
-  const landlordPaid = !!deal.landlord_paid_date;
-  const clientPaid = !!deal.client_paid_date;
-
-  // Both paid → deal completed, stays in its base month
-  if (landlordPaid && clientPaid) return baseMonth;
-
-  // Pending: apply 2-month rule
-  // If 2+ months have elapsed from date_rented and still unpaid → move to next month
-  const twoMonthsAfter = new Date(rentedDate);
-  twoMonthsAfter.setUTCMonth(twoMonthsAfter.getUTCMonth() + 2);
-
-  if (now >= twoMonthsAfter) {
-    const nextDate = new Date(rentedDate);
-    nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
-    return `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  // Official rule: completion month is based on the later payment date.
+  if (deal.landlord_paid_date && deal.client_paid_date) {
+    const landlordDate = new Date(deal.landlord_paid_date);
+    const clientDate = new Date(deal.client_paid_date);
+    const later = landlordDate > clientDate ? landlordDate : clientDate;
+    return getMaltaMonthKey(later);
   }
 
-  // < 2 months elapsed → keep in base month
-  return baseMonth;
+  // Safety fallback for incomplete/legacy records.
+  return getMaltaMonthKey(new Date());
 }
 
 function formatBonusMonthLabel(monthKey: string): string {
@@ -1582,12 +1751,40 @@ const BONUS_BAR_COLORS = {
 };
 
 const YEARLY_TARGET = 48000;
+const MALTA_TIMEZONE = 'Europe/Malta';
+
+function getMaltaMonthKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MALTA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+
+  if (!year || !month) {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  return `${year}-${month}`;
+}
+
+function getMaltaYear(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MALTA_TIMEZONE,
+    year: 'numeric',
+  }).formatToParts(date);
+
+  return parts.find((p) => p.type === 'year')?.value || String(date.getUTCFullYear());
+}
 
 // ─── Agent Bonus Section Component ───────────────────────────────────────────
 
 function AgentBonusSection({ userId }: { userId: string }) {
   const [allRevenues, setAllRevenues] = useState<Revenue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonthDeals, setSelectedMonthDeals] = useState<AgentMonthlyBonus | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -1635,15 +1832,13 @@ function AgentBonusSection({ userId }: { userId: string }) {
     loadBonusData();
   }, [supabase, userId]);
 
-  // Process deals: grouped by date_rented month (patron's rule: Slack posting date = deal's month)
+  // Process deals: grouped by completion month (later of landlord/client paid dates).
   const completedDeals = useMemo(() => {
     return allRevenues
       .map((deal) => {
         const completionMonth = getAgentBonusCompletionMonth(deal);
 
-        const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount)
-          ? deal.monthly_rent_amount
-          : (deal.rent_amount || 0);
+        const rentAmount = getRevenueRentBasis(deal.deal_type, deal.rent_amount, deal.monthly_rent_amount);
         // is_collab_partner = true: this agent was added as collab partner by another owner
         // hasCollaboration: this agent added a deal with a collab partner (collaboration_with filled)
         const isCollabPartner = !!deal.is_collab_partner;
@@ -1684,24 +1879,31 @@ function AgentBonusSection({ userId }: { userId: string }) {
 
   // Monthly bonus calculations
   const monthlyBonuses = useMemo((): AgentMonthlyBonus[] => {
+    const bonusEligibleDeals = completedDeals.filter(
+      (d) => !!d.landlord_paid_date && !!d.client_paid_date
+    );
+
     const monthGroups = new Map<string, typeof completedDeals>();
-    completedDeals.forEach((deal) => {
+    bonusEligibleDeals.forEach((deal) => {
       const month = deal.completion_month;
       if (!monthGroups.has(month)) monthGroups.set(month, []);
       monthGroups.get(month)!.push(deal);
     });
 
-    // Listing fee income per month: group only_listing_fee deals by date_rented month
+    // Listing fee income belongs to this agent's owned records, including
+    // listing-only records and listing fees attached to normal deals.
     const listingFeeByMonth = new Map<string, number>();
     allRevenues.forEach((deal) => {
-      if (!deal.only_listing_fee) return;
-      if (!deal.date_rented) return;
-      const d = new Date(deal.date_rented);
-      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount)
-        ? deal.monthly_rent_amount
-        : (deal.rent_amount || 0);
-      const fee = Math.round(rentAmount * 0.05 * 100) / 100;
+      if (deal.is_collab_partner) return;
+      if (!deal.landlord_paid_date || !deal.client_paid_date) return;
+      if (!deal.listing_fee || deal.listing_fee <= 0) return;
+
+      const landlordDate = new Date(deal.landlord_paid_date);
+      const clientDate = new Date(deal.client_paid_date);
+      const later = landlordDate > clientDate ? landlordDate : clientDate;
+      const month = getMaltaMonthKey(later);
+
+      const fee = deal.listing_fee;
       listingFeeByMonth.set(month, (listingFeeByMonth.get(month) || 0) + fee);
     });
 
@@ -1723,6 +1925,14 @@ function AgentBonusSection({ userId }: { userId: string }) {
       results.push({
         month,
         monthLabel: formatBonusMonthLabel(month),
+        dealRefs: Array.from(new Set([
+          ...deals.map((deal) => deal.ref_no).filter((ref): ref is string => !!ref),
+          ...allRevenues
+            .filter((deal) => deal.only_listing_fee && deal.landlord_paid_date && deal.client_paid_date)
+            .filter((deal) => getAgentBonusCompletionMonth(deal) === month)
+            .map((deal) => deal.ref_no)
+            .filter((ref): ref is string => !!ref),
+        ])),
         completedDeals: dealCount,
         totalRent: Math.round(totalRent * 100) / 100,
         averageRent: Math.round(averageRent * 100) / 100,
@@ -1738,14 +1948,13 @@ function AgentBonusSection({ userId }: { userId: string }) {
 
   // Current month summary
   const currentMonth = useMemo(() => {
-    const now = new Date();
-    const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const key = getMaltaMonthKey(new Date());
     return monthlyBonuses.find((mb) => mb.month === key) || null;
   }, [monthlyBonuses]);
 
   // Current year totals (for yearly reward)
   const yearlyData = useMemo(() => {
-    const currentYear = new Date().getFullYear().toString();
+    const currentYear = getMaltaYear(new Date());
     const yearBonuses = monthlyBonuses.filter((mb) => mb.month.startsWith(currentYear));
     const totalRent = yearBonuses.reduce((sum, mb) => sum + mb.totalRent, 0);
     const totalBonus = yearBonuses.reduce((sum, mb) => sum + mb.bonusAmount, 0);
@@ -1797,7 +2006,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
     return (
       <Card className="mt-8">
         <CardContent className="pt-6">
-          <div className="h-[200px] flex items-center justify-center text-gray-500">
+          <div className="h-50 flex items-center justify-center text-gray-500">
             Loading bonus data...
           </div>
         </CardContent>
@@ -1917,7 +2126,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
           <CardContent>
             {/* Deal count donut */}
             <div className="flex items-center gap-6 mb-6">
-              <div className="w-[130px] h-[130px]">
+              <div className="w-32.5 h-32.5">
                 <ResponsiveContainer width={130} height={130}>
                   <PieChart>
                     <Pie
@@ -2017,12 +2226,12 @@ function AgentBonusSection({ userId }: { userId: string }) {
                 <div
                   className={`h-5 rounded-full transition-all duration-700 ${
                     yearlyData.progress >= 100
-                      ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                      ? 'bg-linear-to-r from-yellow-400 to-amber-500'
                       : yearlyData.progress >= 75
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600'
+                        ? 'bg-linear-to-r from-purple-500 to-purple-600'
                         : yearlyData.progress >= 50
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500'
-                          : 'bg-gradient-to-r from-blue-400 to-blue-500'
+                          ? 'bg-linear-to-r from-blue-500 to-purple-500'
+                          : 'bg-linear-to-r from-blue-400 to-blue-500'
                   }`}
                   style={{ width: `${yearlyData.progress}%` }}
                 />
@@ -2047,7 +2256,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
             {/* Yearly reward card */}
             <div className={`p-4 rounded-lg border-2 ${
               yearlyData.yearlyBonusEarned > 0
-                ? 'border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20'
+                ? 'border-yellow-400 bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20'
                 : 'border-dashed border-gray-300 dark:border-gray-600'
             }`}>
               <div className="flex items-center gap-3">
@@ -2078,7 +2287,7 @@ function AgentBonusSection({ userId }: { userId: string }) {
         </CardHeader>
         <CardContent>
           {bonusChartData.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-gray-500">
+            <div className="h-75 flex items-center justify-center text-gray-500">
               No completed deals yet. Close your first deal to see bonus progress!
             </div>
           ) : (
@@ -2181,7 +2390,12 @@ function AgentBonusSection({ userId }: { userId: string }) {
                   </tr>
                 ) : (
                   [...monthlyBonuses].reverse().map((mb) => (
-                    <tr key={mb.month} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <tr
+                      key={mb.month}
+                      onDoubleClick={() => setSelectedMonthDeals(mb)}
+                      title="Double-click to view deal references"
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                         {mb.monthLabel}
                       </td>
@@ -2252,6 +2466,32 @@ function AgentBonusSection({ userId }: { userId: string }) {
           </div>
         </CardContent>
       </Card>
+
+      {selectedMonthDeals && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setSelectedMonthDeals(null)}>
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {selectedMonthDeals.monthLabel} Deal References
+              </h3>
+              <button type="button" onClick={() => setSelectedMonthDeals(null)} className="text-2xl leading-none text-gray-500 hover:text-gray-900 dark:hover:text-gray-100" aria-label="Close">
+                ×
+              </button>
+            </div>
+            {selectedMonthDeals.dealRefs.length === 0 ? (
+              <p className="text-sm text-gray-500">No deal references found.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {selectedMonthDeals.dealRefs.map((ref) => (
+                  <span key={ref} className="rounded-md bg-purple-100 px-3 py-1.5 text-sm font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {ref}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── Bonus Rules Reference ──────────────────────────────────────── */}
       <Card className="mb-8">

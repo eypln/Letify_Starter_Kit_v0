@@ -14,6 +14,9 @@ import { createClient } from "@/lib/supabase/client";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import EditDealModal from "./EditDealModal";
 import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
+import { isValidRevenueDate, parseRevenueDate, REVENUE_DATE_MAX, REVENUE_DATE_MIN } from "@/lib/revenue-date-validation";
+import { getRevenueRentBasis } from "@/lib/revenue-calculations";
+import InvoiceInfoModal from "@/components/revenue/InvoiceInfoModal";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -42,6 +45,11 @@ interface RevenueForm {
   client_paid_date: string;
   collaboration_with: string;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice: boolean;
+  invoice_owner_name: string;
+  invoice_owner_id: string;
+  invoice_client_name: string;
+  invoice_client_id: string;
 }
 
 const columns = [
@@ -102,6 +110,11 @@ interface Revenue {
   client_paid_date: string | null;
   collaboration_with: string | null;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice?: boolean;
+  invoice_owner_name?: string | null;
+  invoice_owner_id?: string | null;
+  invoice_client_name?: string | null;
+  invoice_client_id?: string | null;
   created_at?: string;
 }
 
@@ -139,6 +152,8 @@ export default function RevenueClient({ user }: { user: User }) {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [teamRefreshKey, setTeamRefreshKey] = useState(0);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceInfo, setInvoiceInfo] = useState({ ownerName: '', ownerId: '', clientName: '', clientId: '' });
   const supabase = createClient();
 
   const [form, setForm] = useState<RevenueForm>({
@@ -161,6 +176,8 @@ export default function RevenueClient({ user }: { user: User }) {
     client_paid_date: "",
     collaboration_with: "",
     inform_boss_after_both_sides_paid: false,
+    inform_admin_for_invoice: false,
+    invoice_owner_name: '', invoice_owner_id: '', invoice_client_name: '', invoice_client_id: '',
   });
 
   // Date state
@@ -416,6 +433,8 @@ export default function RevenueClient({ user }: { user: User }) {
       client_paid_date: "",
       collaboration_with: "",
       inform_boss_after_both_sides_paid: false,
+      inform_admin_for_invoice: false,
+      invoice_owner_name: '', invoice_owner_id: '', invoice_client_name: '', invoice_client_id: '',
     });
     setDateRented(null);
     setDateSigned(null);
@@ -459,13 +478,19 @@ export default function RevenueClient({ user }: { user: User }) {
       client_paid_date: revenue.client_paid_date || "",
       collaboration_with: revenue.collaboration_with || "",
       inform_boss_after_both_sides_paid: revenue.inform_boss_after_both_sides_paid || false,
+      inform_admin_for_invoice: revenue.inform_admin_for_invoice || false,
+      invoice_owner_name: revenue.invoice_owner_name || '',
+      invoice_owner_id: revenue.invoice_owner_id || '',
+      invoice_client_name: revenue.invoice_client_name || '',
+      invoice_client_id: revenue.invoice_client_id || '',
     });
+    setInvoiceInfo({ ownerName: revenue.invoice_owner_name || '', ownerId: revenue.invoice_owner_id || '', clientName: revenue.invoice_client_name || '', clientId: revenue.invoice_client_id || '' });
     
-    setDateRented(revenue.date_rented ? new Date(revenue.date_rented) : null);
-    setDateSigned(revenue.date_signed ? new Date(revenue.date_signed) : null);
-    setDateMoveIn(revenue.date_move_in ? new Date(revenue.date_move_in) : null);
-    setLandlordPaidDate(revenue.landlord_paid_date ? new Date(revenue.landlord_paid_date) : null);
-    setClientPaidDate(revenue.client_paid_date ? new Date(revenue.client_paid_date) : null);
+    setDateRented(parseRevenueDate(revenue.date_rented));
+    setDateSigned(parseRevenueDate(revenue.date_signed));
+    setDateMoveIn(parseRevenueDate(revenue.date_move_in));
+    setLandlordPaidDate(parseRevenueDate(revenue.landlord_paid_date));
+    setClientPaidDate(parseRevenueDate(revenue.client_paid_date));
     
     // Pre-select the agent if the deal belongs to someone else
     if (revenue.user_id !== user.id) {
@@ -490,6 +515,12 @@ export default function RevenueClient({ user }: { user: User }) {
       return;
     }
 
+    const selectedDates = [dateRented, dateSigned, dateMoveIn, landlordPaidDate, clientPaidDate];
+    if (selectedDates.some((date) => date && !isValidRevenueDate(date.toISOString()))) {
+      toast({ title: "Validation Error", description: "All dates must be between 2025 and 2050.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -500,6 +531,11 @@ export default function RevenueClient({ user }: { user: User }) {
       landlord_paid_date: landlordPaidDate ? landlordPaidDate.toISOString() : null,
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
       user_id: user?.id,
+      inform_admin_for_invoice: form.inform_admin_for_invoice,
+      invoice_owner_name: form.invoice_owner_name,
+      invoice_owner_id: form.invoice_owner_id,
+      invoice_client_name: form.invoice_client_name,
+      invoice_client_id: form.invoice_client_id,
       // If teamleader selected an agent, pass their user_id as target
       target_user_id: selectedAgentId || undefined,
     };
@@ -628,9 +664,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(
-                          revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount != null
-                            ? revenue.monthly_rent_amount
-                            : revenue.rent_amount
+                          getRevenueRentBasis(revenue.deal_type, revenue.rent_amount, revenue.monthly_rent_amount)
                         )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -739,7 +773,7 @@ export default function RevenueClient({ user }: { user: User }) {
                       variant={page === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setPage(pageNum)}
-                      className={`px-3 py-1 min-w-[40px] ${
+                      className={`px-3 py-1 min-w-10 ${
                         page === pageNum 
                           ? 'bg-purple-500 hover:bg-purple-600 text-white' 
                           : ''
@@ -776,8 +810,14 @@ export default function RevenueClient({ user }: { user: User }) {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
                 {form.id ? "Edit Deal" : "Add New Deal"}
@@ -919,10 +959,10 @@ export default function RevenueClient({ user }: { user: User }) {
                       step="0.01"
                       value={form.monthly_rent_amount}
                       onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
-                      placeholder="Enter monthly rent amount (for revenue charts)"
+                      placeholder="Enter monthly rent amount"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+                    <p className="text-xs text-gray-500 mt-1">Stored for reference only</p>
                   </div>
                 )}
 
@@ -1017,6 +1057,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateRented}
                       onChange={(date: Date | null) => setDateRented(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateRented ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
@@ -1027,6 +1069,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateSigned}
                       onChange={(date: Date | null) => setDateSigned(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateSigned ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
@@ -1037,6 +1081,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={dateMoveIn}
                       onChange={(date: Date | null) => setDateMoveIn(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className={`w-full px-3 py-2 border rounded-md ${dateMoveIn ? 'border-gray-300' : 'border-red-500'}`}
                       placeholderText="Select date"
                     />
@@ -1051,6 +1097,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={landlordPaidDate}
                       onChange={(date: Date | null) => setLandlordPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
                     />
@@ -1061,6 +1109,8 @@ export default function RevenueClient({ user }: { user: User }) {
                       selected={clientPaidDate}
                       onChange={(date: Date | null) => setClientPaidDate(date)}
                       dateFormat="dd/MM/yyyy"
+                      minDate={REVENUE_DATE_MIN}
+                      maxDate={REVENUE_DATE_MAX}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                       placeholderText="Select date"
                     />
@@ -1168,6 +1218,13 @@ export default function RevenueClient({ user }: { user: User }) {
                   )}
                 </div>
 
+                <div className="flex items-center">
+                  <input type="checkbox" id="inform_admin_invoice_team" checked={form.inform_admin_for_invoice} onChange={(event) => {
+                    if (form.ref_no && dateRented && dateSigned && dateMoveIn) setShowInvoiceModal(event.target.checked);
+                  }} disabled={!form.ref_no || !dateRented || !dateSigned || !dateMoveIn} className="mr-2 h-4 w-4 disabled:opacity-50" />
+                  <label htmlFor="inform_admin_invoice_team" className="text-sm font-medium text-gray-900 dark:text-gray-100">Inform Admin for Invoice</label>
+                </div>
+
                 {/* Row 7: Deal Documents Upload */}
                 <DealDocumentUpload refNo={form.ref_no} />
 
@@ -1223,6 +1280,21 @@ export default function RevenueClient({ user }: { user: User }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showInvoiceModal && (
+        <InvoiceInfoModal
+          value={invoiceInfo}
+          onChange={(value) => {
+            setInvoiceInfo(value);
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: value.ownerName, invoice_owner_id: value.ownerId, invoice_client_name: value.clientName, invoice_client_id: value.clientId });
+          }}
+          onSend={() => {
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: invoiceInfo.ownerName, invoice_owner_id: invoiceInfo.ownerId, invoice_client_name: invoiceInfo.clientName, invoice_client_id: invoiceInfo.clientId });
+            setShowInvoiceModal(false);
+          }}
+          onClose={() => setShowInvoiceModal(false)}
+        />
       )}
 
       {/* Team Revenue Records */}
@@ -1567,9 +1639,7 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(
-                      revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount != null
-                        ? revenue.monthly_rent_amount
-                        : revenue.rent_amount
+                      getRevenueRentBasis(revenue.deal_type, revenue.rent_amount, revenue.monthly_rent_amount)
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1698,7 +1768,7 @@ function TeamRevenueTable({ refreshKey = 0, onRefresh }: { refreshKey?: number; 
                   variant={page === pageNum ? "default" : "outline"}
                   size="sm"
                   onClick={() => setPage(pageNum)}
-                  className={`px-3 py-1 min-w-[40px] ${
+                  className={`px-3 py-1 min-w-10 ${
                     page === pageNum 
                       ? 'bg-purple-500 hover:bg-purple-600 text-white' 
                       : ''
@@ -1826,8 +1896,7 @@ function LeadershipPerformanceTable() {
         stat.dealCount += 1;
         if (isCompleted) stat.completedCount += 1; else stat.pendingCount += 1;
       }
-      const baseRent = (r.deal_type === "shortlet" && r.monthly_rent_amount != null)
-        ? parseFloat(r.monthly_rent_amount) : (r.rent_amount ? parseFloat(r.rent_amount) : 0);
+      const baseRent = getRevenueRentBasis(r.deal_type, r.rent_amount, r.monthly_rent_amount);
       const collabName = r.collaboration_with?.trim() || "";
       const hasCollab = collabName !== "";
       const isCollabExternal = hasCollab && (collabName.toLowerCase() === "agent" || collabName.toLowerCase() === "unknown agent" || collabName.toLowerCase().startsWith("agent ("));
@@ -1897,7 +1966,7 @@ function LeadershipPerformanceTable() {
   return (
     <Card className="mt-6 overflow-hidden border-0 shadow-lg">
       {/* Gradient header bar */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400" />
+      <div className="h-1.5 w-full bg-linear-to-r from-purple-500 via-pink-500 to-cyan-400" />
       <CardHeader className="flex flex-row items-center justify-between pb-2 pt-5">
         <CardTitle className="text-lg font-bold tracking-tight flex items-center gap-2">
           🏅 Agent Leadership
@@ -1935,12 +2004,12 @@ function LeadershipPerformanceTable() {
                   className="relative flex items-center gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Rank */}
-                  <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-8 shrink-0 flex items-center justify-center">
                     {rankBadge(idx + 1)}
                   </div>
 
                   {/* Avatar */}
-                  <div className={`w-9 h-9 rounded-full ${palette.bg} flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                  <div className={`w-9 h-9 rounded-full ${palette.bg} shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
                     {initials(agent.full_name)}
                   </div>
 
@@ -1983,7 +2052,7 @@ function LeadershipPerformanceTable() {
             })}
 
             {/* Summary footer */}
-            <div className="mt-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-100 dark:border-purple-900/40 px-5 py-3 flex flex-wrap gap-6">
+            <div className="mt-4 rounded-xl bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-100 dark:border-purple-900/40 px-5 py-3 flex flex-wrap gap-6">
               <div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Total Deals</div>
                 <div className="text-lg font-bold text-gray-800 dark:text-gray-100">{footerTotals.deals}</div>
@@ -2051,9 +2120,7 @@ function MonthlyRevenueChart() {
           const monthKeyLocal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
           if (!isOnlyListingFee) {
-            const baseRent = (revenue.deal_type === 'shortlet' && revenue.monthly_rent_amount)
-              ? parseFloat(revenue.monthly_rent_amount)
-              : (revenue.rent_amount ? parseFloat(revenue.rent_amount) : 0);
+            const baseRent = getRevenueRentBasis(revenue.deal_type, revenue.rent_amount, revenue.monthly_rent_amount);
             const collabName = revenue.collaboration_with?.trim() || "";
             const hasExternalCollab = collabName !== "" && isExternalCollabName(collabName);
             const effectiveRent = hasExternalCollab ? baseRent / 2 : baseRent;
@@ -2099,7 +2166,7 @@ function MonthlyRevenueChart() {
     const remaining = payload.find((p: any) => p.dataKey === "remaining");
     const dealCount = payload[0]?.payload?.dealCount;
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl p-4 text-sm min-w-[180px]">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl p-4 text-sm min-w-45">
         <div className="font-bold text-gray-800 dark:text-gray-100 mb-3 text-base">{label}</div>
         {achieved && (
           <div className="flex items-center justify-between gap-4 mb-1.5">
@@ -2134,7 +2201,7 @@ function MonthlyRevenueChart() {
 
   if (loading) {
     return (
-      <div className="h-[420px] flex items-center justify-center text-gray-400">
+      <div className="h-105 flex items-center justify-center text-gray-400">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
           <span className="text-sm">Loading chart data...</span>
@@ -2145,7 +2212,7 @@ function MonthlyRevenueChart() {
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[420px] flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-105 flex items-center justify-center text-gray-400 text-sm">
         No revenue data available for chart.
       </div>
     );

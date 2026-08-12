@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { getRevenueRentBasis } from "@/lib/revenue-calculations";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import {
@@ -78,6 +79,7 @@ interface DealWithAgent extends Revenue {
 interface MonthlyBonus {
   month: string;
   monthLabel: string;
+  dealRefs: string[];
   totalRevenue: number;
   leaderRevenue: number;
   teamRevenue: number;
@@ -128,6 +130,8 @@ const AGENT_COLORS = [
   "#ef4444", "#6366f1", "#14b8a6", "#f97316", "#84cc16",
 ];
 
+const MALTA_TIMEZONE = "Europe/Malta";
+
 // Helper: Check if a profile name indicates an external/generic agent (not a real team member)
 function isExternalAgentName(name: string): boolean {
   const normalized = name.trim().toLowerCase();
@@ -136,56 +140,34 @@ function isExternalAgentName(name: string): boolean {
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
+function getMaltaMonthKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: MALTA_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+
+  if (!year || !month) {
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  return `${year}-${month}`;
+}
+
 function getCompletionMonth(deal: Revenue): string {
-  const now = new Date();
-  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-
-  // Base month = date_rented (Slack posting date — patron's rule)
-  if (deal.date_rented) {
-    const rentedDate = new Date(deal.date_rented);
-    const baseMonth = `${rentedDate.getUTCFullYear()}-${String(rentedDate.getUTCMonth() + 1).padStart(2, "0")}`;
-
-    const landlordPaid = !!deal.landlord_paid_date;
-    const clientPaid = !!deal.client_paid_date;
-
-    // Both paid → deal completed, stays in its base month
-    if (landlordPaid && clientPaid) return baseMonth;
-
-    // Pending: apply 2-month rule
-    // If 2+ months have elapsed from date_rented and still unpaid → move to next month
-    const twoMonthsAfter = new Date(rentedDate);
-    twoMonthsAfter.setUTCMonth(twoMonthsAfter.getUTCMonth() + 2);
-
-    if (now >= twoMonthsAfter) {
-      const nextDate = new Date(rentedDate);
-      nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
-      return `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, "0")}`;
-    }
-
-    // < 2 months elapsed → keep in base month
-    return baseMonth;
+  // Official rule: completion month is based on the later payment date.
+  if (deal.landlord_paid_date && deal.client_paid_date) {
+    const landlordDate = new Date(deal.landlord_paid_date);
+    const clientDate = new Date(deal.client_paid_date);
+    const later = landlordDate > clientDate ? landlordDate : clientDate;
+    return getMaltaMonthKey(later);
   }
 
-  // No date_rented → fallback: use future date_move_in / date_signed if available
-  const futureCandidates: string[] = [];
-
-  if (deal.date_move_in) {
-    const d = new Date(deal.date_move_in);
-    const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    if (m > currentMonth) futureCandidates.push(m);
-  }
-
-  if (deal.date_signed) {
-    const d = new Date(deal.date_signed);
-    const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    if (m > currentMonth) futureCandidates.push(m);
-  }
-
-  if (futureCandidates.length > 0) {
-    return futureCandidates.sort().pop()!;
-  }
-
-  return currentMonth;
+  // Safety fallback for incomplete/legacy records.
+  return getMaltaMonthKey(new Date());
 }
 
 function formatMonthLabel(monthKey: string): string {
@@ -221,6 +203,7 @@ export default function BonusesClient({ user }: { user: User }) {
   const [agentIds, setAgentIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedMonthDeals, setSelectedMonthDeals] = useState<MonthlyBonus | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // ─── Data Loading ────────────────────────────────────────────────────────
@@ -313,9 +296,7 @@ export default function BonusesClient({ user }: { user: User }) {
       const hasCollaboration = collabName !== "";
       const isCollabExternal = hasCollaboration && isExternalAgentName(collabName);
 
-      const rentAmount = (deal.deal_type === 'shortlet' && deal.monthly_rent_amount != null)
-        ? deal.monthly_rent_amount
-        : (deal.rent_amount || 0);
+      const rentAmount = getRevenueRentBasis(deal.deal_type, deal.rent_amount, deal.monthly_rent_amount);
       const isOnlyListingFee = deal.only_listing_fee || false;
 
       // Effective rent for bonus calculations
@@ -341,7 +322,9 @@ export default function BonusesClient({ user }: { user: User }) {
         is_external_deal: isExternal,
         is_collaboration_external: isCollabExternal,
         is_only_listing_fee: isOnlyListingFee,
-        deal_listing_fee: isExternal ? 0 : (deal.listing_fee || 0),
+        // Listing fee belongs only to the deal owner. Team agents' fees must
+        // not be included in the teamleader's personal listing fee income.
+        deal_listing_fee: isLeader && !isExternal ? (deal.listing_fee || 0) : 0,
         is_collab_virtual: false,
         original_deal_id: deal.id,
       });
@@ -383,9 +366,13 @@ export default function BonusesClient({ user }: { user: User }) {
   // ─── Monthly Bonus Calculation ──────────────────────────────────────────
 
   const monthlyBonuses = useMemo((): MonthlyBonus[] => {
+    const bonusEligibleDeals = processedDeals.filter(
+      (d) => !!d.landlord_paid_date && !!d.client_paid_date
+    );
+
     // Group deals by completion month
     const monthGroups = new Map<string, DealWithAgent[]>();
-    processedDeals.forEach((deal) => {
+    bonusEligibleDeals.forEach((deal) => {
       const month = deal.completion_date;
       if (!monthGroups.has(month)) monthGroups.set(month, []);
       monthGroups.get(month)!.push(deal);
@@ -420,15 +407,16 @@ export default function BonusesClient({ user }: { user: User }) {
       const leaderEarnings = leaderRevenue * leaderRate;
       const teamBonus = teamRevenue * teamRate;
 
-      // Listing fee: use listing_fee field from DB for ALL deals that have it
-      // External agent deals: listing_fee = 5% of rent (already calculated in DB)
-      // Team/leader deals with has_listing_fee checked: also captured in DB
+      // Listing fee belongs only to the teamleader's owned deals.
       const listingFee = deals
         .reduce((sum, d) => sum + d.deal_listing_fee, 0);
 
       results.push({
         month,
         monthLabel: formatMonthLabel(month),
+        dealRefs: Array.from(new Set(
+          deals.map((deal) => deal.ref_no).filter((ref): ref is string => !!ref)
+        )),
         totalRevenue,
         leaderRevenue,
         teamRevenue,
@@ -502,12 +490,12 @@ export default function BonusesClient({ user }: { user: User }) {
   // ─── Generate month options ─────────────────────────────────────────────
 
   const monthOptions = useMemo(() => {
-    const months = [...new Set(processedDeals.map((d) => d.completion_date))].sort();
+    const months = [...new Set(monthlyBonuses.map((m) => m.month))].sort();
     return months.map((m) => ({
       value: m,
       label: formatMonthLabel(m),
     }));
-  }, [processedDeals]);
+  }, [monthlyBonuses]);
 
   // ─── Chart data for team bonus ──────────────────────────────────────────
 
@@ -533,8 +521,7 @@ export default function BonusesClient({ user }: { user: User }) {
   // ─── Current month summary ─────────────────────────────────────────────
 
   const currentMonthSummary = useMemo(() => {
-    const now = new Date();
-    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentKey = getMaltaMonthKey(new Date());
     return monthlyBonuses.find((mb) => mb.month === currentKey) || null;
   }, [monthlyBonuses]);
 
@@ -932,7 +919,7 @@ export default function BonusesClient({ user }: { user: User }) {
         </Card>
 
         {/* Total Earnings */}
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+        <Card className="bg-linear-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
           <CardContent className="pt-6">
             <div className="text-sm text-gray-500 mb-1">Total Earnings (This Month)</div>
             <div className="text-2xl font-bold text-green-600">
@@ -1015,7 +1002,7 @@ export default function BonusesClient({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           {agentPerformance.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-gray-500">
+            <div className="h-75 flex items-center justify-center text-gray-500">
               No performance data available for this period.
             </div>
           ) : (
@@ -1113,7 +1100,7 @@ export default function BonusesClient({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           {bonusChartData.length === 0 ? (
-            <div className="h-[400px] flex items-center justify-center text-gray-500">
+            <div className="h-100 flex items-center justify-center text-gray-500">
               No earnings data available.
             </div>
           ) : (
@@ -1165,7 +1152,7 @@ export default function BonusesClient({ user }: { user: User }) {
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-purple-50 to-pink-50">
+              <thead className="bg-linear-to-r from-purple-50 to-pink-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Month</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-purple-700 uppercase whitespace-nowrap">Total Revenue</th>
@@ -1183,7 +1170,12 @@ export default function BonusesClient({ user }: { user: User }) {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {monthlyBonuses.map((mb) => (
-                  <tr key={mb.month} className="hover:bg-purple-50/30 transition-colors">
+                  <tr
+                    key={mb.month}
+                    onDoubleClick={() => setSelectedMonthDeals(mb)}
+                    title="Double-click to view deal references"
+                    className="cursor-pointer hover:bg-purple-50/30 transition-colors"
+                  >
                     <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{mb.monthLabel}</td>
                     <td className="px-4 py-3 text-sm text-right">{formatCurrency(mb.totalRevenue)}</td>
                     <td className="px-4 py-3 text-center">
@@ -1222,7 +1214,7 @@ export default function BonusesClient({ user }: { user: User }) {
 
                 {/* Totals Row */}
                 {monthlyBonuses.length > 0 && (
-                  <tr className="bg-gradient-to-r from-purple-100/50 to-pink-100/50 font-bold">
+                  <tr className="bg-linear-to-r from-purple-100/50 to-pink-100/50 font-bold">
                     <td className="px-4 py-3 text-sm">TOTAL</td>
                     <td className="px-4 py-3 text-sm text-right">
                       {formatCurrency(monthlyBonuses.reduce((s, m) => s + m.totalRevenue, 0))}
@@ -1256,6 +1248,32 @@ export default function BonusesClient({ user }: { user: User }) {
           </div>
         </CardContent>
       </Card>
+
+      {selectedMonthDeals && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setSelectedMonthDeals(null)}>
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {selectedMonthDeals.monthLabel} Deal References
+              </h3>
+              <button type="button" onClick={() => setSelectedMonthDeals(null)} className="text-2xl leading-none text-gray-500 hover:text-gray-900 dark:hover:text-gray-100" aria-label="Close">
+                ×
+              </button>
+            </div>
+            {selectedMonthDeals.dealRefs.length === 0 ? (
+              <p className="text-sm text-gray-500">No deal references found.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {selectedMonthDeals.dealRefs.map((ref) => (
+                  <span key={ref} className="rounded-md bg-purple-100 px-3 py-1.5 text-sm font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                    {ref}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── Bonus Rules Reference Card ──────────────────────────────────── */}
       <Card className="mb-8">

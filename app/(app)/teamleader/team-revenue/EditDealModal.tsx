@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Trash2 } from "lucide-react";
 import DealDocumentUpload from "@/components/revenue/DealDocumentUpload";
+import { isValidRevenueDate, parseRevenueDate, REVENUE_DATE_MAX, REVENUE_DATE_MIN } from "@/lib/revenue-date-validation";
+import InvoiceInfoModal from "@/components/revenue/InvoiceInfoModal";
 
 // VAT Type enum
 type VatType = 'vatable' | 'non-vatable' | 'part-time';
@@ -38,6 +40,11 @@ interface RevenueForm {
   client_paid_date: string;
   collaboration_with: string;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice?: boolean;
+  invoice_owner_name?: string | null;
+  invoice_owner_id?: string | null;
+  invoice_client_name?: string | null;
+  invoice_client_id?: string | null;
 }
 
 interface Revenue {
@@ -66,6 +73,11 @@ interface Revenue {
   client_paid_date: string | null;
   collaboration_with: string | null;
   inform_boss_after_both_sides_paid: boolean;
+  inform_admin_for_invoice?: boolean;
+  invoice_owner_name?: string | null;
+  invoice_owner_id?: string | null;
+  invoice_client_name?: string | null;
+  invoice_client_id?: string | null;
   created_at?: string;
 }
 
@@ -111,6 +123,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>(revenue.user_id || '');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceInfo, setInvoiceInfo] = useState({ ownerName: revenue.invoice_owner_name || '', ownerId: revenue.invoice_owner_id || '', clientName: revenue.invoice_client_name || '', clientId: revenue.invoice_client_id || '' });
 
   // Initialize form with revenue data
   const [form, setForm] = useState<RevenueForm>(() => {
@@ -141,15 +155,20 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       client_paid_date: revenue.client_paid_date || "",
       collaboration_with: revenue.collaboration_with || "",
       inform_boss_after_both_sides_paid: revenue.inform_boss_after_both_sides_paid || false,
+      inform_admin_for_invoice: revenue.inform_admin_for_invoice || false,
+      invoice_owner_name: revenue.invoice_owner_name || '',
+      invoice_owner_id: revenue.invoice_owner_id || '',
+      invoice_client_name: revenue.invoice_client_name || '',
+      invoice_client_id: revenue.invoice_client_id || '',
     };
   });
 
   // Date state
-  const [dateRented, setDateRented] = useState<Date | null>(revenue.date_rented ? new Date(revenue.date_rented) : null);
-  const [dateSigned, setDateSigned] = useState<Date | null>(revenue.date_signed ? new Date(revenue.date_signed) : null);
-  const [dateMoveIn, setDateMoveIn] = useState<Date | null>(revenue.date_move_in ? new Date(revenue.date_move_in) : null);
-  const [landlordPaidDate, setLandlordPaidDate] = useState<Date | null>(revenue.landlord_paid_date ? new Date(revenue.landlord_paid_date) : null);
-  const [clientPaidDate, setClientPaidDate] = useState<Date | null>(revenue.client_paid_date ? new Date(revenue.client_paid_date) : null);
+  const [dateRented, setDateRented] = useState<Date | null>(parseRevenueDate(revenue.date_rented));
+  const [dateSigned, setDateSigned] = useState<Date | null>(parseRevenueDate(revenue.date_signed));
+  const [dateMoveIn, setDateMoveIn] = useState<Date | null>(parseRevenueDate(revenue.date_move_in));
+  const [landlordPaidDate, setLandlordPaidDate] = useState<Date | null>(parseRevenueDate(revenue.landlord_paid_date));
+  const [clientPaidDate, setClientPaidDate] = useState<Date | null>(parseRevenueDate(revenue.client_paid_date));
 
   // Calculated fees
   const [calculatedFees, setCalculatedFees] = useState({
@@ -307,6 +326,13 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
     e.preventDefault();
     setSubmitting(true);
 
+    const selectedDates = [dateRented, dateSigned, dateMoveIn, landlordPaidDate, clientPaidDate];
+    if (selectedDates.some((date) => date && !isValidRevenueDate(date.toISOString()))) {
+      toast({ title: "Validation Error", description: "All dates must be between 2025 and 2050.", variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       ...form,
       date_rented: dateRented ? dateRented.toISOString() : null,
@@ -316,6 +342,11 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
       client_paid_date: clientPaidDate ? clientPaidDate.toISOString() : null,
       // Pass selected agent's user_id for reassignment
       target_user_id: selectedAgentId || undefined,
+      inform_admin_for_invoice: form.inform_admin_for_invoice,
+      invoice_owner_name: form.invoice_owner_name,
+      invoice_owner_id: form.invoice_owner_id,
+      invoice_client_name: form.invoice_client_name,
+      invoice_client_id: form.invoice_client_id,
     };
 
     try {
@@ -350,8 +381,14 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Edit Deal</h2>
           
@@ -488,10 +525,10 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   step="0.01"
                   value={form.monthly_rent_amount}
                   onChange={(e) => setForm({ ...form, monthly_rent_amount: e.target.value })}
-                  placeholder="Enter monthly rent amount (for revenue charts)"
+                      placeholder="Enter monthly rent amount"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Used for monthly revenue charts and bonus calculations</p>
+                    <p className="text-xs text-gray-500 mt-1">Stored for reference only</p>
               </div>
             )}
 
@@ -580,6 +617,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   selected={dateRented}
                   onChange={(date: Date | null) => setDateRented(date)}
                   dateFormat="dd/MM/yyyy"
+                  minDate={REVENUE_DATE_MIN}
+                  maxDate={REVENUE_DATE_MAX}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
                 />
@@ -590,6 +629,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   selected={dateSigned}
                   onChange={(date: Date | null) => setDateSigned(date)}
                   dateFormat="dd/MM/yyyy"
+                  minDate={REVENUE_DATE_MIN}
+                  maxDate={REVENUE_DATE_MAX}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
                 />
@@ -600,6 +641,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   selected={dateMoveIn}
                   onChange={(date: Date | null) => setDateMoveIn(date)}
                   dateFormat="dd/MM/yyyy"
+                  minDate={REVENUE_DATE_MIN}
+                  maxDate={REVENUE_DATE_MAX}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
                 />
@@ -614,6 +657,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   selected={landlordPaidDate}
                   onChange={(date: Date | null) => setLandlordPaidDate(date)}
                   dateFormat="dd/MM/yyyy"
+                  minDate={REVENUE_DATE_MIN}
+                  maxDate={REVENUE_DATE_MAX}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
                 />
@@ -624,6 +669,8 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
                   selected={clientPaidDate}
                   onChange={(date: Date | null) => setClientPaidDate(date)}
                   dateFormat="dd/MM/yyyy"
+                  minDate={REVENUE_DATE_MIN}
+                  maxDate={REVENUE_DATE_MAX}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholderText="Select date"
                 />
@@ -731,6 +778,12 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
             </div>
 
             {/* Row 7: Deal Documents Upload */}
+            <div className="flex items-center">
+              <input type="checkbox" id="inform_admin_invoice_edit" checked={!!form.inform_admin_for_invoice} onChange={(event) => {
+                if (form.ref_no && dateRented && dateSigned && dateMoveIn) setShowInvoiceModal(event.target.checked);
+              }} disabled={!form.ref_no || !dateRented || !dateSigned || !dateMoveIn} className="mr-2 h-4 w-4 disabled:opacity-50" />
+              <label htmlFor="inform_admin_invoice_edit" className="text-sm font-medium text-gray-900 dark:text-gray-100">Inform Admin for Invoice</label>
+            </div>
             <DealDocumentUpload refNo={form.ref_no} />
 
             {/* Form Buttons */}
@@ -780,6 +833,20 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
           </form>
         </div>
       </div>
+      {showInvoiceModal && (
+        <InvoiceInfoModal
+          value={invoiceInfo}
+          onChange={(value) => {
+            setInvoiceInfo(value);
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: value.ownerName, invoice_owner_id: value.ownerId, invoice_client_name: value.clientName, invoice_client_id: value.clientId });
+          }}
+          onSend={() => {
+            setForm({ ...form, inform_admin_for_invoice: true, invoice_owner_name: invoiceInfo.ownerName, invoice_owner_id: invoiceInfo.ownerId, invoice_client_name: invoiceInfo.clientName, invoice_client_id: invoiceInfo.clientId });
+            setShowInvoiceModal(false);
+          }}
+          onClose={() => setShowInvoiceModal(false)}
+        />
+      )}
     </div>
   );
 }

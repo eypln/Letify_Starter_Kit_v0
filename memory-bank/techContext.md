@@ -1,5 +1,27 @@
 # Tech Context: Letify
 
+## Revenue Feature Context (13.08.2026)
+
+- Shared validation helper: `lib/revenue-date-validation.ts` (valid years: 2025–2050).
+- Shared financial basis helper: `lib/revenue-calculations.ts`.
+- Shared invoice UI: `components/revenue/InvoiceInfoModal.tsx`.
+- Core API: `app/api/revenue/route.ts`.
+- Main clients: `app/dashboard/revenue/RevenueClient.tsx`, `app/(app)/teamleader/team-revenue/TeamRevenueClient.tsx`, `EditDealModal.tsx`, `BonusesClient.tsx`.
+- Supabase migrations applied through SQL Editor:
+  - `20260811090000_revenue_collab_user_id_policies.sql`
+  - `20260813100000_revenue_invoice_admin_notification.sql`
+- Invoice notification delivery depends on existing SMTP and Web Push/VAPID environment variables. A successful DB migration does not by itself prove email/push delivery; smoke testing is required.
+- Generated Supabase types were aligned for the new columns; if diagnostics disagree with the compiler, regenerate types from the current schema rather than weakening types.
+
+## Verification Commands
+
+```bash
+pnpm exec tsc --noEmit --pretty false
+pnpm build
+```
+
+Both commands passed during the 13.08.2026 deploy-readiness check; build generated 128 pages.
+
 ## Teknoloji Stack
 
 ### Frontend

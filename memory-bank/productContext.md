@@ -1,5 +1,7 @@
 # Product Context: Letify
 
+> Güncel ürün odağı (13.08.2026): İç ekip operasyonları ve finansal doğruluk birinci önceliktir. Content Engineering/AI Second Brain destekleyici bir capability olarak korunur.
+
 ## Var Olma Nedeni
 Letify, Malta merkezli bir emlakçı (lettings) ekibinin **iç kullanım aracıdır**. Son birkaç aydaki gelişmelerle bir "letting assistant" olarak evrildi. `app.letify.cloud` adresi üzerinden yalnızca ekip içi erişime açıktır — dışa açık pazarlama veya genel kullanıcı kaydı hedeflenmemektedir. Ajanların property listing yönetimi, müşteri takibi, gelir yönetimi ve ekip işbirliği süreçlerini tek çatı altında toplar. Ayrıca yapay zeka destekli "Second Brain" sistemi ile sosyal medya içerik stratejisi, öğrenme ve uygulama süreçlerini otomatikleştirir.
 
@@ -7,6 +9,8 @@ Letify, Malta merkezli bir emlakçı (lettings) ekibinin **iç kullanım aracıd
 - **Listing Yönetimi**: Emlak ilanlarının merkezi yönetimi ve takibi
 - **Müşteri Takibi**: Kiracı/mal sahibi bilgilerini merkezi bir yerde yönetme
 - **Gelir Yönetimi**: Deal'ler, komisyonlar, bonus hesaplamaları
+- **Finansal Mutabakat**: Boss ödeme kayıtlarıyla deal bazlı pending balance ve ödeme durumlarının karşılaştırılması
+- **Invoice Operasyonu**: Agent/teamleader invoice bilgilerinin kaydı ve admin bildirim akışı
 - **Ekip İşbirliği**: Teamwork, assign to agent, collaboration
 - **Ödeme Yönetimi**: Abonelik ve billing sistemi
 - **AI Second Brain**: Sosyal medya içerik analizi, öğrenme ve bilgi yönetimi otomasyonu
@@ -18,6 +22,10 @@ Letify, Malta merkezli bir emlakçı (lettings) ekibinin **iç kullanım aracıd
 3. **Listing Management**: Property ekleme, düzenleme, paylaşma
 4. **Client Management**: Müşteri profili ve etkileşim takibi
 5. **Revenue Management**: Deal kaydı, ödeme takibi, bonus hesaplaması
+	- Revenue timeline ile bonus timeline birbirinden ayrıdır.
+	- Bonus ayı, geçerli ödeme durumuna göre Malta timezone ile deterministik hesaplanır; yalnızca kurala uygun paid deal'ler bonus kapsamına girer.
+	- Shortlet/longlet gelir temeli ortak hesaplama helper'ı ile tutarlı tutulur.
+	- Teamleader listing fee yalnızca doğru sahiplik kapsamındaki deal'lerden hesaplanır; dış agent deal'leri yanlışlıkla team fee'ye katkı yapmaz.
 6. **Teamwork**: Listing ve müşteri paylaşımı
 7. **Billing**: Abonelik seçimi ve ödeme
 8. **Analytics**: Performans metrikleri ve raporlar
@@ -30,6 +38,7 @@ Letify, Malta merkezli bir emlakçı (lettings) ekibinin **iç kullanım aracıd
 - **Ölçeklenebilirlik**: Büyüyen ihtiyaçlara uyum
 - **Güvenlik**: Veri koruması ve gizlilik
 - **Akıllı İçgörüler**: AI destekli içerik analizi ve öneriler
+- **Finansal Şeffaflık**: Ödeme, bonus ve invoice durumunun kullanıcı rolüne göre açıkça izlenebilmesi
 
 ## Hedef Kullanıcılar
 - Malta merkezli emlak (lettings) ajanları

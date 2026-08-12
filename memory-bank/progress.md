@@ -1,6 +1,31 @@
 
 # Progress: Letify
 
+## 13.08.2026 - Revenue Audit, Invoice Workflow & Deploy Readiness ✅
+
+### Tamamlananlar
+- Revenue/agent income/bonus/teamleader fee mantığı boss ödeme kayıtlarıyla mutabakat hedefiyle denetlendi.
+- Bonus ayı, paid-date ve Malta timezone kuralları ekranlar arasında tutarlılaştırıldı; revenue timeline ile bonus timeline ayrıldı.
+- Paid-only bonus inclusion düzeltildi.
+- Listing fee ownership/scope düzeltildi; dış agent kayıtlarının yanlış teamleader fee'ye etkisi kaldırıldı.
+- Collaboration ID ve RLS/policy hardening migration'ı uygulandı.
+- Invoice fields, reusable invoice modal, API persistence ve admin email/push notification metadata akışı tamamlandı.
+- Revenue tarihleri 2025–2050 aralığında UI ve API seviyesinde doğrulanıyor.
+- Shortlet/longlet revenue basis ortak helper'a taşındı.
+- Agent, teamleader ve manager revenue ekranlarında modal, filtre, tarih ve UX sağlamlaştırmaları tamamlandı.
+- `pnpm exec tsc --noEmit --pretty false`: ✅ exit code 0.
+- `pnpm build`: ✅ başarılı, 128 sayfa.
+
+### Supabase Durumu
+- Kullanıcı aşağıdaki migration'ları Supabase SQL Editor'de uyguladı:
+  - `supabase/migrations/20260811090000_revenue_collab_user_id_policies.sql`
+  - `supabase/migrations/20260813100000_revenue_invoice_admin_notification.sql`
+
+### Kalan İşler
+- Production smoke test: invoice checkbox/modal, Agent Add/Edit, Teamleader Add/Edit, admin email/push teslimi.
+- Admin panelde invoice notifications tüketimi sonraki fazda yapılacak.
+- Gerekirse Supabase types yeniden üretilecek; stale editor diagnostics compiler sonucundan ayrı değerlendirilecek.
+
 ## Ne Çalışıyor ✅
 
 ### v2.9.3 - UI Erişim Kısıtlamaları & İç Araç Konumlandırması (04.05.2026) ✅

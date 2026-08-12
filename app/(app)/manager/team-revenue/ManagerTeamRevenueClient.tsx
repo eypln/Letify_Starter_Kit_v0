@@ -583,7 +583,7 @@ function MonthlyRevenueChart() {
 
   if (loading) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
+      <div className="h-100 flex items-center justify-center text-gray-500">
         Loading chart data...
       </div>
     );
@@ -591,7 +591,7 @@ function MonthlyRevenueChart() {
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-gray-500">
+      <div className="h-100 flex items-center justify-center text-gray-500">
         No revenue data available for chart.
       </div>
     );

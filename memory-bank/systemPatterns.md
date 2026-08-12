@@ -1,5 +1,35 @@
 # System Patterns: Letify
 
+## Revenue, Bonus & Invoice Patterns (13.08.2026)
+
+### Revenue Timeline vs Bonus Timeline
+- Deal'in operasyonel revenue görünümü ile bonus hesaplama ayı aynı kavram değildir; iki timeline ayrı helper/selector mantığıyla korunur.
+- Bonus completion month Malta timezone kullanılarak deterministik hesaplanır.
+- Bonus kapsamına yalnızca ödeme kuralını sağlayan paid deal'ler alınır.
+
+### Shared Revenue Basis
+- Shortlet ve longlet hesapları `lib/revenue-calculations.ts` içindeki ortak helper üzerinden yürütülür.
+- Agent, teamleader ve manager ekranlarında aynı business formula kullanılmalıdır; ekran bazlı formül kopyalanmamalıdır.
+
+### Identity and Collaboration
+- Collaboration ve elevated-user permission kararları profile adı yerine immutable `profiles.user_id` ile yapılır.
+- `supabase/migrations/20260811090000_revenue_collab_user_id_policies.sql` collaboration ID ve ilgili policy hardening'i sağlar.
+
+### Date Safety
+- Revenue tarihleri `lib/revenue-date-validation.ts` ile 2025–2050 aralığında parse/validate edilir.
+- UI DatePicker sınırları ve API validation aynı sınırları takip eder; eski/bozuk tarihlerin bonus veya revenue raporlarına sızması engellenir.
+
+### Invoice Notification Flow
+```
+Agent/Teamleader Add or Edit Deal
+  -> InvoiceInfoModal (invoice fields)
+  -> /api/revenue validation + persistence
+  -> admin notification metadata
+  -> email/push notification helper
+```
+- DB kolonları `supabase/migrations/20260813100000_revenue_invoice_admin_notification.sql` ile oluşturulur.
+- Invoice modal agent ve teamleader akışları arasında paylaşılır.
+
 ## Sistem Mimarisi
 
 ### Genel Yapı

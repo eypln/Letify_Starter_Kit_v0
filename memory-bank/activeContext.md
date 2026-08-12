@@ -1,5 +1,36 @@
 # Active Context: Letify
 
+## Güncel Çalışma Durumu (13.08.2026) ✅ Revenue Audit, Invoice Flow & Deploy Readiness
+
+Bu oturumda revenue, agent income, bonus ve teamleader fee mantığı boss ödeme kayıtlarıyla mutabakat amacıyla denetlendi ve kritik akışlar düzeltildi.
+
+### Tamamlanan Düzeltmeler
+
+- Revenue API'de collaboration kimliği `user_id` üzerinden güvenilirleştirildi; isim bazlı eşleştirmeye bağımlılık azaltıldı.
+- Collaboration permission/RLS desteği için `20260811090000_revenue_collab_user_id_policies.sql` migration'ı eklendi ve Supabase SQL Editor'de uygulandı.
+- Revenue kayıtlarına invoice alanları ve admin notification metadata eklendi.
+- `20260813100000_revenue_invoice_admin_notification.sql` migration'ı Supabase SQL Editor'de uygulandı.
+- Agent ve teamleader Add/Edit Deal akışlarına reusable `InvoiceInfoModal` eklendi; invoice detayları persist edilir ve admin'e email/push bildirim akışı tetiklenir.
+- `lib/revenue-date-validation.ts` ile tarih aralığı 2025–2050 arasında sınırlandı; bozuk tarih verileri (ör. 1350 yılı) UI/API seviyesinde engellenir.
+- `lib/revenue-calculations.ts` ile shortlet/longlet gelir temeli ortaklaştırıldı.
+- Revenue timeline ile bonus timeline ayrıldı; bonus ayı Malta timezone ve geçerli paid-date kuralı üzerinden tutarlılaştırıldı.
+- Bonuslar yalnızca ödeme koşullarını sağlayan deal'lere dahil edilir; listing fee sahipliği agent/teamleader kapsamına göre düzeltilmiştir.
+- Bonus, revenue ve team revenue ekranlarında clickable summary filters, modal dışına tıklayarak kapatma ve güvenli DatePicker sınırları iyileştirildi.
+- Production doğrulaması: `pnpm exec tsc --noEmit --pretty false` exit code 0; `pnpm build` başarılı, 128 sayfa üretildi.
+
+### Açık / Sonraki Kontroller
+
+- Invoice akışı için production smoke test: Agent Add/Edit, Teamleader Add/Edit, invoice send ve admin email/push alımı.
+- Supabase generated types mevcut schema ile temiz şekilde yeniden üretilebilir; editor'daki stale diagnostic'ler görülürse ilk kontrol budur.
+- Deploy öncesi migration'ların hedef Supabase projesinde gerçekten uygulandığı doğrulanmalı; kullanıcı SQL Editor uygulamasını tamamladı.
+- Admin panelde invoice notification kayıtlarının UI tüketimi henüz ayrı bir fazdır.
+
+### Bu Oturumdan Kalıcı Öğrenmeler
+
+- Finansal iş kuralları ekran bazında kopyalanmamalı; ortak helper'lar ve tekil tarih/hesaplama kuralları kullanılmalı.
+- Permission ve collaboration ilişkilerinde ad/email gibi değişebilir metinler yerine immutable `user_id` kullanılmalı.
+- Editor diagnostics stale olabilir; gerçek doğrulama için TypeScript compiler ve production build esas alınmalı.
+
 ## Mevcut Çalışma Odağı
 
 ### Ana Odak Alanları (04.05.2026) ✅ COMPLETED - UI Erişim Kısıtlamaları & Letify Konumlandırması v2.9.3
