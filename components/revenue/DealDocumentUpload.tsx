@@ -307,7 +307,7 @@ export default function DealDocumentUpload({ refNo }: DealDocumentUploadProps) {
                 }`}
               >
                 <div
-                  className={`flex-shrink-0 p-2 rounded-lg ${
+                  className={`shrink-0 p-2 rounded-lg ${
                     doc
                       ? "bg-green-100 dark:bg-green-800"
                       : "bg-gray-100 dark:bg-gray-700"

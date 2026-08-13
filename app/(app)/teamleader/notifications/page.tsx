@@ -216,7 +216,7 @@ export default function NotificationsPage() {
                     key={notification.id}
                     className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors"
                   >
-                    <div className="flex-shrink-0 mt-1">
+                    <div className="shrink-0 mt-1">
                       {getIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
                         variant={page === pageNum ? "default" : "outline"}
                         size="sm"
                         onClick={() => setPage(pageNum)}
-                        className={`px-3 py-1 min-w-[40px] ${
+                        className={`px-3 py-1 min-w-10 ${
                           page === pageNum
                             ? "bg-purple-500 hover:bg-purple-600 text-white"
                             : ""

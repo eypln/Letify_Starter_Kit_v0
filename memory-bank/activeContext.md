@@ -2,6 +2,16 @@
 
 ## Güncel Çalışma Durumu (13.08.2026) ✅ Revenue Audit, Invoice Flow & Deploy Readiness
 
+### Admin Invoice Generation Extension (13.08.2026)
+
+- Admin dashboard'da `/admin/invoices` artık invoice request deal register ve PDF hazırlama aracını içerir.
+- `jspdf` ile verilen PAYMENT ADVICE örneğine uygun PDF üretilir; owner/client recipient seçilebilir, recipient ID PDF'de adın altında gösterilir.
+- Due date bilinçli olarak opsiyoneldir; karar verilene kadar boş bırakılabilir ve PDF'de gösterilmez.
+- Invoice numarası DB sequence üzerinden `INV-0001` formatında yarış koşuluna dayanıklı üretilir; PDF içeriği, filename ve revenue kaydı aynı numarayı kullanır.
+- PDF `Lease_agreements/{ref_no}/{invoice_owner|invoice_client}/{invoice_number}.pdf` path'ine yazılır. Mevcut `DealDocumentUpload` bileşeni aynı path'i okuduğu için Agent/Teamleader modalında otomatik görünür ve indirilebilir.
+- Admin invoice register'da deal/ref, requester, owner/client isim ve ID, invoice tarihi, due date, unit price, VAT, total, invoice PDF ve varsa lease agreement erişimi bulunur.
+- Migration: `supabase/migrations/20260813120000_admin_invoice_generation.sql` production Supabase SQL Editor'de uygulanmalıdır.
+
 Bu oturumda revenue, agent income, bonus ve teamleader fee mantığı boss ödeme kayıtlarıyla mutabakat amacıyla denetlendi ve kritik akışlar düzeltildi.
 
 ### Tamamlanan Düzeltmeler

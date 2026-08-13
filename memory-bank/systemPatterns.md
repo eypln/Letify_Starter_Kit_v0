@@ -2,6 +2,12 @@
 
 ## Revenue, Bonus & Invoice Patterns (13.08.2026)
 
+### Admin Invoice Generation
+- Admin invoice numarası `next_revenue_invoice_number()` PostgreSQL sequence fonksiyonu ile alınır; client-side `MAX()` veya timestamp tabanlı numara kullanılmaz.
+- PDF üretimi browser'da `jsPDF` ile yapılır, FormData üzerinden admin-only API'ye yüklenir; API Storage upload ve revenue metadata persistence işlemlerini service-role client ile tamamlar.
+- Generated invoice dosya path'i mevcut `DealDocumentUpload` convention'ı ile aynıdır. Bu, ayrı bir sync tablosu veya UI özel-case'i gerektirmeden otomatik yansımayı sağlar.
+- Due date nullable/optional tutulur.
+
 ### Revenue Timeline vs Bonus Timeline
 - Deal'in operasyonel revenue görünümü ile bonus hesaplama ayı aynı kavram değildir; iki timeline ayrı helper/selector mantığıyla korunur.
 - Bonus completion month Malta timezone kullanılarak deterministik hesaplanır.

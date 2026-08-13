@@ -171,7 +171,7 @@ export default function InternPage() {
 
           {/* Internship Tasks Card */}
           <Link href="/dashboard/internship-tasks" className="block">
-            <div className="rounded-lg border bg-gradient-to-br from-purple-50 to-indigo-50 text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full ring-2 ring-purple-200">
+            <div className="rounded-lg border bg-linear-to-br from-purple-50 to-indigo-50 text-card-foreground shadow-sm hover:shadow-lg transition-shadow cursor-pointer h-full ring-2 ring-purple-200">
               <div className="p-6 pb-4">
                 <h2 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
                   <ClipboardCheck className="h-6 w-6 text-purple-600" />

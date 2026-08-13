@@ -2,6 +2,12 @@
 
 ## Revenue Feature Context (13.08.2026)
 
+- Admin PDF invoice UI: `app/(app)/admin/invoices/page.tsx`.
+- Invoice number reservation: `app/api/admin/invoices/number/route.ts`.
+- Invoice PDF upload/persistence: `app/api/admin/invoices/generate/route.ts`.
+- Invoice generation migration: `supabase/migrations/20260813120000_admin_invoice_generation.sql`.
+- PDF dependency: existing `jspdf` package; output is saved locally after successful server persistence.
+
 - Shared validation helper: `lib/revenue-date-validation.ts` (valid years: 2025–2050).
 - Shared financial basis helper: `lib/revenue-calculations.ts`.
 - Shared invoice UI: `components/revenue/InvoiceInfoModal.tsx`.

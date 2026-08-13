@@ -3,6 +3,14 @@
 
 ## 13.08.2026 - Revenue Audit, Invoice Workflow & Deploy Readiness ✅
 
+### Admin Invoice Generator Extension
+- Invoice request tablosu tam deal register'a genişletildi.
+- Admin için owner/client seçilebilir PDF invoice hazırlama aracı eklendi.
+- Recipient ID, VAT, amount, optional due date, payment details ve sequential invoice filename desteği eklendi.
+- Generated invoice PDF aynı `DealDocumentUpload` storage path'ine yazılıyor; agent/teamleader ekranlarına otomatik yansıyor.
+- Admin register'da varsa lease agreement linki gösteriliyor.
+- Build doğrulaması: ✅ 133 static page generation, yeni admin invoice API route'ları başarılı.
+
 ### Tamamlananlar
 - Revenue/agent income/bonus/teamleader fee mantığı boss ödeme kayıtlarıyla mutabakat hedefiyle denetlendi.
 - Bonus ayı, paid-date ve Malta timezone kuralları ekranlar arasında tutarlılaştırıldı; revenue timeline ile bonus timeline ayrıldı.
@@ -20,6 +28,8 @@
 - Kullanıcı aşağıdaki migration'ları Supabase SQL Editor'de uyguladı:
   - `supabase/migrations/20260811090000_revenue_collab_user_id_policies.sql`
   - `supabase/migrations/20260813100000_revenue_invoice_admin_notification.sql`
+- Uygulanması gereken yeni migration:
+  - `supabase/migrations/20260813120000_admin_invoice_generation.sql`
 
 ### Kalan İşler
 - Production smoke test: invoice checkbox/modal, Agent Add/Edit, Teamleader Add/Edit, admin email/push teslimi.
