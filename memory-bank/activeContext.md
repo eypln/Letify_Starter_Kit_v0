@@ -1,5 +1,15 @@
 # Active Context: Letify
 
+## Current State (15.08.2026) - v2.10.0
+
+- Critical CI gate: 29 suites, 185 tests, 76.24% critical statements coverage.
+- `pnpm lint` and `npx next build` pass; `pnpm audit` reports no known vulnerabilities.
+- `xlsx` was removed and both browser/server exports use `exceljs@4.4.0`.
+- Debug/test routes are production-hidden and non-production admin-protected through `proxy.ts`.
+- Credit mutation endpoints require confirmed admin authorization and strict positive numeric input.
+- Notification policy is role-aware: admin/manager/teamleader/boss broadcast; normal users can target leadership roles; collaboration helper behavior remains intact.
+- Current content-engineering agent guidance lives in `.github/agents/content-engineer.agent.md`.
+
 ## Güncel Çalışma Durumu (13.08.2026) ✅ Revenue Audit, Invoice Flow & Deploy Readiness
 
 ### Admin Invoice Generation Extension (13.08.2026)

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,8 +90,31 @@ async function addCredits(
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
+  return NextResponse.json(
+    { error: "Use POST for state-changing test operations" },
+    { status: 405, headers: { Allow: "POST" } }
+  );
+}
+
+export async function POST(req: Request) {
   try {
+    const authClient = await createServerClient();
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: profile } = await authClient
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin' || profile.status === 'denied') {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const credits = searchParams.get('credits');
@@ -99,8 +123,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing userId or credits parameter" }, { status: 400 });
     }
     
-    const creditsToAdd = parseInt(credits);
-    if (isNaN(creditsToAdd) || creditsToAdd <= 0) {
+    const creditsToAdd = Number(credits);
+    if (!Number.isFinite(creditsToAdd) || creditsToAdd <= 0) {
       return NextResponse.json({ error: "Invalid credits parameter" }, { status: 400 });
     }
     
@@ -111,6 +135,11 @@ export async function GET(req: Request) {
       inv: null
     });
     
+    if (!result.success) {
+      console.error("Test add credits failed:", result.error);
+      return NextResponse.json({ error: "Failed to add credits" }, { status: 500 });
+    }
+
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
     console.error("Test add credits error:", err);

@@ -3,15 +3,11 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 import { addCredits } from "@/lib/billing";
+import { inferCycle, toIso } from "@/lib/stripe-webhook-helpers";
+import { calculateCredits, inferPlanType } from "@/lib/stripe-credit-helpers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/** Unix saniyeyi ISO'ya çevirir; sayı yoksa "şimdi" döner (NOT NULL kolonları korur). */
-const toIso = (n: unknown): string =>
-  typeof n === "number" && Number.isFinite(n)
-    ? new Date(n * 1000).toISOString()
-    : new Date().toISOString();
 
 /** Supabase service-role client (RLS'i baypas eder). */
 const supa = () => {
@@ -107,27 +103,6 @@ async function findUserByVariousMethods(
   
   console.log("User not found by any method");
   return null;
-}
-
-/** price.id'den plan (mini/full) çıkarımı – metadata yoksa fallback */
-function inferPlanType(
-  fallbackFromMetadata: unknown,
-  priceId?: string | null
-): "mini" | "full" {
-  if (fallbackFromMetadata === "mini" || fallbackFromMetadata === "full") {
-    return fallbackFromMetadata;
-  }
-  const fullIds = new Set(
-    [process.env.STRIPE_PRICE_FULL_MONTHLY, process.env.STRIPE_PRICE_FULL_YEARLY].filter(
-      Boolean
-    ) as string[]
-  );
-  return priceId && fullIds.has(priceId) ? "full" : "mini";
-}
-
-/** price.recurring.interval'dan cycle çıkarımı */
-function inferCycle(interval?: "day" | "week" | "month" | "year" | null): "monthly" | "yearly" {
-  return interval === "year" ? "yearly" : "monthly";
 }
 
 export async function POST(req: Request) {
@@ -226,7 +201,7 @@ export async function POST(req: Request) {
           rawBodyLength: raw.length,
           secretLength: process.env.STRIPE_WEBHOOK_SECRET?.length
         });
-        return NextResponse.json({ error: `Webhook signature verification failed: ${error.message}` }, { status: 400 });
+        return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 });
       }
     }
 
@@ -380,11 +355,7 @@ export async function POST(req: Request) {
         console.log("Payment Intent:", s.payment_intent);
         
         // Önce metadata.credit_amount (varsa), yoksa amount_total/100
-        let creditsToAdd = Number(s.metadata?.credit_amount ?? 0);
-        if (!Number.isFinite(creditsToAdd) || creditsToAdd <= 0) {
-          creditsToAdd =
-            typeof s.amount_total === "number" ? Math.round(s.amount_total / 100) : 0;
-        }
+        const creditsToAdd = calculateCredits(s.metadata?.credit_amount, s.amount_total);
         console.log("Credits to add:", creditsToAdd);
         console.log("Credit calculation details:", {
           metadataAmount: s.metadata?.credit_amount,

@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { stripe } from '@/lib/stripe';
 import { getOrCreateStripeCustomer } from '@/lib/billing';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
-
-const BillingPortalSchema = z.object({
-  returnUrl: z.string().url().optional(),
-});
+import { BillingPortalSchema } from '@/lib/billing-schemas';
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per user

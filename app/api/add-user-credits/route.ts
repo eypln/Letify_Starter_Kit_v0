@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 // Supabase client
 const supa = () => createClient(
@@ -10,9 +11,30 @@ const supa = () => createClient(
 export async function POST(request: NextRequest) {
   try {
     const { userId, credits } = await request.json();
+
+    const authClient = await createServerClient();
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: adminProfile } = await authClient
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single();
+
+    if (adminProfile?.role !== 'admin' || adminProfile.status === 'denied') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     
     if (!userId || !credits) {
       return NextResponse.json({ error: 'User ID and credits are required' }, { status: 400 });
+    }
+
+    const creditAmount = Number(credits);
+    if (!Number.isFinite(creditAmount) || creditAmount <= 0) {
+      return NextResponse.json({ error: 'Credits must be a positive number' }, { status: 400 });
     }
     
     console.log(`Adding ${credits} credits to user: ${userId}`);
@@ -24,7 +46,7 @@ export async function POST(request: NextRequest) {
       .from('billing_credit_ledger')
       .insert({ 
         user_id: userId, 
-        delta: credits, 
+        delta: creditAmount, 
         reason: "manual_add",
         stripe_payment_intent_id: null,
         stripe_invoice_id: null
@@ -41,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc('increment_credits', { 
         p_user_id: userId, 
-        p_delta: credits 
+        p_delta: creditAmount 
       });
     
     if (rpcError) {

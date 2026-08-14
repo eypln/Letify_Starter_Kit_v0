@@ -38,14 +38,6 @@ const customJestConfig = {
   transformIgnorePatterns: [
     'node_modules/(?!(uuid|@supabase)/)',
   ],
-  coverageThreshold: {
-    global: {
-      branches: 20,
-      functions: 20,
-      lines: 20,
-      statements: 20,
-    },
-  },
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

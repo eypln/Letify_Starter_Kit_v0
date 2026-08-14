@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Admin Invoices API] Error fetching invoices:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 })
     }
 
     const userIds = [...new Set((invoices || []).map((invoice) => invoice.user_id).filter(Boolean))]

@@ -1,5 +1,14 @@
 # Tech Context: Letify
 
+## Current Toolchain (v2.10.0)
+
+- Next.js 16.3.1, React 19.2.8, TypeScript 6.0.3, ESLint 9.39.5, pnpm 10.32.1.
+- Excel export: `exceljs@4.4.0`; `xlsx` removed because its advisories had no patched upstream release.
+- Jest critical config: `jest.critical.config.js`; full report: `test:coverage:full`.
+- Security overrides are defined in `pnpm-workspace.yaml`, not the deprecated/ignored package.json `pnpm` field.
+- Current audit baseline: no known vulnerabilities after patched transitive overrides and direct webpack 5.109.2.
+- Notification VAPID configuration is read at request time in the send route; push cleanup removes 404/410 subscriptions.
+
 ## Revenue Feature Context (13.08.2026)
 
 - Admin PDF invoice UI: `app/(app)/admin/invoices/page.tsx`.
@@ -31,16 +40,16 @@ Both commands passed during the 13.08.2026 deploy-readiness check; build generat
 ## Teknoloji Stack
 
 ### Frontend
-- **Framework**: Next.js 15.5.4 (App Router)
-- **Language**: TypeScript 5.x
-- **UI Library**: React 19.1.1
+- **Framework**: Next.js 16.3.1 (App Router)
+- **Language**: TypeScript 6.0.3
+- **UI Library**: React 19.2.8
 - **Styling**: Tailwind CSS 4.2.4 + @tailwindcss/postcss 4.2.4 (v4 — autoprefixer kaldırıldı, built-in)
 - **Component Library**: Radix UI primitives (being migrated to native HTML for performance)
 - **Icons**: Lucide React
 - **Forms**: React Hook Form + Zod validation
 - **Charts**: Recharts (PieChart, donut grafikler — Applications statü dağılımı)
 - **PDF Generation**: jsPDF 2.5.2 + jspdf-autotable 3.8.4 (Teamleader Bonus raporları, Job Applications raporları)
-- **Excel Export**: xlsx ^0.18.5 (Job Applications XLSX dışa aktarma)
+- **Excel Export**: exceljs 4.4.0 (browser/server XLSX dışa aktarma; SheetJS kaldırıldı)
 - **Date Handling**: date-fns
 - **PWA**: next-pwa 5.6.0 (Service Worker, Offline Support, Push Notifications)
   - **Custom Service Worker**: `public/service-worker.js` (270+ lines)
@@ -51,7 +60,7 @@ Both commands passed during the 13.08.2026 deploy-readiness check; build generat
   - **Vibration Pattern**: Mobile UX (200, 100, 200 milliseconds)
   - **Test Endpoint**: `/api/notifications/test` for easy testing
   - **Database**: `push_subscriptions` table for subscription management
-- **Analytics**: @vercel/analytics 1.6.1 (import: `@vercel/analytics/next` for Next.js 15)
+- **Analytics**: @vercel/analytics (import: `@vercel/analytics/next`)
 - **Security**: BotID 1.5.10 (Bot protection, API security)
 
 ### Backend & Database

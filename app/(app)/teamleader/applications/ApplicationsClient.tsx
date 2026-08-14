@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit2, Trash2, X, Download, ChevronDown } from "lucide-react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { createClient } from "@/lib/supabase/client";
@@ -586,11 +586,25 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       "Start Date": formatDate(app.start_date),
     }));
 
-    const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
-    ws["!cols"] = headers.map(h => ({ wch: h === "Email" ? 28 : h === "Applicant" ? 22 : 16 }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Applications");
-    XLSX.writeFile(wb, `job_applications_${new Date().toISOString().split("T")[0]}.xlsx`);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Applications");
+    worksheet.columns = headers.map(header => ({
+      header,
+      key: header,
+      width: header === "Email" ? 28 : header === "Applicant" ? 22 : 16,
+    }));
+    rows.forEach((row: Record<string, string>) => worksheet.addRow(headers.map(header => row[header])));
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `job_applications_${new Date().toISOString().split("T")[0]}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
 
     toast({ title: `Exported ${data.length} applications`, variant: "default" });
   };

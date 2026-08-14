@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       console.error('[Approve User] Error updating user status:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update user status' }, { status: 500 })
     }
 
     if (!updatedProfile) {

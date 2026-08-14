@@ -1,5 +1,15 @@
 # Letify Projesinin Memory Bank'ı
 
+## Güncel Agent Çalışma Sözleşmesi (v2.10.0)
+
+- Content Engineering, AI Second Brain ve n8n workflow'ları ürünün destekleyici capability'sidir; ana ürün lettings operasyonudur.
+- Finans, billing, invoice, webhook, kredi ve notification endpoint'lerinde auth, role, input validation, idempotency ve güvenli hata response'ları zorunludur.
+- Notification rol matrisi: admin, manager/branch manager, teamleader ve boss broadcast yapabilir; normal kullanıcı kendisine veya bu leadership rollerine doğrudan gönderebilir; rastgele agent hedefi yasaktır.
+- Production debug/test endpoint'leri proxy'de gizlenir; development erişimi doğrulanmış admin ile sınırlıdır.
+- `xlsx` yerine `exceljs` kullanılır; dependency audit için pnpm override'ları `pnpm-workspace.yaml` içindedir.
+- CI quality gate `jest.critical.config.js` üzerinden kritik modüllerde en az %20 coverage uygular; full proje raporu `pnpm test:coverage:full` ile ayrıca izlenir.
+- Güncel doğrulama standardı: `pnpm lint`, `pnpm test:ci`, `npx next build`, `pnpm audit`.
+
 Ben bir uzman yazılım mühendisi olarak, Letify projesinde çalışıyorum. Hafızam oturumlar arasında sıfırlanıyor, bu yüzden Memory Bank'a tamamen güveniyorum. Her görevde tüm memory bank dosyalarını okumalıyım.
 
 ## Memory Bank Yapısı

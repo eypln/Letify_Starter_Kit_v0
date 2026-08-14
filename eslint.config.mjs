@@ -1,41 +1,56 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextPlugin from "@next/eslint-plugin-next";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
+import reactHooks from "eslint-plugin-react-hooks";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default [
   {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "coverage/**",
+      "public/**/*.js",
+      "types/supabase.ts",
+      "**/*.d.ts",
+    ],
+  },
+  {
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      "@next/next": nextPlugin,
+      "@typescript-eslint": tsPlugin,
+      "react-hooks": reactHooks,
+    },
     rules: {
-      // ESLint 9'da context.getAncestors hatası veren kurallar
+      "no-undef": "off",
+      "no-empty": "warn",
+      "no-unused-vars": "off",
+      "prefer-const": "warn",
+
       "@next/next/no-duplicate-head": "off",
       "@next/next/no-page-custom-font": "off",
       "@next/next/google-font-display": "off",
       "@next/next/google-font-preconnect": "off",
       "@next/next/no-css-tags": "off",
       "@next/next/no-head-element": "off",
-      
-      // TypeScript kuralları - warning seviyesinde
+
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-require-imports": "warn",
       "@typescript-eslint/no-unused-expressions": "warn",
-      
-      // React hooks kuralları - warning seviyesinde
+
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/purity": "warn",
-      
-      // Diğer kurallar
-      "prefer-const": "warn",
     },
   },
 ];
-
-export default eslintConfig;

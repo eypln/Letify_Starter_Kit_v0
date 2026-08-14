@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('[Admin Invoice Generate] Storage error:', uploadError)
-      return NextResponse.json({ error: uploadError.message }, { status: 400 })
+      return NextResponse.json({ error: 'Failed to upload invoice PDF' }, { status: 500 })
     }
 
     const rawValue = (key: string) => {
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       await adminClient.storage.from(BUCKET).remove([storagePath])
-      return NextResponse.json({ error: updateError.message }, { status: 400 })
+      return NextResponse.json({ error: 'Failed to save invoice details' }, { status: 500 })
     }
 
     return NextResponse.json({

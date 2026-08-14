@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isDiagnosticRoute } from '@/lib/api/diagnostic-routes'
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -20,6 +21,12 @@ export async function proxy(request: NextRequest) {
   
   if (isStaticFile) {
     return NextResponse.next()
+  }
+
+  const diagnosticRoute = isDiagnosticRoute(pathname)
+
+  if (diagnosticRoute && process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
   
   // CRITICAL: Allow /auth/callback to proceed without auth checks
@@ -85,6 +92,22 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  if (diagnosticRoute) {
+    if (!user || !user.email_confirmed_at) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin' || profile.status === 'denied') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const url = request.nextUrl.clone()
 

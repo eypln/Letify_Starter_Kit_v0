@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 
 export async function POST(req: NextRequest) {
   const user = await getUser()
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
         break
 
       case 'excel':
-        exportData = convertToExcel(data)
+        exportData = await convertToExcel(data)
         contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         fileName = `${exportType}_${timestamp}.xlsx`
         break
@@ -214,43 +214,40 @@ function convertToCSV(data: Record<string, unknown>[]): string {
   return csvContent
 }
 
-function convertToExcel(data: Record<string, unknown>[]): Buffer {
+async function convertToExcel(data: Record<string, unknown>[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Export')
+
   if (data.length === 0) {
-    // Create empty workbook
-    const workbook = XLSX.utils.book_new()
-    const worksheet = XLSX.utils.aoa_to_sheet([['No data available']])
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data')
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
-    return Buffer.from(buffer)
+    worksheet.addRow(['No data available'])
+    return Buffer.from(await workbook.xlsx.writeBuffer())
   }
 
-  // Create a new workbook
-  const workbook = XLSX.utils.book_new()
-
-  // Convert data to worksheet
-  const worksheet = XLSX.utils.json_to_sheet(data)
-
-  // Auto-size columns (optional but nice)
   const maxWidth = 50
-  const colWidths: { wch: number }[] = []
-  const headers = Object.keys(data[0] || {})
-  
-  headers.forEach((header, i) => {
+  const headers = Object.keys(data[0])
+
+  worksheet.columns = headers.map((header) => {
     let maxLen = header.length
     data.forEach(row => {
-      const val = String(row[header] || '')
+      const value = row[header]
+      const val = value === null || value === undefined
+        ? ''
+        : typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value)
       if (val.length > maxLen) maxLen = val.length
     })
-    colWidths[i] = { wch: Math.min(maxLen + 2, maxWidth) }
+    return { header, key: header, width: Math.min(maxLen + 2, maxWidth) }
   })
-  
-  worksheet['!cols'] = colWidths
 
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Export')
+  data.forEach(row => {
+    worksheet.addRow(headers.map(header => {
+      const value = row[header]
+      return value !== null && typeof value === 'object'
+        ? JSON.stringify(value)
+        : value ?? ''
+    }))
+  })
 
-  // Generate Excel file as buffer
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
-
-  return Buffer.from(buffer)
+  return Buffer.from(await workbook.xlsx.writeBuffer())
 }

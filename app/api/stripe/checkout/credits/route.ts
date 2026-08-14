@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { stripe, PRICES, CreditAmount } from '@/lib/stripe';
 import { getOrCreateStripeCustomer } from '@/lib/billing';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
-
-const CheckoutSchema = z.object({
-  credits: z.enum(['10', '20', '50', '100', '200']),
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-});
+import { CreditsCheckoutSchema } from '@/lib/billing-schemas';
 
 export async function POST(request: NextRequest) {
   // Rate limiting: 10 requests per minute per user
@@ -43,7 +37,7 @@ export async function POST(request: NextRequest) {
     console.log("Authenticated user:", user.id, "Email:", user.email);
 
     const body = await request.json();
-    const validation = CheckoutSchema.safeParse(body);
+    const validation = CreditsCheckoutSchema.safeParse(body);
     console.log("Request body:", body, "validation:", validation);
 
     if (!validation.success) {

@@ -1,5 +1,14 @@
 # System Patterns: Letify
 
+## Security and Quality Patterns (v2.10.0)
+
+- Diagnostic routes are classified centrally and blocked in production by `proxy.ts`.
+- Sensitive mutations use regular Supabase auth for identity/role checks, then service-role clients only for authorized persistence.
+- Notification authorization separates `canBroadcast` leadership roles from allowed direct leadership recipients; collaboration flows continue through `sendTeamworkNotification`.
+- External errors are logged server-side and replaced with stable client-safe responses.
+- Critical coverage is explicit in `jest.critical.config.js`; full coverage is informational via `test:coverage:full`.
+- XLSX generation uses ExcelJS on both server and browser; do not reintroduce SheetJS without a security review.
+
 ## Revenue, Bonus & Invoice Patterns (13.08.2026)
 
 ### Admin Invoice Generation
@@ -39,7 +48,7 @@ Agent/Teamleader Add or Edit Deal
 ## Sistem Mimarisi
 
 ### Genel Yapı
-- **Frontend**: Next.js 15 App Router, React 19, TypeScript
+- **Frontend**: Next.js 16 App Router, React 19, TypeScript 6
 - **Backend**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
 - **Payments**: Stripe (Subscriptions + One-time payments)
 - **Automation**: N8N (Workflow orchestration)

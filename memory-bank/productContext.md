@@ -1,5 +1,11 @@
 # Product Context: Letify
 
+## Quality and Notification Contract (v2.10.0)
+
+- Collaboration notifications are business functionality: normal users may notify themselves or leadership roles (`admin`, `manager`, `teamleader`, `boss`); leadership roles may broadcast.
+- Security controls must preserve this role matrix rather than reducing notifications to self-only behavior.
+- Billing, invoice, credit, webhook, and notification failures return stable client-safe messages while retaining diagnostic detail in server logs.
+
 > Güncel ürün odağı (13.08.2026): İç ekip operasyonları ve finansal doğruluk birinci önceliktir. Content Engineering/AI Second Brain destekleyici bir capability olarak korunur.
 
 ## Var Olma Nedeni

@@ -2,3 +2,18 @@ ignoredBuiltDependencies:
   - sharp
   - supabase
   - unrs-resolver
+
+overrides:
+  '@babel/core': '>=7.29.6'
+  baseline-browser-mapping: '2.11.14'
+  bn.js: '>=4.12.3'
+  diff: '>=4.0.4'
+  dompurify: '>=3.4.13'
+  fast-uri: '>=3.1.5'
+  flatted: '>=3.4.2'
+  jws: '>=4.0.1'
+  picomatch: '>=2.3.2'
+  uuid: '>=11.1.1'
+  webpack: '>=5.104.1'
+  yaml: '>=1.10.3'
+  zod-validation-error: '5.0.0'

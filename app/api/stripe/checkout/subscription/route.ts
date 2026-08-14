@@ -5,24 +5,11 @@ import { logActivity } from '@/lib/activity';
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { rateLimit, RateLimitPresets } from '@/lib/rate-limit';
+import { pickSubscriptionPrice } from '@/lib/billing-pricing';
+import { SubscriptionCheckoutSchema } from '@/lib/billing-schemas';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type Body = { plan: "mini" | "full"; cycle?: "monthly" | "yearly" };
-
-function pickPrice(plan: "mini" | "full", cycle: "monthly" | "yearly") {
-  const env = process.env;
-  if (plan === "mini") {
-    const yearly = env.STRIPE_PRICE_MINI_YEARLY;
-    const monthly = env.STRIPE_PRICE_MINI_MONTHLY;
-    return cycle === "yearly" ? (yearly || monthly) : (monthly || yearly);
-  } else {
-    const yearly = env.STRIPE_PRICE_FULL_YEARLY;
-    const monthly = env.STRIPE_PRICE_FULL_MONTHLY;
-    return cycle === "yearly" ? (yearly || monthly) : (monthly || yearly);
-  }
-}
 
 export async function POST(req: NextRequest) {
   // Rate limiting: 10 requests per minute per user
@@ -45,9 +32,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supaUser.auth.getUser();
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = (await req.json()) as Body;
-    const plan = body.plan;
-    const cycle = body.cycle ?? "monthly";
+    const validation = SubscriptionCheckoutSchema.safeParse(await req.json());
+    if (!validation.success) {
+      return NextResponse.json({ error: "Invalid subscription data" }, { status: 400 });
+    }
+
+    const { plan, cycle } = validation.data;
 
     // 2) Stripe customer'ı bul/oluştur + Supabase'te map'le
       const svc = createClient(
@@ -73,9 +63,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Price ID seç (yearly yoksa monthly'e düş)
-    const PRICE = pickPrice(plan, cycle);
+    const PRICE = pickSubscriptionPrice(plan, cycle);
     if (!PRICE) {
-      return NextResponse.json({ error: "Missing Stripe Price ID(s). Check .env.local" }, { status: 400 });
+      return NextResponse.json({ error: "Subscription pricing is not configured" }, { status: 503 });
     }
 
     // 4) Checkout Session (metadata'lar kritik)
@@ -100,7 +90,6 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const error = e as Error;
     console.error("checkout/subscription error:", error?.message || e);
-    // Hata mesajını UI'a net döndür (debug kolay olsun)
-    return NextResponse.json({ error: String(error?.message || "server error") }, { status: 500 });
+    return NextResponse.json({ error: "Unable to create subscription checkout" }, { status: 500 });
   }
 }

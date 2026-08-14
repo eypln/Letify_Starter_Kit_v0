@@ -1,5 +1,10 @@
 # Project Brief: Letify
 
+## Current Release: v2.10.0 (15.08.2026)
+
+- Production-readiness work now includes protected diagnostic/test routes, role-aware notifications, credit mutation authorization, sanitized API errors, ExcelJS export migration, and a tiered critical coverage gate.
+- Content Engineering remains a supporting AI Second Brain capability for the Malta lettings operation.
+
 > Güncel gerçek durum (13.08.2026): Letify, Malta merkezli lettings ekibinin production'da kullandığı iç emlak operasyon platformudur. Sosyal medya ve content engineering, ana emlak operasyonuna eklenen AI Second Brain alanıdır; projenin ana ürünü değildir.
 
 ## Proje Özeti
@@ -17,7 +22,7 @@ Letify, Malta merkezli emlakçılar için property listing, client, viewing, tea
 - **Revenue & Bonus Auditability**: Deal ödeme tarihleri, agent/teamleader payları, listing fee sahipliği ve invoice durumlarının izlenebilir hesaplanması
 
 ## Teknik Kısıtlamalar
-- Next.js 15 App Router kullan
+- Next.js 16 App Router kullan
 - TypeScript zorunlu
 - Supabase backend
 - Stripe payment processing

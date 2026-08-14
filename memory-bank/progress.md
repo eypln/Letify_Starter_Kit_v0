@@ -1,6 +1,25 @@
 
 # Progress: Letify
 
+## 15.08.2026 - Security, Coverage and Audit Release v2.10.0
+
+### Completed
+- Added tiered Jest quality gate: critical scope enforces 20%; full coverage remains report-only.
+- Added route tests for Stripe billing/subscription/webhook, admin users/invoices, credit mutations, and notifications.
+- Added pure tests for billing, rate limiting, validation, revenue, webhook helpers, schemas, and error handling.
+- Protected diagnostic/test routes and credit mutations with role-aware authorization.
+- Restored notification collaboration rules for leadership broadcast and direct leadership targeting.
+- Sanitized raw Stripe, Supabase, storage, webhook, and notification errors.
+- Migrated SheetJS `xlsx` exports to ExcelJS and removed the vulnerable package.
+- Moved pnpm overrides to `pnpm-workspace.yaml`; audit now reports no known vulnerabilities.
+
+### Verified
+- 29 test suites / 185 tests pass.
+- Critical coverage: 76.24% statements.
+- Lint passes.
+- Production build passes.
+- Full-project coverage remains a separate long-term improvement track.
+
 ## 13.08.2026 - Revenue Audit, Invoice Workflow & Deploy Readiness ✅
 
 ### Admin Invoice Generator Extension
