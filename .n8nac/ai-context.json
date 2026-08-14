@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "signature": "bc66d3291c7643d1b1513abdf81b64bd9009438ccc087d8fce02d4cd01f684b7",
+  "signature": "9b8e26b82ee13fe1d73ec3d2ce10857262eec5e427e22f677db7f1a145ddc048",
   "n8nacVersion": "2.5.0",
   "n8nVersion": "Unknown",
-  "generatedAt": "2026-08-08T23:28:14.138Z",
-  "reason": "snapshot:startup"
+  "generatedAt": "2026-08-13T23:01:05.976Z",
+  "reason": "snapshot:workspace-overrides-changed"
 }

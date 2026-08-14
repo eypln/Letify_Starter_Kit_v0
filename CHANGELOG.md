@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.6] - 2026-08-14
+
+### Added
+- **Job Applications Database Guard**: Added `drive_file_id` to applications and enforced uniqueness, preventing the same Google Drive CV from creating a second application record.
+
+### Changed
+- **Job Applications Workflow**: Stores and checks the original Google Drive file ID after a successful insert to prevent repeat processing.
+- **Applications Table UX**: Reordered columns so CV and 1st Call are available before horizontal scrolling; moved R.E. Experience to the end of the table.
+
+### Fixed
+- **PDF Processing**: Added required binary input and destination fields to the PDF extraction node.
+
 ## [2.8.9] - 2026-04-06
 
 ### Added

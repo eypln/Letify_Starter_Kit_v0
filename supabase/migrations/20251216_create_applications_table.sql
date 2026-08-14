@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.applications (
     nationality TEXT,
     phone TEXT,
     email TEXT,
+    drive_file_id TEXT UNIQUE,
     re_experience BOOLEAN DEFAULT FALSE,
     first_call_status TEXT,
     second_call_notes TEXT,
@@ -73,6 +74,7 @@ CREATE POLICY "Teamleaders can delete applications"
 CREATE INDEX IF NOT EXISTS idx_applications_user_id ON public.applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_created_at ON public.applications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_applications_application_date ON public.applications(application_date DESC);
+CREATE INDEX IF NOT EXISTS idx_applications_drive_file_id ON public.applications(drive_file_id);
 CREATE INDEX IF NOT EXISTS idx_applications_first_call_status ON public.applications(first_call_status);
 
 -- Create updated_at trigger
