@@ -59,7 +59,7 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 @workflow({
     id: 'baD3wkWjjZc5TMZc',
     name: 'Job Applications final',
-    active: false,
+    active: true,
     isArchived: false,
     settings: {
         executionOrder: 'v1',
@@ -301,9 +301,21 @@ and (
       "type": "array",
       "items": { "type": "string" },
       "description": "Short evidence snippets used for inference"
+        },
+
+        "industry_experience": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 40 },
+            "maxItems": 5,
+            "description": "Up to 5 short main industry labels from the candidate's work experience, such as IT, Software, AI, Automation, Marketing, Finance, or Real Estate. Empty if no clear work experience is present."
+                },
+
+                "re_experience": {
+                        "type": "boolean",
+                        "description": "True only when the resume shows direct real estate industry experience, such as real estate agent, property consultant, property sales, leasing, brokerage, or property management. False for construction, HVAC, plumbing, engineering, architecture, or general business experience without direct real estate work."
     }
   },
-  "required": ["name"],
+    "required": ["name", "re_experience"],
   "additionalProperties": false
 }
 `,
@@ -323,6 +335,10 @@ Nationality logic and evidence priority:
 - Provide "nationality_iso2" as ISO 3166-1 alpha-2 (uppercase).
 - "evidence": include short snippets like "Politecnico Grancolombiano (Bogotá, Colombia)" or "+57 phone code".
 - If inference is weak, set a lower "confidence" (<0.6) or leave inferred fields empty with confidence = 0.
+- Extract "industry_experience" from employment, projects, and clearly described professional experience, not from generic skills alone.
+- Return only the main sectors as concise labels (1-5 items), using common English labels such as "IT", "Software", "AI", "Automation", "Marketing", "Finance", or "Real Estate". Do not write sentences, job titles, or employer names.
+- Set "re_experience" to true only for direct real estate work, including real estate agent, property consultant, property sales, leasing, brokerage, or property management.
+- Set "re_experience" to false when the CV only shows construction, HVAC, plumbing, engineering, architecture, or another adjacent field without direct real estate work. Do not infer it from the "Real Estate" industry label alone.
 `,
         },
     };
@@ -379,6 +395,14 @@ Nationality logic and evidence priority:
                 {
                     fieldId: 'email',
                     fieldValue: '={{ $json.output.email }}',
+                },
+                {
+                    fieldId: 'industry_experience',
+                    fieldValue: "={{ ($json.output.industry_experience || []).join(', ') }}",
+                },
+                {
+                    fieldId: 're_experience',
+                    fieldValue: '={{ $json.output.re_experience }}',
                 },
                 {
                     fieldId: 'user_id',

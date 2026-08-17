@@ -39,6 +39,7 @@ async function resolveCollaborationUserId(
     .select('user_id')
     .eq('full_name', name)
     .eq('role', 'agent')
+    .eq('status', 'approved')
     .limit(2);
 
   if (!data || data.length !== 1) {

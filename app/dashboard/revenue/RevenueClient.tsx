@@ -490,11 +490,12 @@ export default function RevenueClient({ user }: { user: User }) {
       setClients(clientsData);
     }
 
-    // Fetch profiles for Collaboration With dropdown (only agents, exclude current user)
+    // Fetch profiles for Collaboration With dropdown (only approved agents, exclude current user)
     const { data: profilesData } = await supabase
       .from("profiles")
       .select("user_id, full_name")
       .eq("role", "agent")
+      .eq("status", "approved")
       .neq("user_id", user.id)
       .order("full_name", { ascending: true });
 

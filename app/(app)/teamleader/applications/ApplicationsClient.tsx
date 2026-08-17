@@ -61,6 +61,7 @@ interface Application {
   nationality: string | null;
   phone: string | null;
   email: string | null;
+  industry_experience: string | null;
   re_experience: boolean;
   first_call_status: string | null;
   second_call_notes: string | null;
@@ -80,6 +81,7 @@ interface ApplicationForm {
   nationality: string;
   phone: string;
   email: string;
+  industry_experience: string;
   re_experience: boolean;
   first_call_status: string;
   second_call_notes: string;
@@ -185,6 +187,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
     nationality: "",
     phone: "",
     email: "",
+    industry_experience: "",
     re_experience: false,
     first_call_status: "",
     second_call_notes: "",
@@ -349,6 +352,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       nationality: "",
       phone: "",
       email: "",
+      industry_experience: "",
       re_experience: false,
       first_call_status: "",
       second_call_notes: "",
@@ -378,6 +382,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       nationality: app.nationality || "",
       phone: app.phone || "",
       email: app.email || "",
+      industry_experience: app.industry_experience || "",
       re_experience: app.re_experience || false,
       first_call_status: app.first_call_status || "",
       second_call_notes: app.second_call_notes || "",
@@ -570,13 +575,14 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
       return;
     }
 
-    const headers = ["Date", "Applicant", "Nationality", "Phone", "Email", "R.E. Experience", "1st Call", "2nd Call", "Appointment", "Interview Point", "VAT Type", "Start Date"];
+    const headers = ["Date", "Applicant", "Nationality", "Phone", "Email", "Industry Experience", "R.E. Experience", "1st Call", "2nd Call", "Appointment", "Interview Point", "VAT Type", "Start Date"];
     const rows = data.map((app: Application) => ({
       "Date": formatDate(app.application_date),
       "Applicant": app.applicant_name || "",
       "Nationality": app.nationality || "",
       "Phone": app.phone || "",
       "Email": app.email || "",
+      "Industry Experience": app.industry_experience || "",
       "R.E. Experience": app.re_experience ? "Yes" : "No",
       "1st Call": app.first_call_status || "",
       "2nd Call": app.second_call_notes || "",
@@ -746,7 +752,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
 
   const pieTotal = useMemo(() => pieData.reduce((s, e) => s + e.value, 0), [pieData]);
 
-  const colCount = 16; // checkbox + 15 data columns (includes CV)
+  const colCount = 17; // checkbox + 16 data columns (includes CV and industry)
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-8 lg:px-16">
@@ -984,6 +990,7 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">CV</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">1st Call</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Industry Experience</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">2nd Call</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Appointment</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Interview Point</th>
@@ -1122,6 +1129,9 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {app.email || "-"}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-56">
+                          {app.industry_experience || "-"}
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-50 truncate">
                           {app.second_call_notes || "-"}
@@ -1414,6 +1424,14 @@ export default function ApplicationsClient({ user, dashboardUrl = "/teamleader" 
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       placeholder="Enter email address"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Industry Experience</label>
+                    <Input
+                      value={form.industry_experience}
+                      onChange={(e) => setForm({ ...form, industry_experience: e.target.value })}
+                      placeholder="e.g., IT, Software, AI"
                     />
                   </div>
                   <div className="flex items-center pt-6">

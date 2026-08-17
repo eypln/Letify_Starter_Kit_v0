@@ -350,11 +350,12 @@ export default function RevenueClient({ user }: { user: User }) {
       setClients(clientsData);
     }
 
-    // Fetch profiles for Collaboration With dropdown (only agents, exclude current user)
+    // Fetch profiles for Collaboration With dropdown (only approved agents, exclude current user)
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, full_name")
       .eq("role", "agent")
+      .eq("status", "approved")
       .neq("user_id", user.id)
       .order("full_name", { ascending: true });
 
@@ -364,11 +365,12 @@ export default function RevenueClient({ user }: { user: User }) {
       setProfiles(profilesData);
     }
 
-    // Fetch agents for Assign to Agent dropdown (role = 'agent')
+    // Fetch agents for Assign to Agent dropdown (role = 'agent', only approved users)
     const { data: agentsData, error: agentsError } = await supabase
       .from("profiles")
       .select("user_id, full_name")
       .eq("role", "agent")
+      .eq("status", "approved")
       .order("full_name", { ascending: true });
 
     if (agentsError) {

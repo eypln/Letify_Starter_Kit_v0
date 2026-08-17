@@ -246,12 +246,13 @@ export default function TeamViewingsPage() {
     }
   }
 
-  // Fetch all agents for dropdown
+  // Fetch all agents for dropdown (only approved users)
   async function fetchAgents() {
     const { data, error } = await supabase
       .from("profiles")
       .select("user_id, full_name")
       .eq("role", "agent")
+      .eq("status", "approved")
       .order("full_name", { ascending: true });
 
     if (!error && data) {

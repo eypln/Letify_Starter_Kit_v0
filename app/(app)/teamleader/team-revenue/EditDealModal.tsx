@@ -304,11 +304,12 @@ export default function EditDealModal({ revenue, onClose, onSuccess }: EditDealM
         setProfiles(profilesData.map(p => ({ id: p.user_id, full_name: p.full_name })));
       }
 
-      // Fetch agents for Assign to Agent dropdown (role = 'agent')
+      // Fetch agents for Assign to Agent dropdown (role = 'agent', only approved users)
       const { data: agentsData } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .eq("role", "agent")
+        .eq("status", "approved")
         .order("full_name", { ascending: true });
       if (agentsData) {
         setAgents(agentsData);
